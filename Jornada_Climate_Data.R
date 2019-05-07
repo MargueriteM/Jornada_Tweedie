@@ -17,6 +17,8 @@
 library(data.table)
 library(ggplot2)
 library(lubridate)
+library(gridExtra)
+library(lattice)
 
 
 # copied files from server to computer
@@ -56,7 +58,7 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/")
 # list all files in relevant folder
 metfiles <- list.files(path="~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/RawFiles", full.names=TRUE) 
 # read files and bind them into one file. fill=TRUE because of the missing columns in 2011
-met_all <- do.call("rbind", lapply(metfiles, header = TRUE, fread, sep=",", skip = 4,fill=TRUE,
+met_all <- do.call("rbind", lapply(metfiles, header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
                                    na.strings=c(-9999,"#NAME?"),
                                    col.names=c("timestamp","record","airtemp","rh","e",
                                                "atm_press","wnd_spd","wnd_dir",
@@ -72,16 +74,285 @@ met_all[,date_time := parse_date_time(timestamp, c("%m-%d-%y %H:%M","%m-%d-%y %H
 # create derivative date columns
 met_all[,':=' (year = year(date_time), doy = yday(date_time), date = date(date_time))]
 
-summary(met_all)
+# check data
+# summary(met_all)
+
+# calculate half-hourly data (data are already in full time-series for all minutes of a year)
+# 1440 min/day
+# leap year: 525600 minutes/year
+# non-leap year: 52740 minutes/year
+
+# several NA options: 
+# if any 1 min is NA in the 30 minute interval, mean = NA
+# ignore all NA and calcualte mean, regardless of how many NA/30min
+# more complex: use some NA threshold to get 30min (eg: no more than 10% NA = 3 NAs)
+
+# decision: calculate with and without NA, use the NA removed values unless they are really off and then gap-fill
+# missing values would be filled either way, with straight interpolation, so may as well use some of the 1 min data
+# count NAs so that this can be checked if there's a very strange value. 
+
+# at each step, convert timestamp pack to posixct, force to :00 and :30 by subtraction 1 miunute (60s), 
+
+# leave out Co2_raw and H2O_raw, those will be in the eddy processed data
+met_30min_rmna <- met_all[,lapply(.SD, function (x) {mean(x, na.rm=TRUE)}), 
+                          .SDcols = c("airtemp","rh","e","atm_press","wnd_spd","wnd_dir","par","albedo",
+                                      "lws","net_rs","net_ri","up_tot","dn_tot"),
+                         by=cut(date_time,"30 min")]
+# keep one dataframe with original column names
+met_30min_rmna_use <- copy(met_30min_rmna)
+# merge one to means calculated with NA removed to compare data
+colnames(met_30min_rmna) <- paste(colnames(met_30min_rmna), 'mean.na', sep=".")
+# return date_time to POSIXct format
+met_30min_rmna[,date_time := (ymd_hms(cut.mean.na))][,cut.mean.na := NULL]
+met_30min_rmna_use[,date_time := (ymd_hms(cut))][,cut := NULL]
+
+# now calculte with NA included and count NAs
+# find numbers of NA in 30min intervals
+# from: https://stackoverflow.com/questions/37142181/how-to-change-few-column-names-in-a-data-table
+
+met_all_30min <- met_all[, as.list(unlist(lapply(.SD,
+                                      function(x) list(mean=mean(x, na.rm=FALSE), na=sum(is.na(x)))))),
+              by=cut(date_time,"30 min"),
+              .SDcols = c("airtemp","rh","e","atm_press","wnd_spd","wnd_dir","precip","par","albedo",
+                          "lws","net_rs","net_ri","up_tot","dn_tot")][,date_time := (ymd_hms(cut))][,cut := NULL]
+
+
+# calculate sum of precip separately, and then merge to other data:
+precip_tot_30min_narm <- met_all[,list(precip.tot.na = sum(precip, na.rm=TRUE)), 
+                                 by=cut(date_time,"30 min")][,date_time := (ymd_hms(cut))][,cut := NULL]
+
+precip_tot_30min_narm_use <- met_all[,list(precip.tot = sum(precip, na.rm=TRUE)), 
+                                 by=cut(date_time,"30 min")][,date_time := (ymd_hms(cut))][,cut := NULL]
+
+
+precip_tot_30min <- met_all[,list(precip.tot = sum(precip)), 
+                         by=cut(date_time,"30 min")][,date_time := (ymd_hms(cut))][,cut := NULL]
+
+# data to rest effect of removing or including NA
+met30 <- merge(met_all_30min, met_30min_rmna, by="date_time")
+met30 <- merge(met30, precip_tot_30min)
+met30 <- merge(met30, precip_tot_30min_narm)
+# data to use
+met30_use <- merge(met_30min_rmna_use, precip_tot_30min_narm_use, by="date_time")
+
+# create year, date, and doy columns
+met30[,':=' (year=year(date_time), month=month(date_time), date=as_date(date_time), doy=yday(date_time))]
+
+# keep the data with 30mins mean removing NA
+met30_long <- melt.data.table(met30_use,c("date_time"))
+
+met30_long[,':=' (year=year(date_time),month=month(date_time),doy=yday(date_time))]
+
+# data to filter: 
+# airtemp, RH, e, press, wnd_spd, wnd_dir, precip, par are good
+
+# ALL:
+# remove >Oct 6 2017 12:00 and < Nov 3 2017 12:00
+# remove > Dec 1 2017 and < Apr 3 2018 7:00
+met30_long[(date_time > as.POSIXct("2017-10-06 12:00", tz="UTC") & date_time < as.POSIXct("2017-11-03 12:00", tz="UTC")) |
+             (date_time > as.POSIXct("2017-12-01 00:00", tz="UTC") & date_time < as.POSIXct("2018-04-03 7:00", tz="UTC"))  , 
+           value := NA]
+
+# albedo
+# remove values < -300 and > 300
+met30_long[variable=="albedo" & (value <(-300) | value > 300), value := NA]
+# albedo remove > March 17 2017 and < June 1 2011
+met30_long[variable=="albedo"&date_time>as.Date("2011-03-17")&
+             date_time<as.POSIXct("2011-06-17 12:00", tz="UTC"), value := NA]
+# albedo remove > Feb 1 2012 and < Mar 8 2012 (flat-line)
+met30_long[variable=="albedo"&date_time>as.Date("2012-02-01")&
+             date_time<as.Date("2012-03-08"), value := NA]
+# albedo remove >Oct 20 2015 and < Nov 7 2015 (flat-line)
+met30_long[variable=="albedo"&date_time>as.Date("2015-10-20")&
+             date_time<as.Date("2015-11-07"), value := NA]
+
+# lws. There are some values, not sure what those mean. Leave them in.
+# remove lws prior to Aug 25 2011
+met30_long[variable=="lws"&date_time<as.Date("2011-08-25"), value := NA]
+
+# net_rs
+# remove values < -25 and > 1000
+met30_long[variable=="net_rs"&(value<(-25)|value>1000), value := NA]
+
+# net_rs remove > Feb 1 2012 and < Mar 8 2012 (flat-line)
+met30_long[variable=="net_rs"&date_time>as.Date("2012-02-01")&
+             date_time<as.Date("2012-03-08"), value := NA]
+# net_rs remove >Oct 20 2015 and < Nov 7 2015 (flat-line)
+met30_long[variable=="net_rs"&date_time>as.Date("2015-10-20")&
+             date_time<as.Date("2015-11-07"), value := NA]
+
+# net_ri
+# remove values > 100
+met30_long[variable=="net_ri"&value>100, value := NA]
+
+# net_ri remove > Feb 1 2012 and < Mar 8 2012 (flat-line)
+met30_long[variable=="net_ri"&date_time>as.Date("2012-02-01")&
+             date_time<as.Date("2012-03-08"), value := NA]
+# net_ri remove >Oct 20 2015 and < Nov 7 2015 (flat-line)
+met30_long[variable=="net_ri"&date_time>as.Date("2015-10-20")&
+             date_time<as.Date("2015-11-07"), value := NA]
+
+
+# up_tot
+# remove value >1500
+met30_long[variable=="up_tot" & value>1500, value := NA]
+# up_tot remove > Feb 1 2012 and < Mar 8 2012 (flat-line)
+met30_long[variable=="up_tot"&date_time>as.Date("2012-02-01")&
+             date_time<as.Date("2012-03-08"), value := NA]
+# up_tot remove >Oct 20 2015 and < Nov 7 2015 (flat-line)
+met30_long[variable=="up_tot"&date_time>as.Date("2015-10-20")&
+             date_time<as.Date("2015-11-07"), value := NA]
+
+
+# dn_tot
+# remove < -1000 and > 350
+met30_long[variable=="dn_tot" & value< (-1000) | value > 350, value := NA]
+# dn_tot remove > Feb 1 2012 and < Mar 8 2012 (flat-line)
+met30_long[variable=="dn_tot"&date_time>as.Date("2012-02-01")&
+             date_time<as.Date("2012-03-08"), value := NA]
+# dn_tot remove >Oct 20 2015 and < Nov 7 2015 (flat-line)
+met30_long[variable=="dn_tot"&date_time>as.Date("2015-10-20")&
+             date_time<as.Date("2015-11-07"), value := NA]
+
+# do a bunch of graphic checks on the data: 
+# airtemp, rh, e, atm_press, wnd_spd, wnd_dir, precip.tot, par, albedo, lws,
+# net_rs, net_ri, up_tot, dn_tot
+# columns with mean.na have the NA removed!
+
+# airtemp
+ggplot(met30[year>=2017,], aes(x=date_time))+
+  geom_line(aes(y=airtemp.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=airtemp.mean), colour="red") # with NA
+  facet_grid(year~.)
+# rh
+ggplot(met30, aes(x=date_time))+
+  geom_line(aes(y=rh.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=rh.mean), colour="red") # with NA
+  facet_grid(year~.)
+# e
+ggplot(met30, aes(x=date_time))+
+  geom_line(aes(y=e.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=e.mean), colour="red") # with NA
+  facet_grid(year~.)
+# atm_press
+ggplot(met30, aes(x=date_time))+
+  geom_line(aes(y=atm_press.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=atm_press.mean), colour="red") # with NA
+  facet_grid(year~.)
+# wnd_spd
+ggplot(met30, aes(x=date_time))+
+  geom_line(aes(y=wnd_spd.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=wnd_spd.mean), colour="red") # with NA
+  facet_grid(year~.)
+# wnd_dir
+ggplot(met30, aes(x=date_time))+
+  geom_line(aes(y=wnd_dir.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=wnd_dir.mean), colour="red") # with NA
+  facet_grid(year~.)
+# precip.tot
+ggplot(met30, aes(x=date_time))+
+  geom_line(aes(y=precip.tot.na), colour="black")+ # NA removed
+  geom_line(aes(y=precip.tot), colour="red") # with NA
+  facet_grid(year~.)
+# par
+ggplot(met30, aes(x=date_time))+
+  geom_line(aes(y=par.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=par.mean), colour="red") # with NA
+  facet_grid(year~.)
+# albedo
+ggplot(met30[albedo.mean.na<24&albedo.mean.na>(-25),], aes(x=date_time))+
+  geom_line(aes(y=albedo.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=albedo.mean), colour="red") # with NA
+  facet_grid(year~.)
+# lws
+ggplot(met30[lws.mean>250&date_time>as.Date("2011-08-25"),], aes(x=date_time))+
+  geom_line(aes(y=lws.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=lws.mean), colour="red") # with NA
+  facet_grid(year~.)
+# net_rs
+ggplot(met30[net_rs.mean.na<1000&net_rs.mean.na>(-25),], aes(x=date_time))+
+  geom_line(aes(y=net_rs.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=net_rs.mean), colour="red") # with NA
+  facet_grid(year~.)
+# net_ri
+ggplot(met30[net_ri.mean.na<100,], aes(x=date_time))+
+  geom_line(aes(y=net_ri.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=net_ri.mean), colour="red") # with NA
+  facet_grid(year~.)
+# up_tot
+ggplot(met30[up_tot.mean.na<1500,], aes(x=date_time))+
+  geom_line(aes(y=up_tot.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=up_tot.mean), colour="red") # with NA
+  facet_grid(year~.)
+# dn_tot
+ggplot(met30[dn_tot.mean.na>(-1000)&dn_tot.mean.na<350,], aes(x=date_time))+
+  geom_line(aes(y=dn_tot.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=dn_tot.mean), colour="red") # with NA
+  facet_grid(year~.)
+
+
+# data FOR ANTHONY: 
+# Precip and Air Temp
+# 30-min Dec 2018 - March 2019
+# keep mean.na columns (NA removed during mean calculation)
+
+# airtemp
+ggplot(met30[date_time >= as.Date("2018-12-01") & date_time <= as.Date("2019-03-31"),],
+       aes(x=date_time))+
+  geom_line(aes(y=airtemp.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=airtemp.mean), colour="red") # with NA
+
+# precip.tot
+ggplot(met30[date_time >= as.Date("2018-12-01") & date_time <= as.Date("2019-03-31"),],
+       aes(x=date_time))+
+  geom_line(aes(y=precip.tot.na), colour="black")+ # NA removed
+  geom_line(aes(y=precip.tot), colour="red") # with NA
+
+# lws
+ggplot(met30[lws.mean.na<1000 & lws.mean.na>200 & 
+               date_time >= as.Date("2018-12-01") & date_time <= as.Date("2019-03-31"),],
+       aes(x=date_time))+
+  geom_line(aes(y=lws.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=lws.mean), colour="red") # with NA
+
+
+# check leaf-wetness against precip, for Dec 2018 to Mar 2019
+precip.2018.fig <- ggplot(met30[date_time >= as.Date("2018-12-01") & date_time <= as.Date("2019-03-31"),],
+                          aes(x=date_time))+
+  geom_line(aes(y=precip.tot.na), colour="black")+ # NA removed
+  geom_line(aes(y=precip.tot), colour="red") # with NA
+  
+lws.2018.fig <- ggplot(met30[date_time >= as.Date("2018-12-01") & date_time <= as.Date("2019-03-31"),],
+                       aes(x=date_time))+
+  geom_line(aes(y=lws.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=lws.mean), colour="red") # with NA
+
+grid.arrange(precip.2018.fig,lws.2018.fig, nrow=2)
+
+# save Dec 2018 to end of March 2019 data for Anthony
+setwd("~/Desktop/TweedieLab/Projects/Jornada/Anthony_soilCO2_fluxes")
+# write.csv(met30[ date_time >= as.Date("2018-12-01") & date_time <= as.Date("2019-03-31"),.(
+# date_time,date,year,doy,airtemp.mean.na,rh.mean.na,e.mean.na,atm_press.mean.na,
+# wnd_spd.mean.na,wnd_dir.mean.na,par.mean.na,albedo.mean.na,lws.mean.na,
+# net_rs.mean.na,net_ri.mean.na,up_tot.mean.na,dn_tot.mean.na,precip.tot.na)],
+# file='SEL_JER_MetData_20181201_20190331_20190423.csv',
+#           row.names=FALSE)
+
+# save 30min filtered data
+# save half hour means
+setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/Compiled")
+# write.table(met30_long, file="TowerMet_L1_2010_2019_30min.csv", sep=",", row.names = FALSE)
+
 
 # calculate daily precip
-met_daily1 <- met_all[,list(precip_daily = mean(precip),
+met_daily1 <- met_all[,list(precip_daily_mean = mean(precip),
+                            precip_daily_tot = sum(precip),
                             temp_daily = mean(airtemp),
                             year = unique(year),
                             doy=unique(doy)), 
                       by="date"]
 # calculate daily cumulative 
-met_precip_cum <- met_daily1[!is.na(precip_daily),list(precip_cum = cumsum(precip_daily),
+met_precip_cum <- met_daily1[!is.na(precip_daily_tot),list(precip_cum = cumsum(precip_daily_tot),
                                                        date = unique(date)),
                              by="year"]
 
@@ -89,7 +360,7 @@ met_precip_cum <- met_daily1[!is.na(precip_daily),list(precip_cum = cumsum(preci
 met_daily <- merge(met_daily1, met_precip_cum[,.(date,precip_cum)], by=c("date"),all.x=TRUE)
 
 # graph precip and temperature
-ggplot(met_daily, aes(date, precip_daily))+geom_point()
+ggplot(met_daily, aes(date, precip_daily_tot))+geom_point()
 ggplot(met_daily, aes(date, precip_cum))+geom_line()
 ggplot(met_daily, aes(date, temp_daily))+geom_line()+geom_hline(yintercept=0)
 
@@ -130,6 +401,7 @@ ggplot(met_all[doy>180 & doy<240,],
        aes(doy, rh))+geom_line()+
   facet_grid(.~year)+
   theme_bw()
+
 
 # save the merged data
 # setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/Compiled")
