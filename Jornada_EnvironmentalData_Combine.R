@@ -1,12 +1,17 @@
-#########################################
-#     Jornada Environmental Data        #
-# combine data from Met Tower,          #
-# Sensor networks, soil sensors         #
-# data from multiple years are combined #
-# in seperate R codes                   #
-#     written by: M. Mauritz            #
-#          April 2019                   #
-#########################################
+###########################################
+#     Jornada Environmental Data          #
+# combine 30min data from Met Tower,      #
+# Sensor networks, soil sensors.          #
+# This code brings together multiple      #
+# years of data with obvious sensor       #
+# failure and values out of range removed.#
+# For each data stream, multiple years    #
+# are combined and averaged to 30mins in  #
+# seperate R codes.                       #
+#                                         #
+#     written by: M. Mauritz              #
+#          April 2019                     #
+###########################################
 
 # TO DO: 
 # for tower precip data try mean(1 min by 5 mins) -> sum of 5 mins
@@ -26,6 +31,58 @@
 
 # very obviously bad sensor data was removed from the individual data streams.
 
+####
+# Sensor Network Data Units & Distances:
+####
+# Units of data:
+# rain, mm
+# pressure, mbar
+# leaf wetness (lws), no unit
+# par, uE
+# solar radiation (solar), Wm-2
+# soil moisture (moisture), m-3/m-3
+# battery, V
+# voltage, V
+# current, mA
+
+# Sensor network distances on tramline
+# SN1: 104m
+# SN2: 87.5m
+# SN3: 64m
+# SN4: 24m
+# SN5: 36m
+# SN6: 22m
+# SN7: 79.5m
+# SN8: 3m
+
+#####
+# Met Tower Climate Data Units
+####
+# Units of data:
+# timestamp: mm/dd/yyyy HH:MM:SS
+# t_hmp (air temperature): Celsius
+# rh_hmp (relative humidity): percent
+# e_hmp (absolute humidity): kPa
+# atm_press (atmospheric pressure): kPa
+# hor_wnd_spd (horizontal wind speed): m/s
+# hor_wnd_dir (horizontal wind direction): degrees
+# precip_tot (total precipitation): mm
+# par (photosynthetically active radiation): umol/m/s
+# albedo: unitless
+# lws_2 (leaf wetness): mV
+# NetRs (net solar radiation): W/m2
+# NetRI (net radiation): W/m2
+# UpTot (total upwelling): W/m2
+# DnTot (total downwelling): W/m2
+# CO2_raw: mmol/m3
+# H2O_raw: mmol/m3
+
+
+
+
+#############
+# IMPORT DATA
+#############
 # Sensor network data:
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Combined")
 SN_30min <- fread("SensorNetwork_L1_2010_2019_30min.csv", sep=",", header=TRUE)
