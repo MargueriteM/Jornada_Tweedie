@@ -3,17 +3,14 @@
 #                                               #
 # Data come from:                               #
 #                * Met Tower                    #
-#                * Sensor Network               #
 #  Get data from SEL Drive, view time series,   #
-# identify sensor gaps, combine tower and SN    #
-# to get full time series                       #
+# identify sensor gaps, remove bad data         #
 #                                               #
 #    written by: Marguerite Mauritz             #
 #                13 March, 2019                 #
 #################################################
 
-# Jornada Precip Data: import and explore
-
+# load libraries
 library(data.table)
 library(ggplot2)
 library(lubridate)
@@ -117,23 +114,18 @@ met_all_30min <- met_all[, as.list(unlist(lapply(.SD,
                           "lws","net_rs","net_ri","up_tot","dn_tot")][,date_time := (ymd_hms(cut))][,cut := NULL]
 
 
-# calculate sum of precip separately, and then merge to other data:
-precip_tot_30min_narm <- met_all[,list(precip.tot.na = sum(precip, na.rm=TRUE)), 
-                                 by=cut(date_time,"30 min")][,date_time := (ymd_hms(cut))][,cut := NULL]
-
-precip_tot_30min_narm_use <- met_all[,list(precip.tot = sum(precip, na.rm=TRUE)), 
-                                 by=cut(date_time,"30 min")][,date_time := (ymd_hms(cut))][,cut := NULL]
-
-
+# calculate sum of precip separately, and then merge to other data. 
+# for precip don't use na.rm=TRUE because otherwise it will look like we captured all precip when we actually didn't
+# although - comparing precip with and without NA doesn't appear to make much difference
+# that means sensor failure rarely occured during a rain event, if the sensor was already working/recording
 precip_tot_30min <- met_all[,list(precip.tot = sum(precip)), 
                          by=cut(date_time,"30 min")][,date_time := (ymd_hms(cut))][,cut := NULL]
 
 # data to rest effect of removing or including NA
 met30 <- merge(met_all_30min, met_30min_rmna, by="date_time")
-met30 <- merge(met30, precip_tot_30min)
-met30 <- merge(met30, precip_tot_30min_narm)
+met30 <- merge(met30, precip_tot_30min, by="date_time")
 # data to use
-met30_use <- merge(met_30min_rmna_use, precip_tot_30min_narm_use, by="date_time")
+met30_use <- merge(met_30min_rmna_use, precip_tot_30min, by="date_time")
 
 # create year, date, and doy columns
 met30[,':=' (year=year(date_time), month=month(date_time), date=as_date(date_time), doy=yday(date_time))]
@@ -214,13 +206,29 @@ met30_long[variable=="dn_tot"&date_time>as.Date("2012-02-01")&
 met30_long[variable=="dn_tot"&date_time>as.Date("2015-10-20")&
              date_time<as.Date("2015-11-07"), value := NA]
 
+# check filtered data
+ggplot(met30_long[variable=="airtemp"], aes(date_time, value))+geom_point()
+ggplot(met30_long[variable=="rh"], aes(date_time, value))+geom_point()
+ggplot(met30_long[variable=="e"], aes(date_time, value))+geom_point()
+ggplot(met30_long[variable=="atm_press"], aes(date_time, value))+geom_point()
+ggplot(met30_long[variable=="wnd_spd"], aes(date_time, value))+geom_point()
+ggplot(met30_long[variable=="wnd_dir"], aes(date_time, value))+geom_point()
+ggplot(met30_long[variable=="precip.tot"], aes(date_time, value))+geom_point()
+ggplot(met30_long[variable=="par"], aes(date_time, value))+geom_point()
+ggplot(met30_long[variable=="albedo"], aes(date_time, value))+geom_point()
+ggplot(met30_long[variable=="lws"], aes(date_time, value))+geom_point()
+ggplot(met30_long[variable=="net_rs"], aes(date_time, value))+geom_point()
+ggplot(met30_long[variable=="net_ri"], aes(date_time, value))+geom_point()
+ggplot(met30_long[variable=="up_tot"], aes(date_time, value))+geom_point()
+ggplot(met30_long[variable=="dn_tot"], aes(date_time, value))+geom_point()
+
 # do a bunch of graphic checks on the data: 
 # airtemp, rh, e, atm_press, wnd_spd, wnd_dir, precip.tot, par, albedo, lws,
 # net_rs, net_ri, up_tot, dn_tot
 # columns with mean.na have the NA removed!
 
 # airtemp
-ggplot(met30[year>=2017,], aes(x=date_time))+
+ggplot(met30, aes(x=date_time))+
   geom_line(aes(y=airtemp.mean.na), colour="black")+ # NA removed
   geom_line(aes(y=airtemp.mean), colour="red") # with NA
   facet_grid(year~.)
@@ -251,7 +259,6 @@ ggplot(met30, aes(x=date_time))+
   facet_grid(year~.)
 # precip.tot
 ggplot(met30, aes(x=date_time))+
-  geom_line(aes(y=precip.tot.na), colour="black")+ # NA removed
   geom_line(aes(y=precip.tot), colour="red") # with NA
   facet_grid(year~.)
 # par
@@ -305,7 +312,6 @@ ggplot(met30[date_time >= as.Date("2018-12-01") & date_time <= as.Date("2019-03-
 # precip.tot
 ggplot(met30[date_time >= as.Date("2018-12-01") & date_time <= as.Date("2019-03-31"),],
        aes(x=date_time))+
-  geom_line(aes(y=precip.tot.na), colour="black")+ # NA removed
   geom_line(aes(y=precip.tot), colour="red") # with NA
 
 # lws
@@ -319,7 +325,6 @@ ggplot(met30[lws.mean.na<1000 & lws.mean.na>200 &
 # check leaf-wetness against precip, for Dec 2018 to Mar 2019
 precip.2018.fig <- ggplot(met30[date_time >= as.Date("2018-12-01") & date_time <= as.Date("2019-03-31"),],
                           aes(x=date_time))+
-  geom_line(aes(y=precip.tot.na), colour="black")+ # NA removed
   geom_line(aes(y=precip.tot), colour="red") # with NA
   
 lws.2018.fig <- ggplot(met30[date_time >= as.Date("2018-12-01") & date_time <= as.Date("2019-03-31"),],
@@ -336,6 +341,13 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Anthony_soilCO2_fluxes")
 # wnd_spd.mean.na,wnd_dir.mean.na,par.mean.na,albedo.mean.na,lws.mean.na,
 # net_rs.mean.na,net_ri.mean.na,up_tot.mean.na,dn_tot.mean.na,precip.tot.na)],
 # file='SEL_JER_MetData_20181201_20190331_20190423.csv',
+#           row.names=FALSE)
+
+# write.csv(met30[ date_time >= as.Date("2018-12-01") & date_time <= as.Date("2019-03-31"),.(
+# date_time,date,year,doy,airtemp.mean.na,rh.mean.na,e.mean.na,atm_press.mean.na,
+# wnd_spd.mean.na,wnd_dir.mean.na,par.mean.na,albedo.mean.na,lws.mean.na,
+# net_rs.mean.na,net_ri.mean.na,up_tot.mean.na,dn_tot.mean.na,precip.tot)],
+# file='SEL_JER_MetData_20181201_20190331_20190508.csv',
 #           row.names=FALSE)
 
 # save 30min filtered data
