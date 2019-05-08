@@ -239,9 +239,15 @@ SN_2015_2019_long <- merge(SN_2015_2019_long, colnames2015, by="variable")
 SN_2010_2019 <- rbind(SN_2010_2014_long, SN_2015_2019_long)
 
 # calculate half-hour means
-SN_30min <- SN_2010_2019[, list(mean.val = mean(value, na.rm=TRUE)),
+SN_30min <- SN_2010_2019[sensor!="rain", list(mean.val = mean(value, na.rm=TRUE)),
 by=.(SN,veg,depth,sensor,cut(Date,"30 min"))][,date_time := (ymd_hms(cut))][,cut := NULL]
 
+# for precip calculate the sum and keep NAs otherwise it ends up being misleading.
+SN_30min_rain <- SN_2010_2019[sensor=="rain", list(mean.val = sum(value)),
+                         by=.(SN,veg,depth,sensor,cut(Date,"30 min"))][,date_time := (ymd_hms(cut))][,cut := NULL]
+
+
+SN_30min <- rbind(SN_30min, SN_30min_rain)
 
 # break up the date column
 SN_30min[,year:= year(date_time)]
@@ -273,7 +279,7 @@ SN_30min[sensor=="moisture"&veg=="MUPO"&depth==30&date_time>=as.Date("2013-07-01
 SN_30min[sensor=="moisture"&veg=="MUPO"&depth==20&
                   (date_time>=as.Date("2017-09-04") & date_time<=as.Date("2017-10-23") |
                   date_time>=as.Date("2018-04-01") & date_time<=as.Date("2018-04-30") |
-                    date_time==as.Date("2018-10-26") |
+                    date_time>=as.POSIXct("2018-10-26 9:30",tz="UTC") & date_time<=as.POSIXct("2018-10-26 22:00",tz="UTC")|
                   date_time>=as.Date("2018-11-18")), mean.val := NA]
 
 # PRGL 5cm: high outlying value in August 2015 >0.4
@@ -348,8 +354,9 @@ SN_30min[sensor=="par"&SN=="SN3"&veg=="DAPU"&year==2017&month==4&mean.val>1000, 
 # pressure: can't be <0
 SN_30min[sensor=="pressure" & mean.val<0, mean.val := NA]
 
-# precip has to be >0 and most likely <20 (there are some values>40 that look a lot like error)
-SN_30min[sensor=="rain" & (mean.val<0 | mean.val>20), mean.val := NA]
+# precip has to be >0 and 
+# max is 12.7cm/hour = 6.3cm/30min ~ 70mm/30 min
+SN_30min[sensor=="rain" & (mean.val<0 | mean.val>70), mean.val := NA]
 
 # solar radiation
 # remove SN1 
@@ -395,7 +402,7 @@ ggplot(SN_30min[sensor=="moisture"&veg=="MUPO",], aes(doy, mean.val, colour=fact
 # par
 # In early and late 2011/2015 the high PAR in all veg types except UP is real. SNOW.
 # 2014 all year looks low
-ggplot(SN_30min[sensor=="par"&year==2015,], aes(date_time, mean.val, colour=SN))+
+ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
   geom_line()+
   labs(title="PAR") +
   facet_grid(veg~., scales="free_y")
@@ -419,7 +426,7 @@ ggplot(SN_30min[sensor=="pressure",], aes(date_time, mean.val, colour=SN))+
 # rain
 # can't be negative
 # can't be greater than 20, unlikely to be greater than 4
-ggplot(SN_30min[sensor=="rain" ,], aes(date_time, mean.val, colour=SN))+
+ggplot(SN_30min[sensor=="rain",], aes(date_time, mean.val, colour=SN))+
   geom_point()+
   geom_line()+
   labs(title="Rain") +
@@ -445,7 +452,7 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Combined")
 # write.table(SN_30min, file="SensorNetwork_L1_2010_2019_30min.csv", sep=",", row.names = FALSE)
 
 # FOR ANTHONY: save December 2018 to March 2019 soil moisture nad precip for Bare
-# setwd("~/Desktop/TweedieLab/Projects/Jornada/Anthony_soilCO2_fluxes")
-#  write.table(SN_30min[date_time>=as.Date("2018-12-01") &date_time <= as.Date("2019-03-31") &
-#  (sensor=="moisture" | (sensor=="rain"&veg=="BARE")),],
-#  file="SEL_JER_SensorNetwork_30min_VWC_precip_20181201_20190331_20190425.csv", sep=",", row.names = FALSE)
+setwd("~/Desktop/TweedieLab/Projects/Jornada/Anthony_soilCO2_fluxes")
+ # write.table(SN_30min[date_time>=as.Date("2018-12-01") &date_time <= as.Date("2019-03-31") &
+ # (sensor=="moisture" | (sensor=="rain"&veg=="BARE")),],
+ # file="SEL_JER_SensorNetwork_30min_VWC_precip_20181201_20190331_20190508.csv", sep=",", row.names = FALSE)
