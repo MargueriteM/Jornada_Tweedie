@@ -38,7 +38,7 @@ library(lattice)
 # precip_tot (total precipitation): mm
 # par (photosynthetically active radiation): umol/m/s
 # albedo: unitless
-# lws_2 (leaf wetness): mV
+# lws_2 (leaf wetness): mV  THIS IS 'leaf' wetness at 5m; lws_1 is in the Flux_Table data and measures in a shrub
 # NetRs (net solar radiation): W/m2
 # NetRI (net radiation): W/m2
 # UpTot (total upwelling): W/m2
@@ -60,7 +60,7 @@ met_all <- do.call("rbind", lapply(metfiles, header = FALSE, fread, sep=",", ski
                                    col.names=c("timestamp","record","airtemp","rh","e",
                                                "atm_press","wnd_spd","wnd_dir",
                                                "precip","par","albedo",
-                                               "lws","net_rs","net_ri","up_tot","dn_tot",
+                                               "lws_5m","net_rs","net_ri","up_tot","dn_tot",
                                                "co2_raw","h2o_raw")))
 
 # convert the time stamp to a posixct format
@@ -93,7 +93,7 @@ met_all[,':=' (year = year(date_time), doy = yday(date_time), date = date(date_t
 # leave out Co2_raw and H2O_raw, those will be in the eddy processed data
 met_30min_rmna <- met_all[,lapply(.SD, function (x) {mean(x, na.rm=TRUE)}), 
                           .SDcols = c("airtemp","rh","e","atm_press","wnd_spd","wnd_dir","par","albedo",
-                                      "lws","net_rs","net_ri","up_tot","dn_tot"),
+                                      "lws_5m","net_rs","net_ri","up_tot","dn_tot"),
                          by=cut(date_time,"30 min")]
 # keep one dataframe with original column names
 met_30min_rmna_use <- copy(met_30min_rmna)
@@ -111,7 +111,7 @@ met_all_30min <- met_all[, as.list(unlist(lapply(.SD,
                                       function(x) list(mean=mean(x, na.rm=FALSE), na=sum(is.na(x)))))),
               by=cut(date_time,"30 min"),
               .SDcols = c("airtemp","rh","e","atm_press","wnd_spd","wnd_dir","precip","par","albedo",
-                          "lws","net_rs","net_ri","up_tot","dn_tot")][,date_time := (ymd_hms(cut))][,cut := NULL]
+                          "lws_5m","net_rs","net_ri","up_tot","dn_tot")][,date_time := (ymd_hms(cut))][,cut := NULL]
 
 
 # calculate sum of precip separately, and then merge to other data. 
@@ -136,13 +136,22 @@ met30_long <- melt.data.table(met30_use,c("date_time"))
 met30_long[,':=' (year=year(date_time),month=month(date_time),doy=yday(date_time))]
 
 # data to filter: 
-# airtemp, RH, e, press, wnd_spd, wnd_dir, precip, par are good
+# airtemp, RH, e, press, precip, are good
+
+
 
 # ALL:
 # remove >Oct 6 2017 12:00 and < Nov 3 2017 12:00
 # remove > Dec 1 2017 and < Apr 3 2018 7:00
 met30_long[(date_time > as.POSIXct("2017-10-06 12:00", tz="UTC") & date_time < as.POSIXct("2017-11-03 12:00", tz="UTC")) |
              (date_time > as.POSIXct("2017-12-01 00:00", tz="UTC") & date_time < as.POSIXct("2018-04-03 7:00", tz="UTC"))  , 
+           value := NA]
+
+# lws_5m, par, wnd_dir
+# remove > Oct 20 2015 12:00 to <Nov 6 2015 12:00 (flat-line)
+met30_long[(date_time > as.POSIXct("2015-10-20 12:00", tz="UTC") &
+              date_time < as.POSIXct("2015-10-06 12:00", tz="UTC")) &
+             variable %in% c("lws_5m","par","wnd_dir"), 
            value := NA]
 
 # albedo
@@ -158,9 +167,30 @@ met30_long[variable=="albedo"&date_time>as.Date("2012-02-01")&
 met30_long[variable=="albedo"&date_time>as.Date("2015-10-20")&
              date_time<as.Date("2015-11-07"), value := NA]
 
-# lws. There are some values, not sure what those mean. Leave them in.
-# remove lws prior to Aug 25 2011
-met30_long[variable=="lws"&date_time<as.Date("2011-08-25"), value := NA]
+# lws_5m. There are some high spike values, not sure what those mean (rain?). Leave them in.
+# remove lws_5m prior to Aug 25 2011
+met30_long[variable=="lws_5m"&date_time<as.Date("2011-08-25"), value := NA]
+
+# lws_5m remove > Feb 1 2012 and < Mar 8 2012 (flat-line)
+met30_long[variable=="lws_5m"&date_time>as.Date("2012-02-01")&
+             date_time<as.Date("2012-03-08"), value := NA]
+
+# par remove > Feb 1 2012 and < Mar 8 2012 (flat-line)
+met30_long[variable=="par"&date_time>as.Date("2012-02-01")&
+             date_time<as.Date("2012-03-08"), value := NA]
+
+# par remove >Oct 20 2015 and < Nov 7 2015 (flat-line)
+met30_long[variable=="par"&date_time>as.Date("2015-10-20")&
+             date_time<as.Date("2015-11-07"), value := NA]
+
+
+# wnd_dir remove > Feb 1 2012 and < Mar 8 2012 (flat-line)
+met30_long[variable=="wnd_dir"&date_time>as.Date("2012-02-01")&
+             date_time<as.Date("2012-03-08"), value := NA]
+# wind_dir remove >Oct 20 2015 and < Nov 7 2015 (flat-line)
+met30_long[variable=="wnd_dir"&date_time>as.Date("2015-10-20")&
+             date_time<as.Date("2015-11-07"), value := NA]
+
 
 # net_rs
 # remove values < -25 and > 1000
@@ -198,7 +228,7 @@ met30_long[variable=="up_tot"&date_time>as.Date("2015-10-20")&
 
 # dn_tot
 # remove < -1000 and > 350
-met30_long[variable=="dn_tot" & value< (-1000) | value > 350, value := NA]
+met30_long[variable=="dn_tot" & (value< (-1000) | value > 350), value := NA]
 # dn_tot remove > Feb 1 2012 and < Mar 8 2012 (flat-line)
 met30_long[variable=="dn_tot"&date_time>as.Date("2012-02-01")&
              date_time<as.Date("2012-03-08"), value := NA]
@@ -206,7 +236,25 @@ met30_long[variable=="dn_tot"&date_time>as.Date("2012-02-01")&
 met30_long[variable=="dn_tot"&date_time>as.Date("2015-10-20")&
              date_time<as.Date("2015-11-07"), value := NA]
 
+# up_tot, dn_tot, net_ri, net_rs, albedo
+# remove >August 20 2012 and < August 25 12:00 (flat-line)
+met30_long[variable%in% c("up_tot","dn_tot","net_ri","net_rs","par","albedo")&
+             date_time>as.POSIXct("2012-08-20 12:00", tx="UTC")&
+             date_time<as.POSIXct("2012-08-25 12:00", tz="UTC"), value := NA]
+
+# if up or dn is NA then albedo and net are also NA
+dn_tot_na <- copy(met30_long[variable == "dn_tot" & is.na(value), (date_time)])
+up_tot_na <- copy(met30_long[variable == "up_tot" & is.na(value), (date_time)])
+
+met30_long[date_time %in% dn_tot_na & variable %in% c("albedo","net_rs"),
+           value := NA]
+
+met30_long[date_time %in% up_tot_na & variable %in% c("albedo","net_rs"),
+           value := NA]
+
 # check filtered data
+ggplot(met30_long[year==2019,], aes(date_time, value))+geom_point()+facet_grid(variable~.,scales="free_y")
+
 ggplot(met30_long[variable=="airtemp"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="rh"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="e"], aes(date_time, value))+geom_point()
@@ -216,14 +264,14 @@ ggplot(met30_long[variable=="wnd_dir"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="precip.tot"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="par"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="albedo"], aes(date_time, value))+geom_point()
-ggplot(met30_long[variable=="lws"], aes(date_time, value))+geom_point()
+ggplot(met30_long[variable=="lws_5m"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="net_rs"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="net_ri"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="up_tot"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="dn_tot"], aes(date_time, value))+geom_point()
 
 # do a bunch of graphic checks on the data: 
-# airtemp, rh, e, atm_press, wnd_spd, wnd_dir, precip.tot, par, albedo, lws,
+# airtemp, rh, e, atm_press, wnd_spd, wnd_dir, precip.tot, par, albedo, lws_5m,
 # net_rs, net_ri, up_tot, dn_tot
 # columns with mean.na have the NA removed!
 
@@ -271,10 +319,10 @@ ggplot(met30[albedo.mean.na<24&albedo.mean.na>(-25),], aes(x=date_time))+
   geom_line(aes(y=albedo.mean.na), colour="black")+ # NA removed
   geom_line(aes(y=albedo.mean), colour="red") # with NA
   facet_grid(year~.)
-# lws
-ggplot(met30[lws.mean>250&date_time>as.Date("2011-08-25"),], aes(x=date_time))+
-  geom_line(aes(y=lws.mean.na), colour="black")+ # NA removed
-  geom_line(aes(y=lws.mean), colour="red") # with NA
+# lws_5m
+ggplot(met30[lws_5m.mean>250&date_time>as.Date("2011-08-25"),], aes(x=date_time))+
+  geom_line(aes(y=lws_5m.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=lws_5m.mean), colour="red") # with NA
   facet_grid(year~.)
 # net_rs
 ggplot(met30[net_rs.mean.na<1000&net_rs.mean.na>(-25),], aes(x=date_time))+
@@ -282,7 +330,7 @@ ggplot(met30[net_rs.mean.na<1000&net_rs.mean.na>(-25),], aes(x=date_time))+
   geom_line(aes(y=net_rs.mean), colour="red") # with NA
   facet_grid(year~.)
 # net_ri
-ggplot(met30[net_ri.mean.na<100,], aes(x=date_time))+
+ggplot(met30[net_ri.mean.na<100&year>2010&year<=2012,], aes(x=date_time))+
   geom_line(aes(y=net_ri.mean.na), colour="black")+ # NA removed
   geom_line(aes(y=net_ri.mean), colour="red") # with NA
   facet_grid(year~.)
@@ -314,12 +362,12 @@ ggplot(met30[date_time >= as.Date("2018-12-01") & date_time <= as.Date("2019-03-
        aes(x=date_time))+
   geom_line(aes(y=precip.tot), colour="red") # with NA
 
-# lws
-ggplot(met30[lws.mean.na<1000 & lws.mean.na>200 & 
+# lws_5m
+ggplot(met30[lws_5m.mean.na<1000 & lws_5m.mean.na>200 & 
                date_time >= as.Date("2018-12-01") & date_time <= as.Date("2019-03-31"),],
        aes(x=date_time))+
-  geom_line(aes(y=lws.mean.na), colour="black")+ # NA removed
-  geom_line(aes(y=lws.mean), colour="red") # with NA
+  geom_line(aes(y=lws_5m.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=lws_5m.mean), colour="red") # with NA
 
 
 # check leaf-wetness against precip, for Dec 2018 to Mar 2019
@@ -327,25 +375,25 @@ precip.2018.fig <- ggplot(met30[date_time >= as.Date("2018-12-01") & date_time <
                           aes(x=date_time))+
   geom_line(aes(y=precip.tot), colour="red") # with NA
   
-lws.2018.fig <- ggplot(met30[date_time >= as.Date("2018-12-01") & date_time <= as.Date("2019-03-31"),],
+lws_5m.2018.fig <- ggplot(met30[date_time >= as.Date("2018-12-01") & date_time <= as.Date("2019-03-31"),],
                        aes(x=date_time))+
-  geom_line(aes(y=lws.mean.na), colour="black")+ # NA removed
-  geom_line(aes(y=lws.mean), colour="red") # with NA
+  geom_line(aes(y=lws_5m.mean.na), colour="black")+ # NA removed
+  geom_line(aes(y=lws_5m.mean), colour="red") # with NA
 
-grid.arrange(precip.2018.fig,lws.2018.fig, nrow=2)
+grid.arrange(precip.2018.fig,lws_5m.2018.fig, nrow=2)
 
 # save Dec 2018 to end of March 2019 data for Anthony
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Anthony_soilCO2_fluxes")
 # write.csv(met30[ date_time >= as.Date("2018-12-01") & date_time <= as.Date("2019-03-31"),.(
 # date_time,date,year,doy,airtemp.mean.na,rh.mean.na,e.mean.na,atm_press.mean.na,
-# wnd_spd.mean.na,wnd_dir.mean.na,par.mean.na,albedo.mean.na,lws.mean.na,
+# wnd_spd.mean.na,wnd_dir.mean.na,par.mean.na,albedo.mean.na,lws_5m.mean.na,
 # net_rs.mean.na,net_ri.mean.na,up_tot.mean.na,dn_tot.mean.na,precip.tot.na)],
 # file='SEL_JER_MetData_20181201_20190331_20190423.csv',
 #           row.names=FALSE)
 
 # write.csv(met30[ date_time >= as.Date("2018-12-01") & date_time <= as.Date("2019-03-31"),.(
 # date_time,date,year,doy,airtemp.mean.na,rh.mean.na,e.mean.na,atm_press.mean.na,
-# wnd_spd.mean.na,wnd_dir.mean.na,par.mean.na,albedo.mean.na,lws.mean.na,
+# wnd_spd.mean.na,wnd_dir.mean.na,par.mean.na,albedo.mean.na,lws_5m.mean.na,
 # net_rs.mean.na,net_ri.mean.na,up_tot.mean.na,dn_tot.mean.na,precip.tot)],
 # file='SEL_JER_MetData_20181201_20190331_20190508.csv',
 #           row.names=FALSE)
@@ -386,7 +434,7 @@ ggplot(met_all[date_time>as.Date("2015-06-01") & date_time<as.Date("2015-08-01")
 
 # graph leaf wetness from June to August 2015
 ggplot(met_all[date_time>as.Date("2015-06-01") & date_time<as.Date("2015-08-01"),],
-       aes(date_time, lws))+geom_point()+
+       aes(date_time, lws_5m))+geom_point()+
   facet_grid(.~year)
 
 # graph RH from June to August 2015
@@ -404,7 +452,7 @@ ggplot(met_all[doy>180 & doy<240,],
 
 # graph leaf wetness 
 ggplot(met_all[doy>180 & doy<240,],
-       aes(doy, lws))+geom_line()+
+       aes(doy, lws_5m))+geom_line()+
   facet_grid(.~year)+
   theme_bw()
 

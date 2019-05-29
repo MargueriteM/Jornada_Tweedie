@@ -118,7 +118,9 @@ colnames2010[, ':=' (sensor = sapply(strsplit(as.character(R_column_names),"_"),
 # after 2015 there are a few erroneous sensor columns that creep in. 
 # these are either emty or contain some brief data, but we're not sure what that data is
 # and it often doesn't look like good data
-# colnames 2015 is a complete list of all columns that SHOULD be in the data. 
+# colnames.
+
+# 2015 is a complete list of all columns that SHOULD be in the data. 
 # use that to screen and remove extra columns
 colnames2015 <- fread(file="~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/MetaData/JER_SensorNetwork_ColumnNames_2015.csv",
                       sep=",",
