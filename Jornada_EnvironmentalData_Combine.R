@@ -281,8 +281,9 @@ biomet_other <- copy(env_30min[variable %in% c("airtemp","rh","wnd_spd","wnd_dir
 
 biomet_other1 <- dcast(biomet_other,date_time~variable, value.var="mean.val")
 
+# change the name of SWin to Rg for global radiation because they are 
 setnames(biomet_other1,c("Rl_down","Rl_up","Rn_nr_Avg","Rs_down","Rs_up","airtemp","rh","wnd_dir","wnd_spd"),
-         c("LWin","LWout","Rn","SWin","SWout","Ta","RH","WD","MWS"))
+         c("LWin","LWout","Rn","Rg","SWout","Ta","RH","WD","MWS"))
 
 
 # combine data into columns:
@@ -301,52 +302,15 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP")
 # save(biomet, file="Biomet_EddyPro_2010_2019_20190528.Rdata")
 
 
-# format timestamp for EddyPro
-# o	timestamp_1 yyyy-mm-dd
-# o	timestamp_2 HH
-# o	timestamp_3 MM
-
-# biomet[,':=' (timestamp_1 = as.Date(date_time, format="%Y-%m-%d"),
-#               timestamp_2 = hour(date_time),
-#               timestamp_3 = minute(date_time),
-#               date_time = NULL)]
-
-biomet[,':=' (timestamp_1 = year(date_time),
-              timestamp_2 = month(date_time),
-              timestamp_3 = day(date_time),
-              timestamp_4 = hour(date_time),
-              timestamp_5 = minute(date_time),
-              date_time = NULL)]
-
-
-colnames(biomet)
-
-
 # save Biomet Data for EddyPro for each year (csv) after editing timestamp
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP")
 
-# # function to save each year
-saveyears <- function(data) {for (i in 2011:2019){
-  # subset each year and convert all columns in data to characters so the unit row can be added
-  data1 <- data[timestamp_1==i,lapply(.SD, as.character)]
-  # add a row with units as the first row which will become the second header row for Eddy Pro
-  biomet_units <- data.table("W+1m-2","W+1m-2","W+1m-2","W+1m-2","W+1m-2","C","%","degrees","m+1m-1",
-                             "umol+1m-2s-1","umol+1m-2s-1","mm","m+3m-3","C","W+1m-2","W+1m-2","W+1m-2",
-                             "W+1m-2","kPa","yyyy","mm","dd","HH","MM")
-  
-  colnames(biomet_units) <- colnames(data1)
-  data1 <- rbind(biomet_units,data1)
-  
-  # save with columns in prescribed order
-  write.table (data1[,.(timestamp_1, timestamp_2, timestamp_3,timestamp_5,timestamp_5,
-Ta,RH,WD,MWS,PPFD,PPFDr,P_rain,SWC_1_1_1, Ts_1_1_1,
-SHF_1_1_1, SHF_1_2_1, SHF_2_2_1, SHF_2_2_1,LWin,LWout,SWin,SWout,Rn)],
-file=paste("Biomet_EddyPro_",i, ".csv"),
-               sep =',', dec='.', row.names=FALSE, col.names=TRUE)
-  }}
+# # load function to format data for Eddy Pro and save each year
+
+source("~/Desktop/R/R_programs/Functions/SaveFiles_Biomet_EddyPro.R")
 
 # save each year
-saveyears(biomet)
+savebiomet(biomet,2010,2019)
 
 # graph data coverage for SN and tower
 # soil moisture
