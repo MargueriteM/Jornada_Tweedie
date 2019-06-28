@@ -48,13 +48,13 @@ ectm_data[,date_time:=parse_date_time(timestamp,"ymd HMS")][,timestamp:=NULL]
 # check that the files merged correctly and I think I have all the data there
 # summary(ectm_data)
 
-# calculate half-hourly means
+# calculate half-hourly means using ceiling_date
 ectm_30min_rmna <- ectm_data[,lapply(.SD, function (x) {mean(x, na.rm=TRUE)}),
-                          by=cut(date_time,"30 min")]
+                          by=ceiling_date(date_time,"30 min")]
 
 colnames(ectm_30min_rmna) <- paste(colnames(ectm_30min_rmna), 'mean_na', sep="_")
 
-ectm_30min_rmna[,date_time := (ymd_hms(cut_mean_na))][,cut_mean_na := NULL]
+ectm_30min_rmna[,date_time := (ymd_hms(ceiling_date_mean_na))][,ceiling_date_mean_na := NULL]
 
 
 # change the format of the data from wide to long so it's easier to work with
@@ -97,8 +97,8 @@ ectm_30min_long[rep==1 & year==2011, value := NA]
 ectm_30min_long[rep==1 & year==2012, value := NA]
 
 # probe 4 remove Aug 15 >12:00 & <15:00
-ectm_30min_long[rep==4 & date_time>=as.POSIXct("2012-08-15 12:00",tz="UTC") &
-                  date_time<=as.POSIXct("2012-08-15 15:00",tz="UTC"), value := NA]
+ectm_30min_long[rep==4 & date_time>=as.POSIXct("2012-08-15 12:30",tz="UTC") &
+                  date_time<=as.POSIXct("2012-08-15 14:30",tz="UTC"), value := NA]
 
 # 2013:
 # remove probe 8 March vwc value >0.2
@@ -113,12 +113,12 @@ ectm_30min_long[rep==3 & date_time>=as.Date("2014-08-18") &
 ectm_30min_long[variable=="vwc_4_mean_na"&year==2014&value<(-0.5), value := NA]
 
 # 2015:
-# probe 5 remove => Apr 5 12:00 and =< Apr 7 12:00
+# probe 5 remove => Apr 5 12:00 and =< Apr 7 15:30
 # probe 5 remove March 20 - 29
 ectm_30min_long[rep==5 & (date_time>=as.POSIXct("2015-03-20 0:30",tz="UTC") &
                             date_time<=as.POSIXct("2015-03-28 23:30",tz="UTC") | 
                             date_time>=as.POSIXct("2015-04-05 12:00",tz="UTC") &
-                  date_time<=as.POSIXct("2015-04-07 15:00",tz="UTC")), value := NA]
+                  date_time<=as.POSIXct("2015-04-07 15:30",tz="UTC")), value := NA]
 
 # probe 1, 4, 8 remove all: not working
 ectm_30min_long[rep %in% c(1,4,8) & year==2015, value := NA]
@@ -229,8 +229,9 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Anthony_soilCO2_fluxes")
 
 # save half hour means
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SoilSensor_ECTM/Combined")
-# write.table(ectm_30min_long, file="Soil_Temp_VWC_ECTM_L1_2010_2019_30min.csv", sep=",", row.names = FALSE)
-
+## write.table(ectm_30min_long, file="Soil_Temp_VWC_ECTM_L1_2010_2019_30min.csv", sep=",", row.names = FALSE)
+# save with ceiling_date
+# write.table(ectm_30min_long, file="Soil_Temp_VWC_ECTM_L1_2010_2019_30min_20190627.csv", sep=",", row.names = FALSE)
 
 
 # try a heat map/geom tile for soil temp sensor t_8

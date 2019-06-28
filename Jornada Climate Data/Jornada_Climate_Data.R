@@ -94,14 +94,14 @@ met_all[,':=' (year = year(date_time), doy = yday(date_time), date = date(date_t
 met_30min_rmna <- met_all[,lapply(.SD, function (x) {mean(x, na.rm=TRUE)}), 
                           .SDcols = c("airtemp","rh","e","atm_press","wnd_spd","wnd_dir","par","albedo",
                                       "lws_5m","net_rs","net_ri","up_tot","dn_tot"),
-                         by=cut(date_time,"30 min")]
+                         by=ceiling_date(date_time,"30 min")]
 # keep one dataframe with original column names
 met_30min_rmna_use <- copy(met_30min_rmna)
 # merge one to means calculated with NA removed to compare data
 colnames(met_30min_rmna) <- paste(colnames(met_30min_rmna), 'mean.na', sep=".")
 # return date_time to POSIXct format
-met_30min_rmna[,date_time := (ymd_hms(cut.mean.na))][,cut.mean.na := NULL]
-met_30min_rmna_use[,date_time := (ymd_hms(cut))][,cut := NULL]
+met_30min_rmna[,date_time := (ymd_hms(ceiling_date.mean.na))][,ceiling_date.mean.na := NULL]
+met_30min_rmna_use[,date_time := (ymd_hms(ceiling_date))][,ceiling_date := NULL]
 
 # now calculte with NA included and count NAs
 # find numbers of NA in 30min intervals
@@ -109,9 +109,9 @@ met_30min_rmna_use[,date_time := (ymd_hms(cut))][,cut := NULL]
 
 met_all_30min <- met_all[, as.list(unlist(lapply(.SD,
                                       function(x) list(mean=mean(x, na.rm=FALSE), na=sum(is.na(x)))))),
-              by=cut(date_time,"30 min"),
+              by=ceiling_date(date_time,"30 min"),
               .SDcols = c("airtemp","rh","e","atm_press","wnd_spd","wnd_dir","precip","par","albedo",
-                          "lws_5m","net_rs","net_ri","up_tot","dn_tot")][,date_time := (ymd_hms(cut))][,cut := NULL]
+                          "lws_5m","net_rs","net_ri","up_tot","dn_tot")][,date_time := (ymd_hms(ceiling_date))][,ceiling_date := NULL]
 
 
 # calculate sum of precip separately, and then merge to other data. 
@@ -119,7 +119,7 @@ met_all_30min <- met_all[, as.list(unlist(lapply(.SD,
 # although - comparing precip with and without NA doesn't appear to make much difference
 # that means sensor failure rarely occured during a rain event, if the sensor was already working/recording
 precip_tot_30min <- met_all[,list(precip.tot = sum(precip)), 
-                         by=cut(date_time,"30 min")][,date_time := (ymd_hms(cut))][,cut := NULL]
+                         by=ceiling_date(date_time,"30 min")][,date_time := (ymd_hms(ceiling_date))][,ceiling_date := NULL]
 
 # data to rest effect of removing or including NA
 met30 <- merge(met_all_30min, met_30min_rmna, by="date_time")
@@ -130,7 +130,7 @@ met30_use <- merge(met_30min_rmna_use, precip_tot_30min, by="date_time")
 # create year, date, and doy columns
 met30[,':=' (year=year(date_time), month=month(date_time), date=as_date(date_time), doy=yday(date_time))]
 
-# keep the data with 30mins mean removing NA
+# keep the data with 30mins mean, removing NA: met30_use
 met30_long <- melt.data.table(met30_use,c("date_time"))
 
 met30_long[,':=' (year=year(date_time),month=month(date_time),doy=yday(date_time))]
@@ -141,16 +141,16 @@ met30_long[,':=' (year=year(date_time),month=month(date_time),doy=yday(date_time
 
 
 # ALL:
-# remove >Oct 6 2017 12:00 and < Nov 3 2017 12:00
-# remove > Dec 1 2017 and < Apr 3 2018 7:00
-met30_long[(date_time > as.POSIXct("2017-10-06 12:00", tz="UTC") & date_time < as.POSIXct("2017-11-03 12:00", tz="UTC")) |
-             (date_time > as.POSIXct("2017-12-01 00:00", tz="UTC") & date_time < as.POSIXct("2018-04-03 7:00", tz="UTC"))  , 
+# remove >Oct 6 2017 12:00 and < Nov 3 2017 12:30
+# remove > Dec 1 2017 and < Apr 3 2018 7:30
+met30_long[(date_time > as.POSIXct("2017-10-06 12:00", tz="UTC") & date_time < as.POSIXct("2017-11-03 12:30", tz="UTC")) |
+             (date_time > as.POSIXct("2017-12-01 00:00", tz="UTC") & date_time < as.POSIXct("2018-04-03 7:30", tz="UTC"))  , 
            value := NA]
 
 # lws_5m, par, wnd_dir
-# remove > Oct 20 2015 12:00 to <Nov 6 2015 12:00 (flat-line)
+# remove > Oct 20 2015 12:00 to <Nov 6 2015 12:30 (flat-line)
 met30_long[(date_time > as.POSIXct("2015-10-20 12:00", tz="UTC") &
-              date_time < as.POSIXct("2015-10-06 12:00", tz="UTC")) &
+              date_time < as.POSIXct("2015-10-06 12:30", tz="UTC")) &
              variable %in% c("lws_5m","par","wnd_dir"), 
            value := NA]
 
@@ -159,7 +159,7 @@ met30_long[(date_time > as.POSIXct("2015-10-20 12:00", tz="UTC") &
 met30_long[variable=="albedo" & (value <(-300) | value > 300), value := NA]
 # albedo remove > March 17 2017 and < June 1 2011
 met30_long[variable=="albedo"&date_time>as.Date("2011-03-17")&
-             date_time<as.POSIXct("2011-06-17 12:00", tz="UTC"), value := NA]
+             date_time<as.POSIXct("2011-06-17 12:30", tz="UTC"), value := NA]
 # albedo remove > Feb 1 2012 and < Mar 8 2012 (flat-line)
 met30_long[variable=="albedo"&date_time>as.Date("2012-02-01")&
              date_time<as.Date("2012-03-08"), value := NA]
@@ -227,8 +227,8 @@ met30_long[variable=="up_tot"&date_time>as.Date("2015-10-20")&
 
 
 # dn_tot
-# remove < -1000 and > 350
-met30_long[variable=="dn_tot" & (value< (-1000) | value > 350), value := NA]
+# remove < -900 and > 350
+met30_long[variable=="dn_tot" & (value< (-900) | value > 350), value := NA]
 # dn_tot remove > Feb 1 2012 and < Mar 8 2012 (flat-line)
 met30_long[variable=="dn_tot"&date_time>as.Date("2012-02-01")&
              date_time<as.Date("2012-03-08"), value := NA]
@@ -401,7 +401,9 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Anthony_soilCO2_fluxes")
 # save 30min filtered data
 # save half hour means
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/Compiled")
-# write.table(met30_long, file="TowerMet_L1_2010_2019_30min.csv", sep=",", row.names = FALSE)
+## write.table(met30_long, file="TowerMet_L1_2010_2019_30min.csv", sep=",", row.names = FALSE)
+# save with ceiling_date
+# write.table(met30_long, file="TowerMet_L1_2010_2019_30min_20190627.csv", sep=",", row.names = FALSE)
 
 
 # calculate daily precip

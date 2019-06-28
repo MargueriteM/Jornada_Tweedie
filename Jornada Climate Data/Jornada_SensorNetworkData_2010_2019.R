@@ -153,12 +153,24 @@ sink()
 
 
 # create date format, date formats vary over the years
+
+# source("~/Desktop/R/R_programs/Functions/TimezoneConversion_DT_to_ST.R")
+# 
+# SN_2010_2014[, date_time := as.POSIXct(Date, format=c("%Y-%m-%d %H:%M:%S", tz="America/Denver"))][, Date:=date_time][, date_time:=NULL]
+# SN_2015[, date_time := as.POSIXct(Date, format=c("%m/%d/%y %H:%M", tz="America/Denver"))][, Date:=date_time][, date_time:=NULL]
+# SN_2016[, date_time := as.POSIXct(Date, format=c("%m/%d/%y %H:%M", tz="America/Denver"))][, Date:=date_time][, date_time:=NULL]
+# SN_2017[, date_time := as.POSIXct(Date, format=c("%m/%d/%y %H:%M", tz="America/Denver"))][, Date:=date_time][, date_time:=NULL]
+# SN_2018[, date_time := as.POSIXct(Date, format=c("%m/%d/%y %H:%M", tz="America/Denver"))][, Date:=date_time][, date_time:=NULL]
+# SN_2019[, date_time := as.POSIXct(Date, format=c("%m/%d/%y %H:%M", tz="America/Denver"))][, Date:=date_time][, date_time:=NULL]
+
+
 SN_2010_2014[, date_time := ymd_hms(Date)][, Date:=date_time][, date_time:=NULL]
 SN_2015[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
 SN_2016[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
 SN_2017[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
 SN_2018[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
 SN_2019[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
+
 
 # fix character and logical columns in each data set so that they can be melted
 # melt.data.table will give an error. This shouldn't be anything to worry about. 
@@ -226,6 +238,7 @@ colcheck_2019 <- fix_2019[[2]]
 # combine 2015-2019
 SN_2015_2019_fx <- rbind(SN_2015_fx,SN_2016_fx,SN_2017_fx,SN_2018_fx, SN_2019_fx, fill=TRUE)
 
+
 # change the format of the data from wide to long so it's easier to work with
 # melt will give an error because of int and num column str
 # all data will be in "value" column
@@ -240,13 +253,15 @@ SN_2015_2019_long <- merge(SN_2015_2019_long, colnames2015, by="variable")
 # combine data from all years
 SN_2010_2019 <- rbind(SN_2010_2014_long, SN_2015_2019_long)
 
-# calculate half-hour means
+# calculate half-hour means using ceiling date which takes each time to the next half-hour,
+# ie: 15:00:01 goes to 15:30, etc. 
 SN_30min <- SN_2010_2019[sensor!="rain", list(mean.val = mean(value, na.rm=TRUE)),
-by=.(SN,veg,depth,sensor,cut(Date,"30 min"))][,date_time := (ymd_hms(cut))][,cut := NULL]
+by=.(SN,veg,depth,sensor,ceiling_date(Date,"30 minutes"))][,date_time := ceiling_date][,ceiling_date:=NULL]
 
-# for precip calculate the sum and keep NAs otherwise it ends up being misleading.
-SN_30min_rain <- SN_2010_2019[sensor=="rain", list(mean.val = sum(value)),
-                         by=.(SN,veg,depth,sensor,cut(Date,"30 min"))][,date_time := (ymd_hms(cut))][,cut := NULL]
+# for precip calculate the sum. Ignore NA because the way the data is offloaded from the sensors creates lots of NAs when the timestamps
+# don't perfectly match across all the SN. The result is that NAs get introduced where they shouldn't be, and I lose rain events.
+SN_30min_rain <- SN_2010_2019[sensor=="rain", list(mean.val = sum(value, na.rm=TRUE)),
+                         by=.(SN,veg,depth,sensor,ceiling_date(Date,"30 min"))][,date_time := ceiling_date][,ceiling_date:=NULL]
 
 
 SN_30min <- rbind(SN_30min, SN_30min_rain)
@@ -357,7 +372,7 @@ SN_30min[sensor=="par"&SN=="SN3"&veg=="DAPU"&year==2017&month==4&mean.val>1000, 
 SN_30min[sensor=="pressure" & mean.val<0, mean.val := NA]
 
 # precip has to be >0 and 
-# max is 12.7cm/hour = 6.3cm/30min ~ 70mm/30 min
+# max the istrument can log is 12.7cm/hour = 6.3cm/30min ~ 70mm/30 min
 SN_30min[sensor=="rain" & (mean.val<0 | mean.val>70), mean.val := NA]
 
 # solar radiation
@@ -451,7 +466,9 @@ ggplot(SN_30min[sensor=="solar" & year==2018,],
 
 # save half hour means
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Combined")
-# write.table(SN_30min, file="SensorNetwork_L1_2010_2019_30min.csv", sep=",", row.names = FALSE)
+## write.table(SN_30min, file="SensorNetwork_L1_2010_2019_30min.csv", sep=",", row.names = FALSE)
+# fixed 30 min averages to ceiling_date: 2019-06-25
+# write.table(SN_30min, file="SensorNetwork_L1_2010_2019_30min_20190625.csv", sep=",", row.names = FALSE)
 
 # FOR ANTHONY: save December 2018 to March 2019 soil moisture nad precip for Bare
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Anthony_soilCO2_fluxes")
