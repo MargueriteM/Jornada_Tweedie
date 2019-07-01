@@ -15,37 +15,41 @@ library(lsr) # contains quantileCut function
 # IMPORT DATA
 #############
 # Full Eddy Covariance output:
-setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Test_20190619")
+setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Test_20190626")
 
 # file info
-fileinfo2 <- scan("eddypro_Test_JJ_diag_full_output_2019-06-20T023427_adv.csv",
+fileinfo2 <- scan("eddypro_2015_2018_full_output_2019-06-28T144511_adv.csv",
                   what='',sep=",",nlines=1)
 fileinfo2 <- data.table(t(fileinfo2))
 # read only the first row to get the units
-flux.units <- (fread("eddypro_Test_JJ_diag_full_output_2019-06-20T023427_adv.csv",header=TRUE,skip=1))[1,]
+flux.units <- (fread("eddypro_2015_2018_full_output_2019-06-28T144511_adv.csv",header=TRUE,skip=1))[1,]
 # read the data, skippping the units row
-flux <- fread("eddypro_Test_JJ_diag_full_output_2019-06-20T023427_adv.csv", sep=",",skip=3,
+flux <- fread("eddypro_2015_2018_full_output_2019-06-28T144511_adv.csv", sep=",",skip=3,
              header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
 
 # format date
 flux[,date_time := paste(date,time,sep=" ")]
-flux[,':=' (date=as.Date(date), date_time = as.POSIXct(date_time, format="%Y-%m-%d %H:%M"))]
+flux[,':=' (date=as.Date(date),
+            date_time = as.POSIXct(date_time, format="%Y-%m-%d %H:%M"),
+            year=year(date_time))]
 
 
 # import the biomet data
 
 # read only the first row to get the units
-biomet.units <- (fread("eddypro_Test_JJ_diag_biomet_2019-06-19T211652_adv.csv",header=TRUE))[1,]
+biomet.units <- (fread("eddypro_2015_2018_biomet_2019-06-27T221717_exp.csv",header=TRUE))[1,]
 # read the data, skippping the units row
-biomet <- fread("eddypro_Test_JJ_diag_biomet_2019-06-19T211652_adv.csv", sep=",",skip=2,
+biomet <- fread("eddypro_2015_2018_biomet_2019-06-27T221717_exp.csv", sep=",",skip=2,
               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(biomet.units))
 
 # format date
 biomet[,date_time := paste(date,time,sep=" ")]
-biomet[,':=' (date=as.Date(date), date_time = as.POSIXct(date_time, format="%Y-%m-%d %H:%M"))]
+biomet[,':=' (date=as.Date(date),
+              date_time = as.POSIXct(date_time, format="%Y-%m-%d %H:%M"),
+              year=year(date_time))]
 
 # combine flux with biomet
-flux <- merge(flux,biomet[,!c("date","time","date_time")],by=c("DOY"),all=TRUE)
+flux <- merge(flux,biomet[,!c("date","time","date_time")],by=c("year","DOY"),all=TRUE)
 
 # following Reichstein et al 2005 create 6 temperature bins for night and day
 # Reichstein used 20W/m2 cut-off for night/day
@@ -145,13 +149,11 @@ ggplot(flux, aes(date_time,co2_flux,colour=factor(qc_co2_flux)))+
   geom_point()+
   ylim(c(-5,5))
 
-ggplot(flux[month(date_time)==12],aes(date_time,co2_flux))+
-  geom_line()+
-  ylim(c(-5,5))
 
-ggplot(flux[month(date_time)==12&qc_co2_flux<2,],aes(date_time,co2_flux))+
+ggplot(flux[month(date_time)==12&qc_co2_flux<2,],aes(DOY,co2_flux))+
   geom_line()+
-  ylim(c(-5,5))
+  ylim(c(-5,5))+
+  facet_grid(.~year)
 
 # plot storage flux
 ggplot(flux,aes(date_time,co2_strg,colour=factor(qc_co2_flux)))+
@@ -163,7 +165,7 @@ ggplot(flux[`co2_v-adv`<2,],aes(date_time,`co2_v-adv`,colour=factor(qc_co2_flux)
   geom_point()
 
 # look at CO2 and H2O variance
-ggplot(flux[co2_flux>(-1000) & co2_flux<1000],aes(co2_var,co2_flux,colour=factor(qc_co2_flux)))+
+ggplot(flux[co2_flux>(-1000) & co2_flux<1000 & co2_var>(-1000)],aes(co2_var,co2_flux,colour=factor(qc_co2_flux)))+
   geom_point()
 
 ggplot(flux[h2o_var>(-9000) & h2o_var<200000,],aes(date_time,h2o_var,colour=factor(qc_h2o_flux)))+
@@ -178,13 +180,13 @@ ggplot(flux[month(date_time)==7&h2o_strg<5&h2o_strg>(-5)],aes(date_time,h2o_strg
 
 ggplot(flux,aes(date_time,H,colour=factor(qc_H)))+geom_point()+ylim(c(-100,100))
 ggplot(flux,aes(date_time,LE,colour=factor(qc_LE)))+geom_point()+ylim(c(-1000,1000))
-ggplot(flux,aes(date_time,ET,colour=factor(qc_h2o_flux)))+geom_point()+ylim(c(-10,10))
+ggplot(flux,aes(date_time,ET,colour=factor(qc_h2o_flux)))+geom_point()+ylim(c(-5,5))
 
 ggplot(flux,aes(date_time,`u*`))+geom_point()
 
 # plot u* and CO2 flux in temperature bins
 
-# first plot PPFD_1_1_1
+# first plot PPFD_1_1_1 by hour
 ggplot(flux[PPFD_1_1_1<90,], aes(date_time, PPFD_1_1_1))+geom_line()+
   facet_wrap(~hour(date_time))
 
@@ -218,10 +220,10 @@ ggplot(flux[PPFD_1_1_1<90,],aes(u.bin,co2_flux,colour=factor(temp.bin)))+
   facet_wrap(~temp.bin)
 
 ggplot(flux[PPFD_1_1_1<10&qc_co2_flux<2&month(date_time)==6,],
-       aes(`u*`, co2_flux, colour=Ta_1_1_1))+
+       aes(`u*`, co2_flux, colour=temp.bin))+
   geom_point()+
   ylim(-1,2.5)+
-  geom_vline(xintercept=0.1)
+  geom_vline(xintercept=0.15)
 
 min(flux$date_time, na.rm=TRUE)
 
@@ -259,12 +261,12 @@ ggplot(flux,aes(x=date_time))+
 
 # residual = Rn - G - H - LE
 # closure fration = (H + LE) / (Rn + G)
-flux[,':=' (eb.res=(Rn_1_1_1 - ((SHF_1_1_1+SHF_1_2_1)/2) - H - LE),
-            cf = (H + LE)/(Rn_1_1_1 + ((SHF_1_1_1+SHF_1_2_1)/2)))]
+flux[,':=' (eb.res=(Rn_1_1_1 - ((SHF_1_1_1+SHF_1_2_1+SHF_2_1_1 + SHF_2_2_1)/4) - H - LE),
+            cf = (H + LE)/(Rn_1_1_1 + ((SHF_1_1_1+SHF_1_2_1+SHF_2_1_1 + SHF_2_2_1)/4)))]
 
 
 ggplot(flux[eb.res<4000 & eb.res>(-4000)  &
-              qc_H<2 & qc_LE<2 & month(date_time)==4,], aes(x=date_time))+
+              qc_H<2 & qc_LE<2 & month(date_time)==5,], aes(x=DOY))+
  # geom_line(aes(y=eb.res, colour="eb.res"))+
  # geom_point(aes(y=eb.res, colour="eb.res"))+
   geom_line(aes(y=Rn_1_1_1, colour="Rn_1_1_1"))+
@@ -274,11 +276,132 @@ ggplot(flux[eb.res<4000 & eb.res>(-4000)  &
   geom_line(aes(y=H, colour="H"))+
  # geom_point(aes(y=H, colour="H"))+ 
   geom_line(aes(y=LE, colour="LE"))+
-  geom_line(aes(y=H+LE+(SHF_1_1_1+SHF_1_2_1+SHF_2_1_1+SHF_2_2_1)/4, colour="H+LE+SHF"))
+  geom_line(aes(y=H+LE+(SHF_1_1_1+SHF_1_2_1+SHF_2_1_1+SHF_2_2_1)/4, colour="H+LE+SHF"))+
   #geom_point(aes(y=LE, colour="LE"))
+  facet_grid(.~year)
 
 ggplot(flux[qc_H<2 & qc_LE<2 ,], aes(x=date_time))+
   geom_line(aes(y=cf, colour="closure fraction"))+
   geom_point(aes(y=cf, colour="closure fraction"))+
   ylim(c(-100,100))
 
+
+# Preliminary data filtering for Anthony (with u*) in 2015
+# and for Dawn Browning (without u*) in 2017, 2018
+
+# not sure whether to add flux + storage + advection
+# book and Cove say to add flux + storage
+# eddy pro software says storage is only indicative and has too many assumptions and shouldn't be used
+
+flux1 <- copy(flux)
+
+# remove qc_co2_flux<1
+flux[qc_co2_flux>2 | is.na(qc_co2_flux),co2_flux := NA]
+
+# remove unreasonable flux values
+flux[co2_flux<(-4000) | co2_flux>4000, co2_flux := NA]
+
+# look at agc: IRGA signal strength
+ggplot(flux, aes(date_time,AGC_mean))+
+  geom_point()+
+  ylim(c(25,100))
+
+# remove flux when AGC < 40 (baseline is at ~42)
+# Li-7500 manual says that typical values are 55-65% but baselines vary by instrument
+# values that approach 100% should be removed because 100% indicates complete sensor blockage
+# remove less than 40 and greater than 52
+flux[AGC_mean<40 | AGC_mean>52, co2_flux := NA]
+
+
+# remove u*<0.15 for low turbulence. (later, don't do this for 2017/2018)
+flux[`u*`<0.15, co2_flux := NA]
+
+# there are some bigger pulses that remain, not quite sure what to do with them.
+
+# look at the data by month
+ggplot(flux[month(date_time)==12,], aes(DOY,co2_flux, colour=factor(year)))+
+  geom_line()
+
+# look at data without spikes removed and aligned with rain
+fluxplot <- ggplot(flux[year==2016,], aes(date_time,co2_flux))+
+  geom_line()
+
+rainplot <- ggplot(flux[year==2016,], aes(date_time,P_rain_1_1_1))+
+  geom_line()
+
+windplot <- ggplot(flux[year==2016,], aes(date_time,MWS_1_1_1))+
+  geom_line()
+
+
+grid.arrange(fluxplot,rainplot,windplot,nrow=3)
+
+# filter H
+# remove qc code < 1
+flux[qc_H>2 | is.na(qc_H),H := NA]
+
+# remove flux when AGC < 40 (baseline is at ~42)
+# Li-7500 manual says that typical values are 55-65% but baselines vary by instrument
+# values that approach 100% should be removed because 100% indicates complete sensor blockage
+# remove less than 40 and greater than 52
+flux[AGC_mean<40 | AGC_mean>52, H := NA]
+
+# remove unreasonable values 
+flux[H<(-1000) | H>1000, H := NA]
+
+
+# remove u*<0.15 for low turbulence. (later, don't do this for 2017/2018)
+flux[`u*`<0.15, H := NA]
+
+# look at data
+ggplot(flux, aes(date_time,H))+
+  geom_line()
+
+# look by month
+# look at the data by month
+ggplot(flux[month(date_time)==1,], aes(DOY,H, colour=factor(year)))+
+  geom_line()
+
+# filter LE
+# remove qc code < 1
+flux[qc_LE>2 | is.na(qc_LE),LE := NA]
+
+# remove flux when AGC < 40 (baseline is at ~42)
+# Li-7500 manual says that typical values are 55-65% but baselines vary by instrument
+# values that approach 100% should be removed because 100% indicates complete sensor blockage
+# remove less than 40 and greater than 52
+flux[AGC_mean<40 | AGC_mean>52, LE := NA]
+
+# remove unreasonable values 
+flux[LE<(-1000) | LE>30000 , LE := NA]
+
+
+# remove u*<0.15 for low turbulence. (later, don't do this for 2017/2018)
+flux[`u*`<0.15, LE := NA]
+
+# look at data
+ggplot(flux, aes(date_time,LE))+
+  geom_line()
+
+#
+
+
+# plot all energy fluxes looking at daily sums
+eb_daily <- flux[,lapply(.SD,function (x) {sum(x, na.rm=TRUE)}),by="date",.SDcols=c("Rn_1_1_1",
+                                                      "H", "LE",
+                                                      "SHF_1_1_1", "SHF_1_2_1",
+                                                      "SHF_2_1_1", "SHF_2_2_1")]
+
+
+ggplot(eb_daily[month(date)==12,], aes(x=yday(date)))+
+  # geom_line(aes(y=eb.res, colour="eb.res"))+
+  # geom_point(aes(y=eb.res, colour="eb.res"))+
+  geom_line(aes(y=Rn_1_1_1, colour="Rn_1_1_1"))+
+  #geom_point(aes(y=-Rn_1_1_1, colour="Rn_1_1_1"))+
+  geom_line(aes(y=((SHF_1_1_1+SHF_1_2_1+SHF_2_1_1+SHF_2_2_1)/4), colour="SHF"))+
+  # geom_point(aes(y=((SHF_1_1_1+SHF_1_2_1)/2), colour="SHF"))+
+  geom_line(aes(y=H, colour="H"))+
+  # geom_point(aes(y=H, colour="H"))+ 
+  geom_line(aes(y=LE, colour="LE"))+
+  geom_line(aes(y=H+LE+(SHF_1_1_1+SHF_1_2_1+SHF_2_1_1+SHF_2_2_1)/4, colour="H+LE+SHF"))+
+  #geom_point(aes(y=LE, colour="LE"))
+  facet_grid(.~year(date))
