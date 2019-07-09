@@ -135,12 +135,12 @@ colnames2015[, ':=' (sensor = sapply(strsplit(as.character(R_column_names),"_"),
 # read files and bind them into one file.
 # read 2010 - 2014 (different format and column headers than files after 2016)
 SN_2010_2014 <- do.call("rbind", lapply(SNfiles[1:5], header = TRUE, fread, sep=",",
-                                   na.strings=c(-9999,-888.88,"#NAME?")))
+                                   na.strings=c(-9999,-888.88,"#NAME?","NA")))
 
 # after 2014 the format varies so read in each sensor network one by one
 sink("/dev/null") # this command suppresses output, otherwise R prints all the content of the files
-lapply(SNfiles[6:10], function(fname){
-  input<- fread(fname, sep=",", header=TRUE, na.strings=c(-9999,-888.88,"#NAME?"))
+lapply(SNfiles[6:11], function(fname){
+  input<- fread(fname, sep=",", header=TRUE, na.strings=c(-9999,-888.88,"#NAME?","NA"))
   obj_name <- paste("SN",
                     strsplit(as.character(tools::file_path_sans_ext(basename(fname))),"_","[",2)[[1]][2],
                     sep="_")
@@ -170,6 +170,7 @@ SN_2016[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
 SN_2017[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
 SN_2018[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
 SN_2019[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
+SN_20190401000000[, date_time := ymd_hms(Date)][, Date:=date_time][, date_time:=NULL]
 
 
 # fix character and logical columns in each data set so that they can be melted
@@ -251,7 +252,10 @@ SN_2010_2014_long <- merge(SN_2010_2014_long, colnames2010, by="variable")
 SN_2015_2019_long <- merge(SN_2015_2019_long, colnames2015, by="variable")
 
 # combine data from all years
-SN_2010_2019 <- rbind(SN_2010_2014_long, SN_2015_2019_long)
+# 20190401000000 is already fixed from the automatic transfer and format stage. 
+# it just needs value converted to numeric and then appended
+SN_20190401fx <- SN_20190401000000[, value := as.numeric(value)]
+SN_2010_2019 <- rbind(SN_2010_2014_long, SN_2015_2019_long,SN_20190401fx)
 
 # calculate half-hour means using ceiling date which takes each time to the next half-hour,
 # ie: 15:00:01 goes to 15:30, etc. 
@@ -274,6 +278,11 @@ SN_30min[,doy:= yday(date_time)]
 # sensor options:
 levels(as.factor(SN_30min$sensor))
 # "battery"  "current"  "lws"      "moisture" "par"      "pressure" "rain"     "solar"    "voltage" 
+
+# just check
+levels(as.factor(SN_30min$veg))
+levels(as.factor(SN_30min$depth))
+
 
 # make figures to figure out reasonable values and remove anything outside of range
 # check data and remove complete outliers
@@ -305,6 +314,10 @@ SN_30min[sensor=="moisture"&veg=="PRGL"&depth==5&year==2015&month==8&mean.val>0.
 
 # PRGL 5cm: probe goes bad after September 2015
 SN_30min[sensor=="moisture"&veg=="PRGL"&depth==5&date_time>=as.Date("2015-09-01"),
+         mean.val := NA]
+
+# PRGL remove all after January 2019 (sensors got moved on ~19 June...have to update metadata)
+SN_30min[sensor=="moisture"&veg=="PRGL"&date_time>=as.Date("2019-01-01"),
          mean.val := NA]
 
 # LATR 5cm: probe goes bad after 12 Feb 2017
@@ -469,6 +482,9 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Combined")
 ## write.table(SN_30min, file="SensorNetwork_L1_2010_2019_30min.csv", sep=",", row.names = FALSE)
 # fixed 30 min averages to ceiling_date: 2019-06-25
 # write.table(SN_30min, file="SensorNetwork_L1_2010_2019_30min_20190625.csv", sep=",", row.names = FALSE)
+# added additional data up to July 2019-07-09-1130, need to go back and fix sensor replacement info
+# write.table(SN_30min, file="SensorNetwork_L1_2010_201907091130_30min.csv", sep=",", row.names = FALSE)
+
 
 # FOR ANTHONY: save December 2018 to March 2019 soil moisture nad precip for Bare
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Anthony_soilCO2_fluxes")

@@ -261,14 +261,14 @@ ggplot(met30_long[variable=="e"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="atm_press"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="wnd_spd"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="wnd_dir"], aes(date_time, value))+geom_point()
-ggplot(met30_long[variable=="precip.tot"], aes(date_time, value))+geom_point()
-ggplot(met30_long[variable=="par"], aes(date_time, value))+geom_point()
-ggplot(met30_long[variable=="albedo"], aes(date_time, value))+geom_point()
-ggplot(met30_long[variable=="lws_5m"], aes(date_time, value))+geom_point()
-ggplot(met30_long[variable=="net_rs"], aes(date_time, value))+geom_point()
-ggplot(met30_long[variable=="net_ri"], aes(date_time, value))+geom_point()
-ggplot(met30_long[variable=="up_tot"], aes(date_time, value))+geom_point()
-ggplot(met30_long[variable=="dn_tot"], aes(date_time, value))+geom_point()
+ggplot(met30_long[variable=="precip.tot"], aes(date_time, value))+geom_point()+labs(title="Precip")
+ggplot(met30_long[variable=="par"], aes(date_time, value))+geom_point()+labs(title="PAR")
+ggplot(met30_long[variable=="albedo"], aes(date_time, value))+geom_point()+labs(title="albedo")
+ggplot(met30_long[variable=="lws_5m"], aes(date_time, value))+geom_point()+labs(title="lws_5m")
+ggplot(met30_long[variable=="net_rs"], aes(date_time, value))+geom_point()+labs(title="net_rs")
+ggplot(met30_long[variable=="net_ri"], aes(date_time, value))+geom_point()+labs(title="net_ri")
+ggplot(met30_long[variable=="up_tot"], aes(date_time, value))+geom_point()+labs(title="up_tot")
+ggplot(met30_long[variable=="dn_tot"], aes(date_time, value))+geom_point()+labs(title="dn_tot")
 
 # do a bunch of graphic checks on the data: 
 # airtemp, rh, e, atm_press, wnd_spd, wnd_dir, precip.tot, par, albedo, lws_5m,
@@ -404,6 +404,8 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/Compiled")
 ## write.table(met30_long, file="TowerMet_L1_2010_2019_30min.csv", sep=",", row.names = FALSE)
 # save with ceiling_date
 # write.table(met30_long, file="TowerMet_L1_2010_2019_30min_20190627.csv", sep=",", row.names = FALSE)
+# save up to May 2019
+# write.table(met30_long, file="TowerMet_L1_2010_20190531_30min.csv", sep=",", row.names = FALSE)
 
 
 # calculate daily precip

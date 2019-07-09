@@ -97,12 +97,12 @@ fix_columns <- function(SNdata,colnames_data) {
 }
 ###########################
 
-setwd("/Volumes/Users/jerTweWSN/Documents/delivery")
+setwd("Volumes/Users/jerTweWSN/Documents/delivery")
 
 # fread imports as data table
 # list all csv files in relevant folder
-SNfiles_test <- list.files(path="/Volumes/Users/jerTweWSN/Documents/delivery",
-                           full.names=TRUE, pattern="all_nodes_hourly") 
+SNfiles_test <- list.files(path="/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/UtepJrnBahadaSite/SensorNetwork/2019/RawData",
+                           full.names=TRUE) 
 
 # column names for 2015 onward 
 # after 2015 there are a few erroneous sensor columns that creep in. 
@@ -144,13 +144,27 @@ SN_test_long <- melt.data.table(SN_test_fx,c("Date"))
 # descriptors are: sensor, SN, veg, depth
 SN_test_long <- merge(SN_test_long, colnames2015, by="variable")
 
+# save the 5 min data for later use
+# save with start and end date of merged data files
+setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/UtepJrnBahadaSite/SensorNetwork/2019")
+# write.table(SN_test_long,file=paste(paste('SensorNetwork',
+#    sprintf("%04d%02d%02d%02d%02d%02d", year(min(SN_test_long$Date)),month(min(SN_test_long$Date)),
+#           day(min(SN_test_long$Date)),
+#           hour(min(SN_test_long$Date)),
+#           minute(min(SN_test_long$Date)),
+#           second(min(SN_test_long$Date))),
+#    sprintf("%04d%02d%02d%02d%02d%02d",year(max(SN_test_long$Date)),month(max(SN_test_long$Date)),day(max(SN_test_long$Date)),
+#           hour(max(SN_test_long$Date)),minute(max(SN_test_long$Date)),second(max(SN_test_long$Date))),
+#    "5min",sep="_"),".csv"),
+#             sep=",",dec=".",row.names=FALSE)
 
+# to visualise
 # calculate 30min data
 SN_30min_test <- SN_test_long[sensor!="rain", list(mean.val = mean(value, na.rm=TRUE)),
                          by=.(SN,veg,depth,sensor,cut(Date,"30 min"))][,date_time := (ymd_hms(cut))][,cut := NULL]
 
-# for precip calculate the sum and keep NAs otherwise it ends up being misleading.
-SN_30min_rain_test <- SN_test_long[sensor=="rain", list(mean.val = sum(value)),
+# for precip calculate the sum
+SN_30min_rain_test <- SN_test_long[sensor=="rain", list(mean.val = sum(value, na.rm=TRUE)),
                               by=.(SN,veg,depth,sensor,cut(Date,"30 min"))][,date_time := (ymd_hms(cut))][,cut := NULL]
 
 
