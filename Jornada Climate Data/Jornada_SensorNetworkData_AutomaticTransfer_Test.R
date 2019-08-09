@@ -1,24 +1,28 @@
 
-
-
-
 ##########################################
-#   Jornada Sensor Network Data 2015     #
+#   Jornada Sensor Network Data          #
 #      code: M. Mauritz, 21 Nov 2018     #
 # modified April 2019 to add 2010-2019   #
 ##########################################
 
-# Jornada Precip Data: import and explore
+# Jornada Sensor Network Data
+# read files from automatic data transfer, fix column names and column format
+# move files from data delivery folder to an archive folder
 
 library(data.table)
-library(ggplot2)
 library(lubridate)
-library(gridExtra)
-library(lattice)
 
+# create directories for reading and moving files
+# directory where new data comes in
+# data_dir <- "/Volumes/Users/jerTweWSN/Documents/delivery"
+data_dir <- "~/Desktop/"
+# directory where file should be moved after reading
+save_dir_raw <- "/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/UtepJrnBahadaSite/SensorNetwork/test_move"
+save_dir_raw <- "~/Desktop/test_move"
+# directory where the final processed file goes
+save_dir_final <- "/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/UtepJrnBahadaSite/SensorNetwork/test_move"
+save_dir_final <- "~/Desktop/test_final"
 
-# copied files from server to computer
-# server source: "/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/UtepJrnBahadaSite/"
 
 # Units of data:
 # rain, mm
@@ -46,7 +50,8 @@ library(lattice)
 # find character columns, they are the ones with ',', and then fix the ',' only in those specific columns
 # some columns are all NA and those are read as 'logical'. Turn those into numeric columns
 
-# Also get the column names of each sensor network data set and compare to the columns that should be in the data
+# Get the column names of each sensor network data set and
+# compare to the columns that should be in the data
 
 #########################################
 fix_columns <- function(SNdata,colnames_data) {
@@ -97,22 +102,27 @@ fix_columns <- function(SNdata,colnames_data) {
 }
 ###########################
 
-setwd("Volumes/Users/jerTweWSN/Documents/delivery")
-
 # fread imports as data table
 # list all csv files in relevant folder
-SNfiles_test <- list.files(path="/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/UtepJrnBahadaSite/SensorNetwork/2019/RawData",
-                           full.names=TRUE) 
+SNfiles_test <- list.files(path="/Volumes/Users/jerTweWSN/Documents/delivery",
+                           full.names=TRUE, pattern="^all_nodes_hourly_2019_08_05") 
+
+
+SNfiles_test <- list.files(path="~/Desktop/",
+                           full.names=TRUE, pattern="^all_nodes_hourly_2019_08_05") 
+
+# read files and bind them into one file.
+SN_test <- do.call("rbind", c(fill=TRUE,lapply(SNfiles_test, header = TRUE, fread, sep=",",
+                                               na.strings=c(-9999,-888.88,"#NAME?"))))
 
 # column names for 2015 onward 
 # after 2015 there are a few erroneous sensor columns that creep in. 
 # these are either emty or contain some brief data, but we're not sure what that data is
 # and it often doesn't look like good data
-# colnames.
 
-# 2015 is a complete list of all columns that SHOULD be in the data. 
+# colnames2015 is a complete list of all columns that SHOULD be in the data. 
 # use that to screen and remove extra columns
-colnames2015 <- fread(file="~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/MetaData/JER_SensorNetwork_ColumnNames_2015.csv",
+colnames2015 <- fread(file="/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/UtepJrnBahadaSite/SensorNetwork/MetaData/JER_SensorNetwork_ColumnNames_2015.csv",
                       sep=",",
                       header=TRUE) 
 
@@ -120,11 +130,6 @@ colnames2015[, ':=' (sensor = sapply(strsplit(as.character(R_column_names),"_"),
                      SN = sapply(strsplit(as.character(R_column_names),"_"),"[",2),
                      veg = sapply(strsplit(as.character(R_column_names),"_"),"[",3),
                      depth = sapply(strsplit(as.character(R_column_names),"_"),"[",4))]
-
-
-# read files and bind them into one file.
-SN_test <- do.call("rbind", c(fill=TRUE,lapply(SNfiles_test, header = TRUE, fread, sep=",",
-                                        na.strings=c(-9999,-888.88,"#NAME?"))))
 
 
 # fix character and logical columns in each data set so that they can be melted
@@ -146,42 +151,22 @@ SN_test_long <- merge(SN_test_long, colnames2015, by="variable")
 
 # save the 5 min data for later use
 # save with start and end date of merged data files
-setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/UtepJrnBahadaSite/SensorNetwork/2019")
-# write.table(SN_test_long,file=paste(paste('SensorNetwork',
-#    sprintf("%04d%02d%02d%02d%02d%02d", year(min(SN_test_long$Date)),month(min(SN_test_long$Date)),
-#           day(min(SN_test_long$Date)),
-#           hour(min(SN_test_long$Date)),
-#           minute(min(SN_test_long$Date)),
-#           second(min(SN_test_long$Date))),
-#    sprintf("%04d%02d%02d%02d%02d%02d",year(max(SN_test_long$Date)),month(max(SN_test_long$Date)),day(max(SN_test_long$Date)),
-#           hour(max(SN_test_long$Date)),minute(max(SN_test_long$Date)),second(max(SN_test_long$Date))),
-#    "5min",sep="_"),".csv"),
-#             sep=",",dec=".",row.names=FALSE)
+setwd(save_dir_final)
+write.table(SN_test_long,file=paste(paste('SensorNetwork',
+   sprintf("%04d%02d%02d%02d%02d%02d", year(min(SN_test_long$Date)),month(min(SN_test_long$Date)),
+          day(min(SN_test_long$Date)),
+          hour(min(SN_test_long$Date)),
+          minute(min(SN_test_long$Date)),
+          second(min(SN_test_long$Date))),
+   sprintf("%04d%02d%02d%02d%02d%02d",year(max(SN_test_long$Date)),month(max(SN_test_long$Date)),day(max(SN_test_long$Date)),
+          hour(max(SN_test_long$Date)),minute(max(SN_test_long$Date)),second(max(SN_test_long$Date))),
+   "5min",sep="_"),".csv"),
+            sep=",",dec=".",row.names=FALSE)
 
-# to visualise
-# calculate 30min data
-SN_30min_test <- SN_test_long[sensor!="rain", list(mean.val = mean(value, na.rm=TRUE)),
-                         by=.(SN,veg,depth,sensor,cut(Date,"30 min"))][,date_time := (ymd_hms(cut))][,cut := NULL]
+# move the half-hourly data that was compiled to another directory and delete the files from delivery
+setwd(data_dir)
+file.copy(from=SNfiles_test,to=save_dir_raw)
+file.remove(SNfiles_test)
 
-# for precip calculate the sum
-SN_30min_rain_test <- SN_test_long[sensor=="rain", list(mean.val = sum(value, na.rm=TRUE)),
-                              by=.(SN,veg,depth,sensor,cut(Date,"30 min"))][,date_time := (ymd_hms(cut))][,cut := NULL]
-
-
-SN_30min_test <- rbind(SN_30min_test, SN_30min_rain_test)
-
-# break up the date column
-SN_30min_test[,year:= year(date_time)]
-SN_30min_test[,month:= month(date_time)]
-SN_30min_test[,doy:= yday(date_time)]
-
-# make sample plots
-ggplot(SN_30min_test, aes(date_time, mean.val, colour=paste(SN,veg,depth,sep=".")))+
-  geom_line()+
-  facet_grid(sensor~., scales="free_y")
-
-ggplot(SN_30min_test, aes(date_time, mean.val, colour=paste(SN,veg,depth,sep=".")))+
-  geom_line()+
-  facet_grid(sensor~SN, scales="free_y")
 
 

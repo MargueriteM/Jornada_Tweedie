@@ -43,7 +43,8 @@ ectm_data [,':=' (ecp_1=NULL, ecp_2=NULL, ecp_3=NULL, ecp_4=NULL,
 ectm_data[,record:=NULL]
 
 # create a date/time, date
-ectm_data[,date_time:=parse_date_time(timestamp,"ymd HMS")][,timestamp:=NULL]
+ectm_data[,date_time:=parse_date_time(timestamp, c("%Y!-%m-%d %H:%M:%S",
+                                                                  "%m-%d-%y %H:%M"))][,timestamp:=NULL]
 
 # check that the files merged correctly and I think I have all the data there
 # summary(ectm_data)
@@ -173,11 +174,26 @@ ectm_30min_long[rep==2 & date_time>as.Date("2018-09-17") & date_time < as.Date("
 ectm_30min_long[rep==3 & year==2018 & month==11, value:=NA]
 
 # 2019:
+# probe 2 remove diff2 between -0.25 and 0.25 and temps < -5 (because diff2 misses a few)
+ectm_30min_long[rep %in% c(2) & year==2019 & 
+                  ((diff2<(-0.25) | diff2>0.25) | value < (-05)), value := NA]
+
+# probe 2 remove diff2 between -0.25 and 0.25 and temps < 10 after April (because diff2 misses a few)
+ectm_30min_long[rep %in% c(2) & year==2019 & month>3 & value <= (10), value := NA]
+
 # probe 7, 8 remove all: not working
 ectm_30min_long[rep %in% c(7,8) & year==2019, value := NA]
 # probe 5, 6 remove diff2 between -0.25 and 0.25 and temps < -5 (because diff2 misses a few)
 ectm_30min_long[rep %in% c(5,6) & year==2019 & 
                   ((diff2<(-0.25) | diff2>0.25) | value < (-05)), value := NA]
+
+# probe 6 remove <5 after March
+ectm_30min_long[rep %in% c(6) & year==2019 & month>=3 & value < (5), value := NA]
+
+
+# probe 5 temp gets weird after end of Mar Remove after
+ectm_30min_long[variable=="t_5_mean_na" & year==2019 & month>=3, value:=NA]
+
 
 # probe 5 vwc gets weird after end of Jan. Remove feb
 ectm_30min_long[variable=="vwc_5_mean_na" & year==2019 & month>=2, value:=NA]
@@ -232,6 +248,9 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SoilSensor_ECTM/Combined")
 ## write.table(ectm_30min_long, file="Soil_Temp_VWC_ECTM_L1_2010_2019_30min.csv", sep=",", row.names = FALSE)
 # save with ceiling_date
 # write.table(ectm_30min_long, file="Soil_Temp_VWC_ECTM_L1_2010_2019_30min_20190627.csv", sep=",", row.names = FALSE)
+
+# save updated to 31 May 2019
+# write.table(ectm_30min_long, file="Soil_Temp_VWC_ECTM_L1_2010_20190531_30min.csv", sep=",", row.names = FALSE)
 
 
 # try a heat map/geom tile for soil temp sensor t_8

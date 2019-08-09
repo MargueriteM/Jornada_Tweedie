@@ -152,7 +152,8 @@ flux_all <- do.call("rbind", lapply(fluxfiles, header = FALSE, fread, sep=",", s
                                    col.names=as.vector(fluxcolnames$colname)))
 
 # convert the time stamp to a posixct format
-flux_all[,date_time := parse_date_time(timestamp, c("%Y!-%m-%d %H:%M:%S"))]
+flux_all[,date_time := parse_date_time(timestamp, c("%Y!-%m-%d %H:%M:%S",
+                                                    "%m-%d-%y %H:%M"))]
 
 # change data to long format and drop timestamp and record variables.
 flux_long <- melt.data.table(flux_all[,!c("timestamp","record")],c("date_time"))
@@ -521,5 +522,44 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining
 # write.table(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
 # "Rn_nr_Avg", "lws_1_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg","gapfill_id"),.(date_time,variable,value)],
 # file="FluxTable_L1_2010_2019_30min.csv", sep=",", row.names = FALSE)
+
+# save data updated to May 31 2019
+# write.table(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
+# "Rn_nr_Avg", "lws_1_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg","gapfill_id"),.(date_time,variable,value)],
+# file="FluxTable_L1_2010_20190531_30min.csv", sep=",", row.names = FALSE)
+
+
+
+# look at fluxes:
+ggplot(flux_long[variable == "Fc_wpl",])+
+  geom_point(aes(date_time,value))
+
+ggplot(flux_long[variable == "Fc_wpl"&year==2014&month==7,])+
+  geom_point(aes(date_time,value))+
+  ylim(-0.5,0.5)+
+  facet_grid(.~year)
+
+# plot in umol?
+# 1mg/44 = 1mmol*1000 = umol
+ggplot(flux_long[variable == "Fc_wpl"&year>2010,])+
+  geom_line(aes(date_time,((value)/44)*1000))+
+  ylim(-10,10)
+
+ggplot(flux_long[variable == "Fc_wpl"&year==2014,])+
+  geom_line(aes(date_time,((value)/44)*1000))+
+  ylim(-10,10)
+
+
+# look at H
+ggplot(flux_long[variable == "Hc",])+
+  geom_point(aes(date_time,value))
+
+ggplot(flux_long[variable == "Hc",])+
+  geom_point(aes(date_time,value))+
+  ylim(-1000,1000)
+
+ggplot(flux_long[variable == "Hc"&year==2014,])+
+  geom_point(aes(date_time,value))+
+  ylim(-1000,1000)
 
 

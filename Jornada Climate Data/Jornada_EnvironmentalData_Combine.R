@@ -106,7 +106,7 @@ library(data.table) # library for data table which is more efficient with large 
 #############
 # Sensor network data:
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Combined")
-SN_30min <- fread("SensorNetwork_L1_2010_2019_30min_20190625.csv", sep=",", header=TRUE)
+SN_30min <- fread("SensorNetwork_L1_2010_201907091130_30min.csv", sep=",", header=TRUE)
 # format date and add column to deginate the data stream
 SN_30min[, ':=' (date_time = ymd_hms(date_time), datastream = "SN", location = "SN")]
 setnames(SN_30min, 'sensor', 'variable')
@@ -126,7 +126,7 @@ SN_30min[variable=="atm_press", mean.val := mean.val/10]
 
 # Tower Met Data
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/Compiled")
-met_30min <- fread("TowerMet_L1_2010_2019_30min_20190627.csv", sep=",", header=TRUE)
+met_30min <- fread("TowerMet_L1_2010_20190531_30min.csv", sep=",", header=TRUE)
 # format date and add column to deginate the data stream
 met_30min[, ':=' (date_time = ymd_hms(date_time), datastream = "climate",location = "tower")]
 setnames(met_30min, 'value', 'mean.val')
@@ -139,7 +139,7 @@ met_30min[variable=="precip.tot", veg := "BARE"]
 
 # Data from FluxTable: Rs, Rl, HFP, LWS_1 (in shrub)
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining")
-flux_30min <- fread("FluxTable_L1_2010_2019_30min.csv", sep=",", header=TRUE)
+flux_30min <- fread("FluxTable_L1_2010_20190531_30min.csv", sep=",", header=TRUE)
 flux_30min[, ':=' (date_time = ymd_hms(date_time), year=year(date_time),datastream = "flux", location = "tower")]
 setnames(flux_30min, 'value', 'mean.val')
 
@@ -155,7 +155,7 @@ flux_30min[variable == "Rl_upwell_Avg", variable := "Rl_up"]
 
 # Tower soil temperature and moisture data (ECTM)
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SoilSensor_ECTM/Combined")
-soil_30min <- fread("Soil_Temp_VWC_ECTM_L1_2010_2019_30min_20190627.csv", sep=",", header=TRUE)
+soil_30min <- fread("Soil_Temp_VWC_ECTM_L1_2010_20190531_30min.csv", sep=",", header=TRUE)
 # format date and add column to deginate the data stream, get rid or uneccessary columns
 setnames(soil_30min, c('value','variable'), c('mean.val', 'probe_id'))
 soil_30min[measurement == "t", variable := "soiltemp"]
@@ -213,7 +213,7 @@ ggplot(env_30min[variable == "par"& veg %in% c("LATR","PRGL","DAPU","MUPO","BARE
 
 
 # look at precip from tower and SN
-ggplot(env_30min[variable == "precip.tot"& veg=="BARE" &year==2015,], aes(date_time, mean.val,colour=datastream))+
+ggplot(env_30min[variable == "precip.tot"& veg=="BARE",], aes(date_time, mean.val,colour=datastream))+
   geom_point()+
   facet_grid(paste(variable,location,veg,sep="_")~., scales="free_y")
 
@@ -297,13 +297,13 @@ setnames(biomet_other1,c("Rl_down","Rl_up","Rn_nr_Avg","Rs_down","Rs_up","airtem
 # combine data into columns:
 # biomet_mean_parUP, biomet_mean_parVEG, biomet_mean_precip, biomet_mean_soilM, biomet_mean_soilT, 
 # biomet_mean_hfp, biomet_mean_Pa
-biomet <- merge(biomet_other1,biomet_mean_parUP, by="date_time")
-biomet <- merge(biomet,biomet_mean_parVEG, by="date_time")
-biomet <- merge(biomet,biomet_mean_precip, by="date_time")
-biomet <- merge(biomet,biomet_mean_soilM, by="date_time")
-biomet <- merge(biomet,biomet_mean_soilT, by="date_time")
-biomet <- merge(biomet,biomet_mean_hfp, by="date_time")
-biomet <- merge(biomet,biomet_mean_Pa, by="date_time")
+biomet <- merge(biomet_other1,biomet_mean_parUP, by="date_time",all=TRUE)
+biomet <- merge(biomet,biomet_mean_parVEG, by="date_time",all=TRUE)
+biomet <- merge(biomet,biomet_mean_precip, by="date_time",all=TRUE)
+biomet <- merge(biomet,biomet_mean_soilM, by="date_time",all=TRUE)
+biomet <- merge(biomet,biomet_mean_soilT, by="date_time",all=TRUE)
+biomet <- merge(biomet,biomet_mean_hfp, by="date_time",all=TRUE)
+biomet <- merge(biomet,biomet_mean_Pa, by="date_time",all=TRUE)
 
 # save Biomet Data for EddyPro for all years (R file) before editing timestamp
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP")
@@ -312,10 +312,19 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP")
 ## time rounded with 'cut': save(biomet, file="Biomet_EddyPro_2010_2019_20190617.Rdata")
 
 # time rounded with ceiling_date to match Eddy Pro:
-# save(biomet, file="Biomet_EddyPro_2010_2019_20190626.Rdata")
+## save(biomet, file="Biomet_EddyPro_2010_2019_20190626.Rdata")
+
+## fixed 2014 data gap':
+# save(biomet, file="Biomet_EddyPro_2010_2019_20190709.Rdata")
+
+# load("Biomet_EddyPro_2010_2019_20190709.Rdata")
 
 # save Biomet Data for EddyPro for each year (csv) after editing timestamp
-# setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP")
+## setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/20190709")
+
+# add midnight of the next year to each file
+# setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/20190801")
+
 
 # # load function to format data for Eddy Pro and save each year
 
@@ -323,6 +332,64 @@ source("~/Desktop/R/R_programs/Functions/SaveFiles_Biomet_EddyPro.R")
 
 # save each year
 # savebiomet(biomet,2010,2019)
+
+# figures of biomet data for JER Short course Poster
+# time series of rain and temperature
+library(scales)
+
+p <- ggplot(biomet[!is.na(date_time)&year(date_time)<=2019,],aes(date_time,P_rain_1_1_1,colour=factor(year(date_time))))+
+  geom_line()+
+  scale_x_datetime(limits=c(as.POSIXct("2010-01-01 00:00:00"),
+                            as.POSIXct("2019-05-31 00:00:00")),
+                   breaks="1 year",
+                   labels=date_format("%Y"))+
+  scale_colour_discrete(name="Year")+
+  labs(x="Date", y="Total precipitation (mm)") +
+  theme(
+    plot.title=element_text(size = 14),
+    axis.text.x=element_blank(),
+    axis.title.x=element_blank(),
+    #axis.text.x=element_text(size=10,margin=unit(c(2,2,2,2),"mm")),
+    axis.text.y=element_text(size=14,margin=unit(c(2,2,2,2),"mm")),
+    axis.title.y=element_text(size=15),
+    axis.ticks.length=unit(-1.0,"mm"),
+    strip.background = element_blank(),
+    strip.text=element_text(size=10),
+    legend.title=element_text(size=10),
+    legend.text=element_text(size=9),
+    legend.key = element_rect(fill=NA, colour=NA),
+    legend.position = "none",
+    panel.background=element_rect(fill="white",colour="black"),
+    plot.margin=unit(c(1,1,1,2.5),"mm"))
+
+
+t <- ggplot(biomet[!is.na(date_time)&year(date_time)<=2019,],aes(date_time,Ta_1_1_1, colour=factor(year(date_time))))+
+  geom_line()+
+  geom_hline(yintercept=0)+
+  scale_x_datetime(limits=c(as.POSIXct("2010-01-01 00:00:00"),
+                            as.POSIXct("2019-05-31 00:00:00")),
+                   breaks="1 year",
+                   labels=date_format("%Y"))+
+  scale_colour_discrete(name="Year")+
+  labs( x="Date", y=expression("Temperature ("~degree~"C)")) +
+  theme(
+    plot.title=element_text(size = 14),
+    axis.text.x=element_text(size=14,margin=unit(c(2,2,2,2),"mm")),
+    axis.text.y=element_text(size=14,margin=unit(c(2,2,2,2),"mm")),
+    axis.title=element_text(size=15),
+    axis.ticks.length=unit(-1.0,"mm"),
+    strip.background = element_blank(),
+    strip.text=element_text(size=12),
+    legend.title=element_text(size=10),
+    legend.text=element_text(size=9),
+    legend.key = element_rect(fill=NA, colour=NA),
+    legend.position = "none",
+    panel.background=element_rect(fill="white",colour="black"),
+    plot.margin=unit(c(2,1,1,1),"mm")) #top,right,bottom,left)
+
+grid.arrange(p,t, nrow=2)
+
+
 
 # graph data coverage for SN and tower
 # soil moisture
