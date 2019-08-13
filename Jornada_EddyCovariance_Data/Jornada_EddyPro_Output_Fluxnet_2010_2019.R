@@ -2,7 +2,7 @@
 #  This code gets data output by Eddy Pro  #
 #           written by: M. Mauritz         #
 #             May 2019                     #
-#    update: August 2019                   #
+#    update: 9 August 2019                   #
 ############################################
 
 # load libraries
@@ -19,21 +19,39 @@ library(viridis)
 #############
 # EddyPro 7.0.4 has column name slip problems, using Fluxnet output!
 
-# read the data for 2015-2018
-flux2015 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2015/eddypro_JER_2015_fluxnet_2019-08-06T050846_adv.csv",
+# read the data in fluxnet format
+flux2010 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/eddypro_JER_2010_fluxnet_2019-08-08T131210_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"))
+
+
+flux2011 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2011/eddypro_JER_2011_fluxnet_2019-08-08T131507_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"))
+
+flux2012 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2012/eddypro_JER_2012_fluxnet_2019-08-08T131951_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"))
+
+
+flux2013 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2013/eddypro_JER_2013_fluxnet_2019-08-08T105511_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"))
+
+flux2014 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2014/eddypro_JER_2014_fluxnet_2019-08-07T231114_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"))
+
+
+flux2015 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2015/20190806/eddypro_JER_2015_fluxnet_2019-08-08T051142_adv.csv",
                sep=",", header=TRUE, na.strings=c("-9999"))
 
-flux2016 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2016/eddypro_JER_2016_fluxnet_2019-08-01T191226_adv.csv",
+flux2016 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2016/20190806/eddypro_JER_2016_fluxnet_2019-08-08T051828_adv.csv",
                sep=",", header=TRUE, na.strings=c("-9999"))
 
-flux2017 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2017/eddypro_JER_2017_fluxnet_2019-08-02T022734_adv.csv",
+flux2017 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2017/20190806/eddypro_JER_2017_fluxnet_2019-08-07T114629_adv.csv",
                   sep=",", header=TRUE, na.strings=c("-9999"))
 
 flux2018 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2018/eddypro_JER_2018_fluxnet_2019-08-02T101350_adv.csv",
                   sep=",", header=TRUE, na.strings=c("-9999"))
 
 # combine all individual years of flux runs
-flux <- rbind(flux2015, flux2016, flux2017, flux2018)
+flux <- rbind(flux2010, flux2011, flux2012,flux2013,flux2014,flux2015, flux2016, flux2017, flux2018)
 
 # format date
 flux[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
@@ -49,316 +67,385 @@ ggplot(flux,aes(date_time,SWC_1_1_1))+geom_line()
 # graph air temp
 ggplot(flux,aes(date_time,TA_1_1_1))+geom_line()
 
-# co2 flux
-ggplot(flux[FC>(-10)&FC<10,], aes(date_time,FC))+
-  geom_line()+
-  ylim(c(-10,30))
+# graph PAR
+ggplot(flux,aes(date_time,PPFD_IN_1_1_1))+geom_line()
 
-# H
-ggplot(flux[H>(-400)&FC<800,], aes(date_time,H))+
-  geom_line()
-
-# LE
-ggplot(flux[LE>(-400)&FC<800,], aes(date_time,LE))+
-  geom_line()
-
-
-ggplot(flux[month(date_time)==12&qc_co2_flux<2,],aes(DOY,co2_flux))+
-  geom_line()+
-  ylim(c(-5,5))+
-  facet_grid(.~year)
-
-# plot storage flux
-ggplot(flux,aes(date_time,co2_strg,colour=factor(qc_co2_flux)))+
-  geom_point()+
-  ylim(c(-25,25))
-
-# plot advection flux
-ggplot(flux[`co2_v-adv`<2,],aes(date_time,`co2_v-adv`,colour=factor(qc_co2_flux)))+
-  geom_point()
-
-# look at CO2 and H2O variance
-ggplot(flux[co2_flux>(-1000) & co2_flux<1000 & co2_var>(-1000)],aes(co2_var,co2_flux,colour=factor(qc_co2_flux)))+
-  geom_point()
-
-ggplot(flux[h2o_var>(-9000) & h2o_var<200000,],aes(date_time,h2o_var,colour=factor(qc_h2o_flux)))+
-  geom_point()
-
-
-ggplot(flux[co2_molar_density<1000],aes(date_time,co2_mole_fraction,colour=factor(qc_co2_flux)))+geom_point()
-
-ggplot(flux,aes(date_time,h2o_mole_fraction,colour=factor(qc_h2o_flux)))+geom_point()
-ggplot(flux,aes(date_time,h2o_var,colour=factor(qc_h2o_flux)))+geom_point()+ylim(c(0,7000))
-ggplot(flux[month(date_time)==7&h2o_strg<5&h2o_strg>(-5)],aes(date_time,h2o_strg))+geom_point()
-
-ggplot(flux,aes(date_time,H,colour=factor(qc_H)))+geom_point()+ylim(c(-100,100))
-ggplot(flux,aes(date_time,LE,colour=factor(qc_LE)))+geom_point()+ylim(c(-1000,1000))
-ggplot(flux,aes(date_time,ET,colour=factor(qc_h2o_flux)))+geom_point()+ylim(c(-5,5))
-
-ggplot(flux,aes(date_time,`u*`))+geom_point()
-
-# plot u* and CO2 flux in temperature bins
-
-# first plot PPFD_1_1_1 by hour
-ggplot(flux[PPFD_1_1_1<90,], aes(date_time, PPFD_1_1_1))+geom_line()+
-  facet_wrap(~hour(date_time))
-
-# look at fluxes during low PAR
-ggplot(flux[PPFD_1_1_1<90,],aes(date_time,co2_flux,colour=factor(temp.bin)))+
-  geom_point()+
-  ylim(-2.5,2.5)+
-  facet_wrap(~temp.bin)
-
-# plot u* against driving variables (temperature,precip)
-# exponential relationship?
-ggplot(flux[PPFD_1_1_1<90,],aes(air_temperature,`u*`))+
-  geom_point()
-
-ggplot(flux[PPFD_1_1_1<90,],aes(air_temperature,`u*`))+
-  geom_point()+facet_wrap(~temp.bin)
-# none with rain.
-ggplot(flux[PPFD_1_1_1<90,],aes(P_rain_1_1_1,`u*`))+
-  geom_point()
-
-# plot distribution of temperature data
-ggplot(flux[PPFD_1_1_1<90,], aes(air_temperature))+geom_histogram()
-
-# ddistributon of u* by temperature bins 
-ggplot(flux[PPFD_1_1_1<90,], aes(`u*`))+geom_histogram()+facet_wrap(~temp.bin)
-
-# look at co2 flux in u* and temp bins
-ggplot(flux[PPFD_1_1_1<90,],aes(u.bin,co2_flux,colour=factor(temp.bin)))+
-  geom_point()+
-  ylim(-5,5)+
-  facet_wrap(~temp.bin)
-
-ggplot(flux[PPFD_1_1_1<10&qc_co2_flux<2&month(date_time)==6,],
-       aes(`u*`, co2_flux, colour=temp.bin))+
-  geom_point()+
-  ylim(-1,2.5)+
-  geom_vline(xintercept=0.15)
-
-min(flux$date_time, na.rm=TRUE)
-
+# QA/QC process: 
+# flag points to remove in 'flag' column
+# remove qc flag <2
 
 # qc flags, keep 0 and 1
 # https://www.licor.com/env/support/EddyPro/topics/flux-quality-flags.html
+
+# look at time series and if a data point is way out & qc code = 1, remove
+# look at time series and data with PAR, TA, Rain and see if points are outliers in 
+# time-series and in relationships, remove
+# There are some additional points that could be removed but it starts to feel very selective
+# and like grooming the data too much. 
+# I think it's better to leave these points in and remove them depending on data purpose
+# and evaluate whether they have a strong influence or not.
+# for budgets and general patterns the data that are here will not make any difference.
+
+# U* filter: 
 # u* filter (Aline eliminated data with friction velocity threshold < 0.1)
+# will use EddyRe for more systematic approach and to estimate uncertainty related to U* threshold
 
-# question: delete all fluxes or only the specific flux?
-ggplot(flux[qc_co2_flux<2&`u*`>0.4,],aes(date_time,co2_flux,colour=factor(qc_co2_flux)))+
+# AGC, signal strength = INST_LI7500_AGC_OR_RSSI or CUSTOM_AGC_MEAN (they have flipped signs)
+ggplot(flux[FC_SSITC_TEST<2,], aes(date_time,FC,colour=(CUSTOM_AGC_MEAN)))+
   geom_point()+
-  ylim(c(-100,100))
+  ylim(c(-10,30))
 
-ggplot(flux[qc_h2o_flux<2,],aes(date_time,h2o_flux,colour=factor(qc_h2o_flux)))+geom_point()
+# create a column for filtering CO2 flux
+# filter_fc = 1 to remove and = 0 to keep
+flux[,filter_fc := 0L]
+# get rid of QC code >2 and low signal strength
+flux[FC_SSITC_TEST>1 | CUSTOM_AGC_MEAN>50, filter_fc := 1L]
+# fluxes outside 30 umol/m2/s are unrealistic
+flux[FC<(-30)|FC>30, filter_fc := 1L]
 
-ggplot(flux,aes(date_time,H,colour=factor(qc_H)))+geom_point()+ylim(c(-100,100))
+
+# look at the fluxes by month for each year
+ggplot(flux[filter_fc !=1&month==12,],
+       aes(DOY_START,FC,colour=factor(FC_SSITC_TEST)))+
+  geom_point()+
+  #ylim(c(-30,30))+
+         facet_grid(year~.,scales="free_y")
+
+# January:
+# 2010 
+# 2011 is OK
+# 2012: FC>5 | FC<(-5)
+# 2013: FC>5 | FC<(-5)
+# 2014: check out point FC< (-6)
+# 2015: FC>5 | FC<(-5) and check out with PAR/Temp
+# 2016: FC>5 | FC<(-5) and check out with PAR/Temp
+# 2017: FC>5 | FC<(-5) and check out with PAR/Temp
+# 2018: FC>5 | FC<(-5) and check out with PAR/Temp
+flux[month==1 & (FC>5 | FC<(-5)), filter_fc := 1L]
+
+# February: 
+# all years remove FC>6 & FC<(-6)
+flux[month==2 & (FC>6 | FC<(-6)), filter_fc := 1L]
+
+# March
+# all years exept 2013 (had big uptake spike ~15... check that out)
+# remove FC>7 | FC< (-7)
+flux[month==3 & year!=2013 & (FC>7 | FC<(-7)), filter_fc := 1L]
+
+# April
+# all years except 2013 (check out lump)
+# remove FC>10 | FC< (-10)
+flux[month==4 & year!=2013 & (FC>10 | FC<(-10)), filter_fc := 1L]
+
+# May 
+# 2010: ~1 day of data, looks Ok
+# 2011: looks OK
+# 2012: looks OK
+# 2013: FC< (-6) | FC>4
+# 2014: FC>5
+# 2015: FC>6 | FC< (-10)
+# 2016: FC>5
+# 2017: no data
+# 2018: OK
+flux[month==5 & year ==2013 & (FC>4 | FC<(-6)), filter_fc := 1L]
+flux[month==5 & year ==2014 & (FC>4), filter_fc := 1L]
+flux[month==5 & year ==2015 & (FC>6 | FC<(-10)), filter_fc := 1L]
+flux[month==5 & year ==2016 & (FC>5), filter_fc := 1L]
+
+# June
+# all years remove FC>7 & FC<(-7)
+flux[month==6 & (FC>7 | FC<(-7)), filter_fc := 1L]
+
+# July
+# all years remove FC>6 & FC<(-6)
+flux[month==7 & (FC>6 | FC<(-6)), filter_fc := 1L]
+
+# August
+# all years remove FC>6 & FC<(-6)
+flux[month==8 & (FC>6 | FC<(-6)), filter_fc := 1L]
+
+# September
+# all years remove FC>10 & FC<(-10)
+flux[month==9 & (FC>10 | FC<(-10)), filter_fc := 1L]
+
+# 2013, 2014, 2017: FC>5
+flux[month==9 & year %in% c(2013,2014,2017) & (FC>5), filter_fc := 1L]
+
+# 2015, 2018: FC>5 | FC< (-5)
+flux[month==9 & year %in% c(2015,2018) & (FC>5 | FC<(-5)), filter_fc := 1L]
+
+# 2016: FC>2.5 | FC<(-4)
+flux[month==9 &  year==2016 & (FC>2.5 | FC<(-4)), filter_fc := 1L]
+
+# October
+# 2013: FC>5 | FC< (-7.5)
+flux[month==10 &  year==2013 & (FC>5 | FC<(-7.5)), filter_fc := 1L]
+
+# 2014: FC < (-7.5)
+flux[month==10 &  year==2014 & (FC<(-7.5)), filter_fc := 1L]
+
+# 2015: FC>5 | FC< (-10)
+flux[month==10 &  year==2015 & (FC>5 | FC<(-10)), filter_fc := 1L]
+
+# 2016: FC>3
+flux[month==10 &  year==2016 & (FC>3), filter_fc := 1L]
+
+# 2017: FC>5 | FC< (-5)
+flux[month==10 &  year==2017 & (FC>5 | FC<(-5)), filter_fc := 1L]
+
+# 2018 FC>5 | FC < (-4)
+flux[month==10 &  year==2018 & (FC>5 | FC<(-4)), filter_fc := 1L]
+
+# November
+# 2013: FC>5 | FC< (-5)
+flux[month==11 &  year==2013 & (FC>5 | FC<(-5)), filter_fc := 1L]
+
+# 2014: FC>5 | FC< (-56
+flux[month==11 &  year==2014 & (FC>5 | FC<(-6)), filter_fc := 1L]
+
+# 2015: FC>5 | FC< (-56
+flux[month==11 &  year==2015 & (FC>5 | FC<(-6)), filter_fc := 1L]
+
+# 2016: FC>10 | FC< (-10)
+flux[month==11 &  year==2016 & (FC>10 | FC<(-10)), filter_fc := 1L]
+
+# 2017: FC>10 | FC< (-10)
+flux[month==11 &  year==2017 & (FC>10 | FC<(-10)), filter_fc := 1L]
+
+# 2018 FC>5 | FC < (-6)
+flux[month==11 &  year==2018 & (FC>5 | FC<(-6)), filter_fc := 1L]
+
+# December
+# 2013: FC>10 | FC< (-6)
+flux[month==12 &  year==2013 & (FC>10 | FC<(-6)), filter_fc := 1L]
+
+# 2014: FC>9 | FC< (-10)
+flux[month==12 &  year==2014 & (FC>9 | FC<(-10)), filter_fc := 1L]
+
+# 2015: OK
+
+# 2017: FC>9| FC< (-10)
+flux[month==12 &  year==2016 & (FC>9 | FC<(-10)), filter_fc := 1L]
+
+# 2017: FC>10 |FC< (-6)
+flux[month==12 &  year==2017 & (FC>10 | FC<(-6)), filter_fc := 1L]
+
+# 2018 FC>10 | FC < (-10)
+flux[month==12 &  year==2018 & (FC>10 | FC<(-10)), filter_fc := 1L]
+
+# after time-series look at light and temperature relationships
+ggplot(flux[filter_fc !=1 & PPFD_IN_1_1_1>20,],
+       aes(PPFD_IN_1_1_1,FC,colour=factor(FC_SSITC_TEST)))+
+  geom_point()+
+geom_vline(xintercept=0)+
+  facet_grid(month~year,scales="free_y")
+
+ggplot(flux[filter_fc !=1 & PPFD_IN_1_1_1<20,],
+       aes(TA_1_1_1,FC,colour=factor(FC_SSITC_TEST)))+
+  geom_point()+
+  geom_vline(xintercept=0)+
+  geom_hline(yintercept=-2.5)+
+  facet_grid(month~year,scales="free_y")
+
+
+# also look at rain events coloured by QC code. 
+# if there's rain and qc =>1 and the data looks weird on time series or relationships,
+# remove
+ggplot(flux[month==1&hour(date_time)>0,],
+    aes(DOY_START,P_RAIN_1_1_1,colour=factor(FC_SSITC_TEST)))+
+     geom_point()+
+  facet_grid(year~.,scales="free_y")
+
+ggplot(flux[month==12,],
+       aes(DOY_START,P_RAIN_1_1_1,colour=factor(FC_SSITC_TEST)))+
+  geom_point()+
+  facet_grid(year~.,scales="free_y")
+
+# based on PPFD relationship
+# 2011-2012 (until May): OK
+# 2013: remove June FC <(-5) & FC_SSITC_TEST==1,
+#       remove July FC < (-3) & FC_SSITC_TEST==1, 
+#       remove July FC > 5 & FC_SSITC_TEST==1
+flux[month==6 &  year==2013 & FC<(-5) & FC_SSITC_TEST==1, filter_fc := 1L]
+flux[month==7 &  year==2013 & (FC<(-3) | FC>5) & FC_SSITC_TEST==1, filter_fc := 1L]
+
+# 2015: remove January FC < (-3) & FC_SSITC_TEST==1
+flux[month==1 &  year==2015 & FC<(-3) & FC_SSITC_TEST==1, filter_fc := 1L]
+
+# 2016: remove April FC < (-3) & FC_SSITC_TEST==1
+flux[month==4 &  year==2016 & FC<(-3) & FC_SSITC_TEST==1, filter_fc := 1L]
+
+# based on TA relationship
+# remove all nighttime FC < -2.5. 
+# based on all years these are really unlikely values
+flux[PPFD_IN_1_1_1<20 & FC < (-2.5), filter_fc := 1L]
+# 2010: OK
+# 2011: remove March FC >5 & PPFD < 20
+flux[month==3 &  year==2011 & FC>(5) & PPFD_IN_1_1_1<20, filter_fc := 1L]
+
+# 2012: OK
+# 2013: remove April DOY_START>98.5 & DOY_START<99.25 (ALL data)
+flux[month==4 &  year==2013 & DOY_START>98.5 & DOY_START<99.25, filter_fc := 1L]
+
+# 2014: OK
+# 2015: remove September FC>5
+flux[month==9 &  year==2015 & FC>(5), filter_fc := 1L]
+
+# 2018: remove August FC>4.5
+#       remove November FC>2.5
+#       remove December FC < (-5)
+flux[month==8 &  year==2018 & FC>(4.5), filter_fc := 1L]
+flux[month==11 &  year==2018 & FC>(2.5), filter_fc := 1L]
+flux[month==12 &  year==2018 & FC<(-5), filter_fc := 1L]
+
+# a few points remain that are a bit out of pattern but it gets into really fine-tooth combing
+# and depending on the analysis and need for the data those points can be removed if they 
+# have strong influence on something else. 
+# otherwise they likely have little effect. 
+
+ggplot(flux[filter_fc !=1,],
+       aes(DOY_START,FC))+
+  geom_line()+
+  #ylim(c(-30,30))+
+  facet_grid(year~.,scales="free_y")
+
+###### H ######
+# look at H  by month for each year
+ggplot(flux[filter_H!=1,],
+       aes(DOY_START,H,colour=factor(H_SSITC_TEST)))+
+  geom_point()+
+  #ylim(c(-30,30))+
+  facet_grid(year~.,scales="free_y")
+
+# remove QC >1 and AGC > 50
+flux[,filter_H := 0L]
+# get rid of QC code >2 and low signal strength
+flux[H_SSITC_TEST>1 | CUSTOM_AGC_MEAN>50, filter_H := 1L]
+# remove H < -120 and > 560, these are not typical values.
+flux[H < (-120) | H > 560, filter_H := 1L]
+# in 2015 March there's one H > 400 that's an outlier
+flux[year==2015 & month==3 & H>400, filter_H := 1L]
+# in 2018 Jan there's one H>400 that's an outlier
+flux[year==2018 & month==1 & H>400, filter_H := 1L]
+
+
+# look at all filtered H
+ggplot(flux[filter_H!=1,],
+       aes(DOY_START,H))+
+  geom_line()+
+  #ylim(c(-30,30))+
+  facet_grid(year~.,scales="free_y")
+
+
+##### LE ####
+# look at LE  by month for each year
+ggplot(flux,
+       aes(DOY_START,LE,colour=factor(LE_SSITC_TEST)))+
+  geom_point()+
+  #ylim(c(-30,30))+
+  facet_grid(year~.,scales="free_y")
+
+# remove QC >1 and AGC > 50
+flux[,filter_LE:= 0L]
+# get rid of QC code >2 and low signal strength
+flux[LE_SSITC_TEST>1 | CUSTOM_AGC_MEAN>50, filter_LE := 1L]
+
+# look at LE  by month for each year
+ggplot(flux[filter_LE!=1&month==1&hour(date_time)>0,],
+       aes(DOY_START,LE,colour=factor(LE_SSITC_TEST)))+
+  geom_point()+
+  geom_hline(yintercept=c(-50,200))+
+  facet_grid(year~.,scales="free_y")
+
+
+# remove LE < (-50) this is a generally outlying value
+flux[LE < (-50), filter_LE := 1L]
+
+# 2013: remove DOY_START>98.25 & DOY_START<100
+flux[year==2013 & DOY_START>98.25 & DOY_START<100, filter_LE := 1L]
+
+# 2014: remove March LE>500
+flux[year==2014 & month==3 & LE>500, filter_LE := 1L]
+
+# 2015: remove July LE > 900
+flux[year==2015 & month==7 & LE>900, filter_LE := 1L]
+
+# 2016: remove Novemeber LE > 1000
+flux[year==2016 & month==11 & LE>1000, filter_LE := 1L]
+
+# 2017: remove August LE >500
+flux[year==2017 & month==8 & LE>500, filter_LE := 1L]
+
+# 2018: remove March LE>300
+#       remove August LE > 400
+#       remove Novermber LE > 150
+flux[year==2018 & month==3 & LE>300, filter_LE := 1L]
+flux[year==2018 & month==8 & LE>400, filter_LE := 1L]
+flux[year==2018 & month==11 & LE>150, filter_LE := 1L]
+
+# look at all LE
+ggplot(flux[filter_LE!=1,],
+       aes(DOY_START,LE))+
+  geom_line()+
+  facet_grid(year~.,scales="free_y")
+
+
+# energy balance
+ggplot(flux[filter_LE!=1 | filter_H!=1,], aes(NETRAD_1_1_1 + (G_1_1_1+G_2_1_1)/2, (H+LE)))+
+  geom_point()+
+  geom_abline(intercept=0,slope=1)
+
 
 # plot radiation
 ggplot(flux,aes(x=date_time))+
-  geom_line(aes(y=Rn_1_1_1, colour="Rn"))+
-  geom_point(aes(y=Rn_1_1_1, colour="Rn"))+
-  geom_line(aes(y=Rg_1_1_1, colour="Rg"))+
-  geom_point(aes(y=Rg_1_1_1, colour="Rg"))+
-  geom_line(aes(y=((SHF_1_1_1+SHF_1_2_1)/2), colour="SHF"))+
-  geom_point(aes(y=((SHF_1_1_1+SHF_1_2_1)/2), colour="SHF"))+
-  geom_line(aes(y=LWin_1_1_1, colour="LWin"))+
-  geom_point(aes(y=LWin_1_1_1, colour="LWin"))+
-  geom_line(aes(y=LWout_1_1_1, colour="LWout"))+
-  geom_point(aes(y=LWout_1_1_1, colour="LWout"))+
-  geom_line(aes(y=SWout_1_1_1, colour="SWout"))+
-  geom_point(aes(y=SWout_1_1_1, colour="SWout"))
+  geom_line(aes(y=NETRAD_1_1_1, colour="Rn"))+
+  geom_point(aes(y=NETRAD_1_1_1, colour="Rn"))+
+  geom_line(aes(y=SW_IN_1_1_1, colour="Rg"))+
+  geom_point(aes(y=SW_IN_1_1_1, colour="Rg"))+
+  geom_line(aes(y=((G_1_1_1+G_1_2_1)/2), colour="SHF"))+
+  geom_point(aes(y=((G_1_1_1+G_1_2_1)/2), colour="SHF"))+
+  geom_line(aes(y=LW_IN_1_1_1, colour="LWin"))+
+  geom_point(aes(y=LW_IN_1_1_1, colour="LWin"))+
+  geom_line(aes(y=LW_OUT_1_1_1, colour="LWout"))+
+  geom_point(aes(y=LW_OUT_1_1_1, colour="LWout"))+
+  geom_line(aes(y=SW_OUT_1_1_1, colour="SWout"))+
+  geom_point(aes(y=SW_OUT_1_1_1, colour="SWout"))
 
 # look at energy balance closure
 # first calculate daily sums 
 
 # residual = Rn - G - H - LE
 # closure fration = (H + LE) / (Rn + G)
-flux[,':=' (eb.res=(Rn_1_1_1 - ((SHF_1_1_1+SHF_1_2_1+SHF_2_1_1 + SHF_2_2_1)/4) - H - LE),
-            cf = (H + LE)/(Rn_1_1_1 + ((SHF_1_1_1+SHF_1_2_1+SHF_2_1_1 + SHF_2_2_1)/4)))]
+flux[filter_H!=1 | filter_LE!=1,
+     ':=' (eb.res=(NETRAD_1_1_1 - ((G_1_1_1+G_2_1_1)/2) - H - LE),
+            cf = (H + LE)/(NETRAD_1_1_1 + ((G_1_1_1+G_2_1_1)/2)))]
 
 
-ggplot(flux[eb.res<4000 & eb.res>(-4000)  &
-              qc_H<2 & qc_LE<2 & month(date_time)==5,], aes(x=DOY))+
+ggplot(flux[filter_H!=1 | filter_LE!=1,], aes(x=DOY_START))+
  # geom_line(aes(y=eb.res, colour="eb.res"))+
  # geom_point(aes(y=eb.res, colour="eb.res"))+
-  geom_line(aes(y=Rn_1_1_1, colour="Rn_1_1_1"))+
-  #geom_point(aes(y=-Rn_1_1_1, colour="Rn_1_1_1"))+
-  geom_line(aes(y=((SHF_1_1_1+SHF_1_2_1+SHF_2_1_1+SHF_2_2_1)/4), colour="SHF"))+
- # geom_point(aes(y=((SHF_1_1_1+SHF_1_2_1)/2), colour="SHF"))+
+  geom_line(aes(y=NETRAD_1_1_1, colour="NETRAD_1_1_1"))+
+  #geom_point(aes(y=-NETRAD_1_1_1, colour="NETRAD_1_1_1"))+
+  geom_line(aes(y=((G_1_1_1+G_1_2_1+G_2_1_1+G_2_2_1)/4), colour="G"))+
+ # geom_point(aes(y=((G_1_1_1+G_1_2_1)/2), colour="G"))+
   geom_line(aes(y=H, colour="H"))+
  # geom_point(aes(y=H, colour="H"))+ 
   geom_line(aes(y=LE, colour="LE"))+
-  geom_line(aes(y=H+LE+(SHF_1_1_1+SHF_1_2_1+SHF_2_1_1+SHF_2_2_1)/4, colour="H+LE+SHF"))+
+  geom_line(aes(y=H+LE+(G_1_1_1+G_1_2_1+G_2_1_1+G_2_2_1)/4, colour="H+LE+G"))+
   #geom_point(aes(y=LE, colour="LE"))
+  ylim(c(-1000,1200))+
   facet_grid(.~year)
 
-ggplot(flux[qc_H<2 & qc_LE<2 ,], aes(x=date_time))+
+ggplot(flux, aes(x=date_time))+
   geom_line(aes(y=cf, colour="closure fraction"))+
   geom_point(aes(y=cf, colour="closure fraction"))+
   ylim(c(-100,100))
 
 
-# Filter data
-
-# not sure whether to add flux + storage + advection
-# book and Cove say to add flux + storage
-# eddy pro software says storage is only indicative and has too many assumptions and shouldn't be used
-
-flux1 <- copy(flux)
-
-# remove qc_co2_flux<1
-flux[qc_co2_flux>2 | is.na(qc_co2_flux),':=' (co2_flux = NA, 
-                                              co2_mole_fraction = NA)]
-
-# remove unreasonable flux values
-flux[co2_flux<(-28) | co2_flux>5, ':=' (co2_flux = NA, 
-                                             co2_mole_fraction = NA)]
-
-# look at agc: IRGA signal strength
-ggplot(flux, aes(date_time,agc_mean))+
-  geom_point()+
-  ylim(c(25,100))
-
-# remove flux when AGC < 40 (baseline is at ~42)
-# Li-7500 manual says that typical values are 55-65% but baselines vary by instrument
-# values that approach 100% should be removed because 100% indicates complete sensor blockage
-# remove less than 40 and greater than 52
-flux[agc_mean<40 | agc_mean>52, ':=' (co2_flux = NA, 
-                                      co2_mole_fraction = NA)]
-
-
-# remove u*<0.15 for low turbulence. (later, don't do this for 2017/2018)
-flux[`u*`<0.15, ':=' (co2_flux = NA, 
-                      co2_mole_fraction = NA)]
-
-# remove when mole fraction is unreasonable, I think anything over 1000 is really unlikely?
-flux[co2_mole_fraction>1000, ':=' (co2_flux = NA, 
-                      co2_mole_fraction = NA)]
-
-# there are some bigger flux pulses that remain, not quite sure what to do with them.
-ggplot(flux, aes(date_time, co2_mole_fraction))+
-  geom_line()
-
-# look at the data by month
-ggplot(flux[month(date_time)==9,], aes(DOY,co2_flux, colour=factor(year)))+
-  geom_line()
-
-
-# h20 flux
-# remove qc_h2o_flux<1
-flux[qc_h2o_flux>2 | is.na(qc_h2o_flux),':=' (h2o_flux = NA, 
-                                              h2o_mole_fraction = NA)]
-
-# remove unreasonable flux values
-flux[h2o_flux<(-400) | h2o_flux>400, ':=' (h2o_flux = NA, 
-                                           h2o_mole_fraction = NA)]
-
-# remove flux when AGC < 40 (baseline is at ~42)
-# Li-7500 manual says that typical values are 55-65% but baselines vary by instrument
-# values that approach 100% should be removed because 100% indicates complete sensor blockage
-# remove less than 40 and greater than 52
-flux[agc_mean<40 | agc_mean>52, ':=' (h2o_flux = NA, 
-                                      h2o_mole_fraction = NA)]
-
-
-# remove u*<0.15 for low turbulence. (later, don't do this for 2017/2018)
-flux[`u*`<0.15, ':=' (h2o_flux = NA, 
-                      h2o_mole_fraction = NA)]
-
-# look at data
-ggplot(flux, aes(DOY,h2o_flux, colour=factor(year)))+
-  geom_line()
-
-ggplot(flux, aes(DOY,h2o_mole_fraction, colour=factor(year)))+
-  geom_line()
-
-# filter H
-# remove qc code < 1
-flux[qc_H>2 | is.na(qc_H),H := NA]
-
-# remove flux when AGC < 40 (baseline is at ~42)
-# Li-7500 manual says that typical values are 55-65% but baselines vary by instrument
-# values that approach 100% should be removed because 100% indicates complete sensor blockage
-# remove less than 40 and greater than 52
-flux[agc_mean<40 | agc_mean>52, H := NA]
-
-# remove unreasonable values 
-flux[H<(-1000) | H>1000, H := NA]
-
-
-# remove u*<0.15 for low turbulence. (later, don't do this for 2017/2018)
-flux[`u*`<0.15, H := NA]
-
-# look at data
-ggplot(flux[year==2015,], aes(date_time,H))+
-  geom_line()
-
-
-# variance of w and others
-ggplot(flux[year==2015,], aes(date_time,w_var))+
-  geom_line()
-
-ggplot(flux[year==2015,], aes(date_time,ts_var))+
-  geom_line()
-
-ggplot(flux[year==2015,], aes(date_time,co2_var))+
-  geom_line()+ylim(-0.05,0.05)
-
-ggplot(flux[year==2015,], aes(date_time,h2o_var))+
-  geom_line()+ylim(-5,1000)
-
-ggplot(flux[year==2018,], aes(date_time,`w/ts_cov`))+
-  geom_line()
-+ylim(-5,1000)
-
-
-
-# look by month
-# look at the data by month
-ggplot(flux[month(date_time)==1,], aes(DOY,H, colour=factor(year)))+
-  geom_line()
-
-# filter LE
-# remove qc code < 1
-flux[qc_LE>2 | is.na(qc_LE),LE := NA]
-
-# remove flux when AGC < 40 (baseline is at ~42)
-# Li-7500 manual says that typical values are 55-65% but baselines vary by instrument
-# values that approach 100% should be removed because 100% indicates complete sensor blockage
-# remove less than 40 and greater than 52
-flux[agc_mean<40 | agc_mean>52, LE := NA]
-
-# remove unreasonable values 
-flux[LE<(-1000) | LE>30000 , LE := NA]
-
-# remove u*<0.15 for low turbulence. (later, don't do this for 2017/2018)
-flux[`u*`<0.15, LE := NA]
-
-# look at data
-ggplot(flux, aes(date_time,LE))+
-  geom_line()
-
-# look at the data by month
-ggplot(flux[month(date_time)==12,], aes(DOY,LE, colour=factor(year)))+
-  geom_line()
-
-
-# look at the data in 20 day increments
-ggplot(flux[DOY>=350 & DOY<=370,], aes(DOY,co2_flux, colour=factor(year)))+
-  geom_line()
-  facet_grid(year~., scales="free_y")
-
-
-ggplot(flux, aes(date_time,co2_flux, colour=factor(year)))+
-  geom_line()
-
-ggplot(flux, aes(DOY,co2_flux, colour=factor(year)))+
-  geom_line()
 
 # heatmap plots, flux cut from 5 to -28
-f <-ggplot(flux[!is.na(time)&!is.na(DOY),],
-           aes(yday(date),hour(date_time)*10+minute(date_time),fill=co2_flux))+
+f <-ggplot(flux[!is.na(date_time)&filter_fc!=1,],
+           aes(yday(date),hour(date_time)*10+minute(date_time),fill=FC))+
   geom_tile(color= "white",size=0.1) + 
   scale_fill_viridis(name=expression(paste('C',O[2],' flux',sep='')))+
   facet_grid(year~.)+
@@ -392,26 +479,86 @@ t <- ggplot(flux,aes(date_time,Ta_1_1_1-275.3, colour=factor(year)))+geom_line()
 grid.arrange(p,t, nrow=2)
 
 # plot all energy fluxes looking at daily sums
-eb_daily <- flux[,lapply(.SD,function (x) {sum(x, na.rm=TRUE)}),by="date",.SDcols=c("Rn_1_1_1",
+eb_daily <- flux[,lapply(.SD,function (x) {sum(x, na.rm=TRUE)}),by="date",.SDcols=c("NETRAD_1_1_1",
                                                       "H", "LE",
-                                                      "SHF_1_1_1", "SHF_1_2_1",
-                                                      "SHF_2_1_1", "SHF_2_2_1")]
+                                                      "G_1_1_1", "G_1_2_1",
+                                                      "G_2_1_1", "G_2_2_1")]
 
 
 ggplot(eb_daily[month(date)==12,], aes(x=yday(date)))+
   # geom_line(aes(y=eb.res, colour="eb.res"))+
   # geom_point(aes(y=eb.res, colour="eb.res"))+
-  geom_line(aes(y=Rn_1_1_1, colour="Rn_1_1_1"))+
+  geom_line(aes(y=NETRAD_1_1_1, colour="Rn_1_1_1"))+
   #geom_point(aes(y=-Rn_1_1_1, colour="Rn_1_1_1"))+
-  geom_line(aes(y=((SHF_1_1_1+SHF_1_2_1+SHF_2_1_1+SHF_2_2_1)/4), colour="SHF"))+
+  geom_line(aes(y=((G_1_1_1+G_1_2_1+G_2_1_1+G_2_2_1)/4), colour="SHF"))+
   # geom_point(aes(y=((SHF_1_1_1+SHF_1_2_1)/2), colour="SHF"))+
   geom_line(aes(y=H, colour="H"))+
   # geom_point(aes(y=H, colour="H"))+ 
   geom_line(aes(y=LE, colour="LE"))+
-  geom_line(aes(y=H+LE+(SHF_1_1_1+SHF_1_2_1+SHF_2_1_1+SHF_2_2_1)/4, colour="H+LE+SHF"))+
+  geom_line(aes(y=H+LE+(G_1_1_1+G_1_2_1+G_2_1_1+G_2_2_1)/4, colour="H+LE+SHF"),colour="black")+
   #geom_point(aes(y=LE, colour="LE"))
-  facet_grid(.~year(date))
+  facet_grid(year(date)~.)
 
+
+### save data for Dawn's LTAR synthesis
+
+# select 2017 & 2018
+flux.ltar <- copy(flux[year %in% c(2017,2018),])
+
+# create new columns with only filtered FC, H, LE
+flux.ltar[,":=" (FC_unfilter = FC,
+                 H_unfilter = H, 
+                 LE_unfilter = LE)]
+
+# overwrite the FC, H, LE columns to contain only filtered data
+flux.ltar[,":="(FC = NULL, 
+                H = NULL, 
+                LE = NULL)]
+
+flux.ltar[filter_fc !=1 , FC := FC_unfilter]
+flux.ltar[filter_H !=1 , H := H_unfilter]
+flux.ltar[filter_LE !=1 , LE := LE_unfilter]
+
+# subset only desired data
+flux.ltar1 <- copy(flux.ltar[,.(TIMESTAMP_START,
+                          TIMESTAMP_END,
+                          FC,
+                          H,
+                          LE,
+                          FC_SSITC_TEST,
+                          H_SSITC_TEST,
+                          LE_SSITC_TEST,
+                          USTAR,
+                          TA_1_1_1,
+                          RH_1_1_1,
+                          PA_1_1_1,
+                          WD_1_1_1,
+                          MWS_1_1_1,
+                          PPFD_IN_1_1_1,
+                          P_RAIN_1_1_1,
+                          LW_IN_1_1_1,
+                          LW_OUT_1_1_1,
+                          SW_OUT_1_1_1,
+                          SW_IN_1_1_1)])
+
+
+# make a quick figures to make sure data is there and OK
+flux.ltar.long <- melt.data.table(flux.ltar1[,.(TIMESTAMP_END,FC,H,LE,USTAR)],
+                                  c("TIMESTAMP_END"))
+
+ggplot(flux.ltar.long,aes(parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"), value))+
+  geom_line()+
+  facet_grid(variable~.,scales="free_y")
+
+# save
+setwd("~/Desktop/TweedieLab/Projects/Jornada/LTAR_Synthesis_Browning")
+
+# write.table(flux.ltar1, file="FluxData_jerbajada_20190813.csv",
+# sep=",", dec=".",row.names=FALSE, na="-9999", quote=FALSE)
+
+# metadata file is created in Jornada_EddyPro_Output.R because that is able to take units from the full output files
+# I manually modified and renamed the metadata file because the output here has _1_1_1 in all the biomet variables
+## write.table(description.ltar, file="FluxData_jerbajada_METADATA_20190813.csv",sep=",", dec=".", row.names=FALSE)
 
 
 
