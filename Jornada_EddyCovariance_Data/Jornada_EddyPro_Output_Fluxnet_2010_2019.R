@@ -303,7 +303,7 @@ flux[month==12 &  year==2018 & FC<(-5), filter_fc := 1L]
 # have strong influence on something else. 
 # otherwise they likely have little effect. 
 
-ggplot(flux[filter_fc !=1,],
+ggplot(flux[filter_fc !=1&year==2015&month>4&month<9,],
        aes(DOY_START,FC))+
   geom_line()+
   #ylim(c(-30,30))+
@@ -503,7 +503,7 @@ ggplot(eb_daily[month(date)==12,], aes(x=yday(date)))+
 ### save data for Dawn's LTAR synthesis
 
 # select 2017 & 2018
-flux.ltar <- copy(flux[year %in% c(2017,2018),])
+flux.ltar <- copy(flux[year %in% c(2014,2015,2016,2017,2018),])
 
 # create new columns with only filtered FC, H, LE
 flux.ltar[,":=" (FC_unfilter = FC,
@@ -553,7 +553,8 @@ ggplot(flux.ltar.long,aes(parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"), value
 # save
 setwd("~/Desktop/TweedieLab/Projects/Jornada/LTAR_Synthesis_Browning")
 
-# write.table(flux.ltar1, file="FluxData_jerbajada_20190813.csv",
+# 20190827 version has 2014-2018 data.
+# write.table(flux.ltar1, file="FluxData_jerbajada_20190827.csv",
 # sep=",", dec=".",row.names=FALSE, na="-9999", quote=FALSE)
 
 # metadata file is created in Jornada_EddyPro_Output.R because that is able to take units from the full output files

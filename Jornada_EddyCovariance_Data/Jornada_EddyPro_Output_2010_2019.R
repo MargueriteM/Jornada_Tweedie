@@ -1,8 +1,8 @@
-############################################
-#  This code gets data output by Eddy Pro  #
-#           written by: M. Mauritz         #
-#                  May 2019                #
-############################################
+#############################################
+#  This code gets data output by Eddy Pro   #
+#           written by: M. Mauritz          #
+#                  May 2019                 #
+#############################################
 
 # load libraries
 library(ggplot2) # library for making figures in ggplot package
@@ -21,7 +21,7 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Test_20190626")
 
 # 2010-2012 data
 # file info
-fileinfo1 <- scan("eddypro_2010_2012_full_output_2019-07-02T063739_exp.csv",
+fileinfo1 <- scan("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2015/20190806/eddypro_2010_2012_full_output_2019-07-02T063739_exp.csv",
                   what='',sep=",",nlines=1)
 fileinfo1 <- data.table(t(fileinfo1))
 # read only the first row to get the units

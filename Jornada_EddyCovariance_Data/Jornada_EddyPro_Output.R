@@ -11,21 +11,62 @@ library(data.table) # library for data table which is more efficient with large 
 library(reader)
 library(tidyr)
 library(lsr) # contains quantileCut function
+library(gridExtra)
 #############
 # IMPORT DATA
 #############
 # Full Eddy Covariance output:
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Test_20190626")
 
+# 2010-2012 data
 # file info
-fileinfo2 <- scan("eddypro_2015_2018_full_output_2019-06-28T144511_adv.csv",
+fileinfo1 <- scan("eddypro_2010_2012_full_output_2019-07-02T063739_exp.csv",
+                  what='',sep=",",nlines=1)
+fileinfo1 <- data.table(t(fileinfo1))
+# read only the first row to get the units
+flux.units1 <- (fread("eddypro_2010_2012_full_output_2019-07-02T063739_exp.csv",header=TRUE,skip=1))[1,]
+# read the data, skippping the units row
+flux1 <- fread("eddypro_2010_2012_full_output_2019-07-02T063739_exp.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units1))
+
+# 2013 - 2014 data
+# file info
+fileinfo2 <- scan("eddypro_2013_2014_full_output_2019-07-03T164639_exp.csv",
                   what='',sep=",",nlines=1)
 fileinfo2 <- data.table(t(fileinfo2))
 # read only the first row to get the units
-flux.units <- (fread("eddypro_2015_2018_full_output_2019-06-28T144511_adv.csv",header=TRUE,skip=1))[1,]
+flux.units2 <- (fread("eddypro_2013_2014_full_output_2019-07-03T164639_exp.csv",header=TRUE,skip=1))[1,]
 # read the data, skippping the units row
-flux <- fread("eddypro_2015_2018_full_output_2019-06-28T144511_adv.csv", sep=",",skip=3,
-             header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
+flux2 <- fread("eddypro_2013_2014_full_output_2019-07-03T164639_exp.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units2))
+
+
+# 2015 - 2018 data
+# file info
+fileinfo3 <- scan("eddypro_2015_2018_full_output_2019-06-28T144511_adv.csv",
+                  what='',sep=",",nlines=1)
+fileinfo3 <- data.table(t(fileinfo3))
+# read only the first row to get the units
+flux.units3 <- (fread("eddypro_2015_2018_full_output_2019-06-28T144511_adv.csv",header=TRUE,skip=1))[1,]
+# read the data, skippping the units row
+# use file names from flux.units4 (EddyPro7 output -> identical order only AGC_mean was changed to agc_mean)
+flux3 <- fread("eddypro_2015_2018_full_output_2019-06-28T144511_adv.csv", sep=",",skip=3,
+             header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units4))
+
+# 2019 data
+# file info
+fileinfo4 <- scan("eddypro_2019_full_output_2019-07-03T075822_exp.csv",
+                  what='',sep=",",nlines=1)
+fileinfo4 <- data.table(t(fileinfo4))
+# read only the first row to get the units
+flux.units4 <- (fread("eddypro_2019_full_output_2019-07-03T075822_exp.csv",header=TRUE,skip=1))[1,]
+# read the data, skippping the units row
+flux4 <- fread("eddypro_2019_full_output_2019-07-03T075822_exp.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units4))
+
+
+# combine all individual years of flux runs
+flux <- rbind(flux1, flux2, flux3, flux4)
 
 # format date
 flux[,date_time := paste(date,time,sep=" ")]
@@ -37,10 +78,32 @@ flux[,':=' (date=as.Date(date),
 # import the biomet data
 
 # read only the first row to get the units
-biomet.units <- (fread("eddypro_2015_2018_biomet_2019-06-27T221717_exp.csv",header=TRUE))[1,]
+biomet.units1 <- (fread("eddypro_2010_2012_biomet_2019-07-02T063739_exp.csv",header=TRUE))[1,]
 # read the data, skippping the units row
-biomet <- fread("eddypro_2015_2018_biomet_2019-06-27T221717_exp.csv", sep=",",skip=2,
-              header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(biomet.units))
+biomet1 <- fread("eddypro_2010_2012_biomet_2019-07-02T063739_exp.csv", sep=",",skip=2,
+                 header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(biomet.units1))
+
+
+# read only the first row to get the units
+biomet.units2 <- (fread("eddypro_2013_2014_biomet_2019-07-03T164639_exp.csv",header=TRUE))[1,]
+# read the data, skippping the units row
+biomet2 <- fread("eddypro_2013_2014_biomet_2019-07-03T164639_exp.csv", sep=",",skip=2,
+                 header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(biomet.units2))
+
+
+# read only the first row to get the units
+biomet.units3 <- (fread("eddypro_2015_2018_biomet_2019-06-27T221717_exp.csv",header=TRUE))[1,]
+# read the data, skippping the units row
+biomet3 <- fread("eddypro_2015_2018_biomet_2019-06-27T221717_exp.csv", sep=",",skip=2,
+              header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(biomet.units3))
+
+# file info
+
+biomet.units4 <- (fread("eddypro_2019_biomet_2019-07-03T075822_exp.csv",header=TRUE))[1,]
+# read the data, skippping the units row
+biomet4 <- fread("eddypro_2019_biomet_2019-07-03T075822_exp.csv", sep=",",skip=2,
+                 header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(biomet.units4))
+
 
 # format date
 biomet[,date_time := paste(date,time,sep=" ")]
@@ -296,10 +359,12 @@ ggplot(flux[qc_H<2 & qc_LE<2 ,], aes(x=date_time))+
 flux1 <- copy(flux)
 
 # remove qc_co2_flux<1
-flux[qc_co2_flux>2 | is.na(qc_co2_flux),co2_flux := NA]
+flux[qc_co2_flux>2 | is.na(qc_co2_flux),':=' (co2_flux = NA, 
+                                              co2_mole_fraction = NA)]
 
 # remove unreasonable flux values
-flux[co2_flux<(-4000) | co2_flux>4000, co2_flux := NA]
+flux[co2_flux<(-4000) | co2_flux>4000, ':=' (co2_flux = NA, 
+                                             co2_mole_fraction = NA)]
 
 # look at agc: IRGA signal strength
 ggplot(flux, aes(date_time,AGC_mean))+
@@ -310,19 +375,27 @@ ggplot(flux, aes(date_time,AGC_mean))+
 # Li-7500 manual says that typical values are 55-65% but baselines vary by instrument
 # values that approach 100% should be removed because 100% indicates complete sensor blockage
 # remove less than 40 and greater than 52
-flux[AGC_mean<40 | AGC_mean>52, co2_flux := NA]
+flux[AGC_mean<40 | AGC_mean>52, ':=' (co2_flux = NA, 
+                                      co2_mole_fraction = NA)]
 
 
 # remove u*<0.15 for low turbulence. (later, don't do this for 2017/2018)
-flux[`u*`<0.15, co2_flux := NA]
+flux[`u*`<0.15, ':=' (co2_flux = NA, 
+                      co2_mole_fraction = NA)]
 
-# there are some bigger pulses that remain, not quite sure what to do with them.
+# remove when mole fraction is unreasonable, I think anything over 1000 is really unlikely?
+flux[co2_mole_fraction>1000, ':=' (co2_flux = NA, 
+                      co2_mole_fraction = NA)]
 
-# look at the data by month
-ggplot(flux[month(date_time)==12,], aes(DOY,co2_flux, colour=factor(year)))+
+# there are some bigger flux pulses that remain, not quite sure what to do with them.
+ggplot(flux, aes(date_time, co2_mole_fraction))+
   geom_line()
 
-# look at data without spikes removed and aligned with rain
+# look at the data by month
+ggplot(flux[month(date_time)==7,], aes(DOY,co2_flux, colour=factor(year)))+
+  geom_line()
+
+# look at data aligned with rain and wind
 fluxplot <- ggplot(flux[year==2016,], aes(date_time,co2_flux))+
   geom_line()
 
@@ -334,6 +407,34 @@ windplot <- ggplot(flux[year==2016,], aes(date_time,MWS_1_1_1))+
 
 
 grid.arrange(fluxplot,rainplot,windplot,nrow=3)
+
+# h20 flux
+# remove qc_h2o_flux<1
+flux[qc_h2o_flux>2 | is.na(qc_h2o_flux),':=' (h2o_flux = NA, 
+                                              h2o_mole_fraction = NA)]
+
+# remove unreasonable flux values
+flux[h2o_flux<(-400) | h2o_flux>400, ':=' (h2o_flux = NA, 
+                                           h2o_mole_fraction = NA)]
+
+# remove flux when AGC < 40 (baseline is at ~42)
+# Li-7500 manual says that typical values are 55-65% but baselines vary by instrument
+# values that approach 100% should be removed because 100% indicates complete sensor blockage
+# remove less than 40 and greater than 52
+flux[AGC_mean<40 | AGC_mean>52, ':=' (h2o_flux = NA, 
+                                      h2o_mole_fraction = NA)]
+
+
+# remove u*<0.15 for low turbulence. (later, don't do this for 2017/2018)
+flux[`u*`<0.15, ':=' (h2o_flux = NA, 
+                      h2o_mole_fraction = NA)]
+
+# look at data
+ggplot(flux, aes(DOY,h2o_flux, colour=factor(year)))+
+  geom_line()
+
+ggplot(flux, aes(DOY,h2o_mole_fraction, colour=factor(year)))+
+  geom_line()
 
 # filter H
 # remove qc code < 1
@@ -374,7 +475,6 @@ flux[AGC_mean<40 | AGC_mean>52, LE := NA]
 # remove unreasonable values 
 flux[LE<(-1000) | LE>30000 , LE := NA]
 
-
 # remove u*<0.15 for low turbulence. (later, don't do this for 2017/2018)
 flux[`u*`<0.15, LE := NA]
 
@@ -382,7 +482,10 @@ flux[`u*`<0.15, LE := NA]
 ggplot(flux, aes(date_time,LE))+
   geom_line()
 
-#
+# look at the data by month
+ggplot(flux[month(date_time)==12,], aes(DOY,LE, colour=factor(year)))+
+  geom_line()
+
 
 
 # plot all energy fluxes looking at daily sums
@@ -405,3 +508,187 @@ ggplot(eb_daily[month(date)==12,], aes(x=yday(date)))+
   geom_line(aes(y=H+LE+(SHF_1_1_1+SHF_1_2_1+SHF_2_1_1+SHF_2_2_1)/4, colour="H+LE+SHF"))+
   #geom_point(aes(y=LE, colour="LE"))
   facet_grid(.~year(date))
+
+
+# save 2015 May, June, July data for Anthony:
+flux.a <- copy(flux[year==2015 & month(date_time) %in% c(5,6,7),.(date_time,year,date,time,
+                                                                 co2_flux,h2o_flux,H,LE,
+                                                                 co2_mole_fraction,h2o_mole_fraction,
+                                                                 qc_co2_flux,qc_h2o_flux,qc_H,qc_LE,
+                                                                 `u*`,
+                                                         Ta_1_1_1, RH_1_1_1,Pa_1_1_1,WD_1_1_1,
+                                                        MWS_1_1_1,PPFD_1_1_1,PPFDr_1_1_1,
+                                                        P_rain_1_1_1,SWC_1_1_1,Ts_1_1_1,
+                                                        SHF_1_1_1,SHF_1_2_1,SHF_2_1_1,SHF_2_2_1,
+                                                        LWin_1_1_1,LWout_1_1_1,SWout_1_1_1,Rg_1_1_1,
+                                                        Rn_1_1_1)])
+
+# convert kelvin to celsius: -273.15
+flux.a[,':=' (Ta_1_1_1 = Ta_1_1_1-273.15,
+                     Ts_1_1_1 = Ts_1_1_1-273.15) ]
+
+
+# get units for flux and biomet
+flux.units.a <- copy(flux.units[,.(date,time,co2_flux,h2o_flux,H,LE,co2_mole_fraction,
+                                h2o_mole_fraction,qc_co2_flux,qc_h2o_flux,qc_H,qc_LE,`u*`)])
+                  
+biomet.units.a <- copy(biomet.units[,.(Ta_1_1_1, RH_1_1_1,Pa_1_1_1,WD_1_1_1,
+                            MWS_1_1_1,PPFD_1_1_1,PPFDr_1_1_1,
+                            P_rain_1_1_1,SWC_1_1_1,Ts_1_1_1,
+                            SHF_1_1_1,SHF_1_2_1,SHF_2_1_1,SHF_2_2_1,
+                            LWin_1_1_1,LWout_1_1_1,SWout_1_1_1,Rg_1_1_1,
+                            Rn_1_1_1)])
+
+flux.units.a <- cbind(flux.units.a,biomet.units.a)
+
+# add descritions for units
+description <- data.table(colnames(flux.units.a),unname(unlist(flux.units.a[1,])))
+colnames(description) <- c("variable","units")
+
+description[,description:=
+                     c("calendar date",
+                       "time, 24hr, rounded up to end of half-hour",
+                       "filtered co2 flux","filtered h2o flux","filtered H flux",
+                       "filtered LE flux", "ppm co2 at 5m","ppm h2o at 5m",
+                       "EddyPro code: 0 is best flux. 1 for budgets", "EddyPro code: 0 is best flux. 1 for budgets",
+                       "EddyPro code: 0 is best flux. 1 for budgets", "EddyPro code: 0 is best flux. 1 for budgets",
+                       "friction velocity","Air Temp at 5m","Relative Humidity at 5m","atmospheric pressure at 1.3m ",
+                       "wind direction at 10m","mean wind speed at 10m","Incoming Photosynthetic Photon Flux Density at 10m",
+                       "Reflected Photosynthetic Photon Flux Density: mean of veg and bare soil",
+                       "Precipitation as rain","Soil Water Content: Mean 5 to 30cm",
+                       "Soil temperature: Mean to 20 or 30cm in shrub and bare","Soil Heat Flux: Shrub shallow",
+                       "Soil Heat Flux: Shrub deep","Soil Heat Flux: Bare shallow",
+                       "Soil Heat Flux: Bare deep", "Incoming Long Wave Radiation",
+                       "Outgoing Long Wave Radiation","Outgoing Short Wave Radiation",
+"Global Radiation = Short Wave incoming","Net Radiation at 3m")]
+
+# save data for Anthony 
+setwd("~/Desktop/TweedieLab/Projects/Jornada/Anthony_nutrients_fluxes/")
+
+# write.table(flux.a, file="JER_NEE_Biomet_30min_MayJuneJuly_2015_20190701.csv",sep=",", dec=".", row.names=FALSE)
+# write.table(description, file="JER_NEE_Biomet_30min_MayJuneJuly_2015_METADATA_20190701.csv",sep=",", dec=".", row.names=FALSE)
+
+
+# filter and save data for Dawn's LTAR synthesis
+
+# filter out bad data and omit u* filtering
+flux.ltar <- copy(flux1[year %in% c(2017,2018),])
+
+# remove flux when AGC < 40 (baseline is at ~42)
+# Li-7500 manual says that typical values are 55-65% but baselines vary by instrument
+# values that approach 100% should be removed because 100% indicates complete sensor blockage
+# remove less than 40 and greater than 52
+flux.ltar[AGC_mean<40 | AGC_mean>52, ':=' (co2_flux = NA, 
+                                           co2_mole_fraction = NA,
+                                           LE = NA, 
+                                           H= NA)]
+
+# filter co2 flux
+flux.ltar[qc_co2_flux>2 | is.na(qc_co2_flux),':=' (co2_flux = NA, 
+                                              co2_mole_fraction = NA)]
+
+# remove unreasonable flux values
+flux.ltar[co2_flux<(-50) | co2_flux>50, ':=' (co2_flux = NA, 
+                                             co2_mole_fraction = NA)]
+
+
+# remove when mole fraction is unreasonable, I think anything over 1000 is really unlikely?
+flux.ltar[co2_mole_fraction>1000, ':=' (co2_flux = NA, 
+                                   co2_mole_fraction = NA)]
+
+
+# filter H
+# remove qc code < 1
+flux.ltar[qc_H>2 | is.na(qc_H),H := NA]
+
+# remove unreasonable values
+flux.ltar[H<(-1000) | H>1000 , H := NA]
+
+# filter LE
+# remove qc code < 1
+flux.ltar[qc_LE>2 | is.na(qc_LE),LE := NA]
+
+# remove unreasonable values 
+flux.ltar[LE<(-1000) | LE>1000 , LE := NA]
+
+
+
+# subset only desired data
+# change names to match Fluxnet
+# create a timestamp start variable by subtracting 30mins from date_time (=TIMESTAMP_END)
+flux.ltar <- flux.ltar[,.(TIMESTAMP_START = date_time-minutes(30),
+                          TIMESTAMP_END=date_time,
+              FC=co2_flux,
+              H=H,
+              LE=LE,
+              FC_SSITC_TEST=qc_co2_flux,
+              H_SSITC_TEST=qc_H,
+              LE_SSITC_TEST=qc_LE,
+              USTAR=`u*`,
+              TA=Ta_1_1_1,
+              RH=RH_1_1_1,
+              PA=Pa_1_1_1,
+              WD=WD_1_1_1,
+              WS=MWS_1_1_1,
+              PPFD_IN=PPFD_1_1_1,
+              P_Rain=P_rain_1_1_1,
+              LW_IN=LWin_1_1_1,
+              LW_OUT=LWout_1_1_1,
+              SW_OUT=SWout_1_1_1,
+              SW_IN=Rg_1_1_1)]
+
+
+# make a quick figures to make sure data is there and OK
+flux.ltar.long <- melt.data.table(flux.ltar[,.(TIMESTAMP_END,FC,H,LE,USTAR)],
+                                  c("TIMESTAMP_END"))
+
+ggplot(flux.ltar.long,aes(TIMESTAMP_END, value))+
+  geom_line()+
+  facet_grid(variable~.,scales="free_y")
+
+
+# format timestamps to match fluxnet
+flux.ltar[,':=' (TIMESTAMP_START = format(TIMESTAMP_START, "%Y%m%d%H%M"),
+                 TIMESTAMP_END = format(TIMESTAMP_END, "%Y%m%d%H%M"))]
+
+
+
+# metadata file
+# add descritions for units
+flux.units.ltar <- copy(flux.units[,.(co2_flux,H,LE,qc_co2_flux,qc_H,qc_LE,`u*`)])
+
+biomet.units.ltar <- copy(biomet.units[,.(Ta_1_1_1, RH_1_1_1,Pa_1_1_1,WD_1_1_1,
+                                       MWS_1_1_1,PPFD_1_1_1,
+                                       P_rain_1_1_1,
+                                       LWin_1_1_1,LWout_1_1_1,SWout_1_1_1,Rg_1_1_1)])
+
+flux.units.ltar <- cbind(flux.units.ltar,biomet.units.ltar)
+
+
+description.ltar <- data.table(colnames(flux.ltar[,!c("TIMESTAMP_END","TIMESTAMP_START")]),unname(unlist(flux.units.ltar[1,])))
+colnames(description.ltar) <- c("variable","units")
+
+
+description.ltar[,description:=
+              c("filtered co2 flux at 5m","filtered H flux at 5m",
+                "filtered LE flux at 5m", "EddyPro code: 0 is best flux. 1 for budgets",
+                "EddyPro code: 0 is best flux. 1 for budgets", "EddyPro code: 0 is best flux. 1 for budgets",
+                "friction velocity","Air Temp at 5m","Relative Humidity at 5m","atmospheric pressure at 1.3m ",
+                "wind direction at 10m","mean wind speed at 10m","Incoming Photosynthetic Photon Flux Density at 10m",
+                "Precipitation as rain","Incoming Long Wave Radiation at 3m",
+                "Outgoing Long Wave Radiation at 3m","Outgoing Short Wave Radiation at 3m",
+                "Incoming Short Wave at 3m")]
+
+# add timestamp explanation
+timestamp.descr <- data.table(variable=c("TIMESTAMP_START","TIMESTAMP_END"),
+                              units=c("YYYYMMDDHHMM","YYYYMMDDHHMM"),
+                              description=c("timestamp start of averaging period","timestamp end of averaging period"))
+
+description.ltar <- rbind(timestamp.descr,description.ltar)
+
+# save
+setwd("~/Desktop/TweedieLab/Projects/Jornada/LTAR_Synthesis_Browning")
+
+# write.table(flux.ltar, file="FluxData_jerbajada_20190702.csv", sep=",", dec=".",row.names=FALSE)
+# write.table(description.ltar, file="FluxData_jerbajada_METADATA_20190702.csv",sep=",", dec=".", row.names=FALSE)
+
