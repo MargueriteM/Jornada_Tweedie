@@ -20,15 +20,25 @@ library(viridis)
 # EddyPro 7.0.4 has column name slip problems, using Fluxnet output!
 
 # read the data in fluxnet format
-flux2010 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/eddypro_JER_2010_fluxnet_2019-08-08T131210_adv.csv",
+flux2010a <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/eddypro_JER_2010_fluxnet_2019-08-08T131210_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"))
+
+flux2010b <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/20190806_2/eddypro_JER_2010_fluxnet_2019-08-09T172917_adv.csv",
                   sep=",", header=TRUE, na.strings=c("-9999"))
 
 
-flux2011 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2011/eddypro_JER_2011_fluxnet_2019-08-08T131507_adv.csv",
+flux2011a <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2011/eddypro_JER_2011_fluxnet_2019-08-08T131507_adv.csv",
                   sep=",", header=TRUE, na.strings=c("-9999"))
 
-flux2012 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2012/eddypro_JER_2012_fluxnet_2019-08-08T131951_adv.csv",
+flux2011b <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2011/20190806_2/eddypro_JER_2011_fluxnet_2019-08-10T020726_adv.csv",
                   sep=",", header=TRUE, na.strings=c("-9999"))
+
+
+flux2012a <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2012/eddypro_JER_2012_fluxnet_2019-08-08T131951_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"))
+
+flux2012b <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2012/20190806_2/eddypro_JER_2012_fluxnet_2019-08-10T022928_adv.csv",
+                   sep=",", header=TRUE, na.strings=c("-9999"))
 
 
 flux2013 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2013/eddypro_JER_2013_fluxnet_2019-08-08T105511_adv.csv",
@@ -51,7 +61,8 @@ flux2018 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_
                   sep=",", header=TRUE, na.strings=c("-9999"))
 
 # combine all individual years of flux runs
-flux <- rbind(flux2010, flux2011, flux2012,flux2013,flux2014,flux2015, flux2016, flux2017, flux2018)
+flux <- rbind(flux2010a, flux2010b, flux2011a, flux2011b, flux2012a, flux2012b,
+              flux2013,flux2014,flux2015, flux2016, flux2017, flux2018)
 
 # format date
 flux[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][

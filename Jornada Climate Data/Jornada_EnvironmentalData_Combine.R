@@ -190,6 +190,50 @@ env_30min[,height := factor(height,levels=c("-30","-20","-15","-10","-5","-2","5
 # create a variable to show data coverage =1 with data 
 env_30min[!is.na(mean.val), coverage := 1]
 
+# Precip: The rain buckets record 0 even if they are broken and not picking up rain
+#         As a result, averaging across all sensors will underestimate rain if one bucket is not working
+# If there's rain recorded in any bucket and another is 0, make it NA instead of 0
+precip <- copy(env_30min[variable=="precip.tot"&veg=="BARE"&!is.na(date_time),.(date_time,
+                                                              SN,mean.val)])
+
+precip[is.na(SN), SN := "tower"]
+
+precip <- dcast(precip,date_time~SN)
+
+# check
+ggplot(precip,aes(date_time,tower))+geom_line()
+ggplot(precip,aes(date_time,SN2))+geom_line()
+ggplot(precip,aes(date_time,SN6))+geom_line()
+
+ggplot(precip,aes(tower,SN2))+geom_point()
+ggplot(precip,aes(tower,SN6))+geom_point()
+ggplot(precip,aes(SN2,SN6))+geom_point()
+
+# if any row has 0 in one column and >0 in another, make the 0 = NA
+precip[SN2==0 & (SN6!=0 | tower!=0), SN2 := NA]
+precip[SN6==0 & (SN2!=0 | tower!=0), SN6 := NA]
+precip[tower==0 & (SN2!=0 | SN6!=0), tower := NA]
+
+# now join the fixed precip data back to the env_30min
+precip <- melt(precip,measure.vars=c("tower","SN2","SN6"), variable.name="SN",value.name="mean.val")
+
+ggplot(precip, aes(date_time, mean.val, colour=SN))+geom_line()
+
+precip_extra <- copy(env_30min[variable=="precip.tot"&veg=="BARE"&!is.na(date_time),
+                               .(variable,datastream,location,probe_id,veg,height,depth,veg_depth,
+                                 date_time,SN,year,month,doy,
+                                 coverage)])
+precip[SN=="tower",SN := NA]
+
+precip <- merge(precip, precip_extra, by=c("SN","date_time"))
+
+# replace Bare precip in env_30min
+env_30min1 <- copy(env_30min) 
+rm(env_30min)
+env_30min <- copy(env_30min1[!(variable=="precip.tot"&veg=="BARE"),])
+
+env_30min <- rbind(env_30min, precip)
+
 # create data for Eddy Pro Biomet
 # airtemp, rh, atm_press, par, wnd_spd, wnd_dir, precip.tot, Rn_nr, Rl_downwell, Rl_upwell,
 # Rs_downwell, Rs_upwell, hfp, soilmoisture
@@ -332,6 +376,34 @@ source("~/Desktop/R/R_programs/Functions/SaveFiles_Biomet_EddyPro.R")
 
 # save each year
 # savebiomet(biomet,2010,2019)
+
+# save daily biomet data for Anthony and Isa Nutrient paper
+biomet_anthony <- copy(biomet[date_time>=as.POSIXct("2015-05-01",tz="UTC") &
+                                date_time<=as.POSIXct("2015-07-31",tz="UTC"),])
+
+ggplot(biomet_anthony, aes(date_time,P_rain_1_1_1))+geom_line()+geom_point()
+
+
+biomet_a_daily <- biomet_anthony[,lapply(.SD, function (x) {mean(x, na.rm=TRUE)}), 
+                                 .SDcols = c("Ta_1_1_1","RH_1_1_1","Pa_1_1_1","WD_1_1_1","MWS_1_1_1",
+                                             "PPFD_1_1_1","PPFDr_1_1_1","SWC_1_1_1",
+                                             "Ts_1_1_1","SHF_1_1_1","SHF_1_2_1","SHF_2_1_1","SHF_2_2_1",
+                                             "LWin_1_1_1","LWout_1_1_1","SWout_1_1_1","Rg_1_1_1","Rn_1_1_1"),
+                                 by=date(date_time)]
+
+precip_a_daily <- biomet_anthony[,list(P_rain_1_1_1 = sum(P_rain_1_1_1, na.rm=TRUE)),
+                                 by=date(date_time)]
+
+biomet_a_daily <- merge(biomet_a_daily, precip_a_daily, by="date")
+
+ggplot(biomet_a_daily, aes(date,P_rain_1_1_1))+geom_line()+geom_point()
+ggplot(biomet_a_daily, aes(date,SWC_1_1_1))+geom_line()
+
+# save
+
+#setwd("~/Desktop/TweedieLab/Projects/Jornada/Anthony_nutrients_fluxes/")
+#write.table(biomet_a_daily, "JER_Biomet_daily_MayJuneJuly_2015_20190906.csv", row.names=FALSE, sep=",", dec=".")
+#write.table(biomet_anthony, "JER_Biomet_30min_MayJuneJuly_2015_20190906.csv", row.names=FALSE, sep=",", dec=".")
 
 # figures of biomet data for JER Short course Poster
 # time series of rain and temperature
