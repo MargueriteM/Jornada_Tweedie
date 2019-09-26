@@ -78,8 +78,9 @@ dateRangeInput("daterange", "Date range:",
 Column
 -------------------------------------------------------------
 
-Please be patient. 
-The data loads slowly because these are big files and the format is bulky.
+*Please be patient.  
+The plot loads slowly because these are big files and the format is bulky.  
+Many soil probes are not working!*
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
  renderPlot({
