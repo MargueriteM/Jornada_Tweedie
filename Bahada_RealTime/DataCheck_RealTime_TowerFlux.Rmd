@@ -64,8 +64,16 @@ radioButtons("variable2", "Biomet variables:",
                "Precipitation (mm)" = "precip_Tot",
                "Leaf wetness, 5m (mV)" = "lws_1_Avg",
                "Leaf wetness, shrub (mV)" = "lws_2_Avg",
-               "PAR (umol/m2/s)" = "par_Avg"))
-# "SW Radiation (W/m2)" = c("Rs_downwell_Avg","Rs_upwell_Avg"),
+               "PAR (umol/m2/s)" = "par_Avg",
+               "Short Wave IN (W/m2)" = "Rs_upwell_Avg",
+               "Short Wave OUT (W/m2)" = "Rs_downwell_Avg",
+               "Long Wave IN (W/m2)" = "Rl_upwell_Avg",
+               "Long Wave OUT (W/m2)" = "Rl_downwell_Avg",
+               "Soil Heat Flux 1 (W/m2)" = "hfp01_1_Avg",
+               "Soil Heat Flux 2 (W/m2)" = "hfp01_2_Avg",
+               "Soil Heat Flux 3 (W/m2)" = "hfp01_3_Avg",
+                "Soil Heat Flux 4 (W/m2)" = "hfp01_4_Avg"))
+            
 #  "LW Radiation (W/m2)" = c("Rl_downwell_Avg","Rl_upwell_Avg"),
 # "Soil Heat Flux (W/m2)" = c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg")))
 
