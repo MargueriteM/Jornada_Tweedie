@@ -191,7 +191,7 @@ inputPanel(
                 c("Air Temperature (deg C)" = "airtemp",
                   "Relative Humidity (%)" = "rh",
                   "Absolute Humidity (kPa)" = "e",
-                  "Atmospheric Pressure (kPa)" = "atm_pressure",
+                  "Atmospheric Pressure (kPa)" = "atm_press",
                   "Total Precipitation (mm)" = "precip",
                   "Leaf Wetness (mV)" = "lws_5m",
                   "PAR (umol/m2/s)" = "par",
@@ -221,7 +221,8 @@ Wind Rose
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
 renderPlot({
-  c <- subset(climate, date >= input$daterange[[1]] & date <= input$daterange[[2]])
+  c1 <- subset(climate, !is.na(wnd_spd) | !is.na(wnd_dir))
+  c <- subset(c1, date >= input$daterange[[1]] & date <= input$daterange[[2]])
 plot.windrose(c,c$wnd_spd,c$wnd_dir)},
   height=500)
 
