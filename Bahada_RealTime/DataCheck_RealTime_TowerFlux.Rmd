@@ -1,28 +1,82 @@
 ---
-title: "DataCheck_Realtime_TowerFlux"
+title: "Jornada Bahada Site Data Check: Flux Table"
+author: "Marguerite Mauritz"
 output: html_document
+runtime: shiny
 ---
+
+
+These graphs show most recent incoming eddy covariance and ancillary data from the tower at the Jornada Bahada Site. Data are 30 min mean values.
+
+
+##### **Note: Flux calculations are preliminary and for visualisation only!!**
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+# load required libraries
+library(data.table)
+library(ggplot2)
+library(gridExtra)
+library(lubridate)
+library(plotly)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+# import data directly from SEL Data Archive
+flux_colnames <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/2019/Raw_Data/ASCII/dataL1_flux_2019.csv",
+                  header = TRUE, skip=1,sep=",", fill=TRUE,
+                 na.strings=c(-9999,"#NAME?"))[1,]
 
-```{r cars}
-summary(cars)
+flux <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/2019/Raw_Data/ASCII/dataL1_flux_2019.csv",
+                  header = FALSE, skip=4, sep=",", fill=TRUE,
+                 na.strings=c(-9999,"#NAME?"),
+              col.names=colnames(flux_colnames))
+
+# convert the time stamp to a posixct format
+flux[,date_time := parse_date_time(TIMESTAMP, c("%Y!-%m-%d %H:%M:%S",
+                                                    "%m-%d-%y %H:%M"))]
+
+# create derivative date columns
+flux[,':=' (year = year(date_time), doy = yday(date_time), date = date(date_time))]
 ```
 
-## Including Plots
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+inputPanel(
+  dateRangeInput("daterange", "Date range:",
+                 start = min(flux$date),
+                 end   = max(flux$date),
+                 min = min(flux$date),
+                 max = max(flux$date))
+  )
 
-You can also embed plots, for example:
+   radioButtons("variable", "Variable:",
+                c("CO2 Flux (mg/m2/sec)" = "Fc_wpl",
+                  "Relative Humidity (%)" = "rh",
+                  "Absolute Humidity (kPa)" = "e",
+                  "Atmospheric Pressure (kPa)" = "atm_press",
+                  "Total Precipitation (mm)" = "precip",
+                  "Leaf Wetness (mV)" = "lws_5m",
+                  "PAR (umol/m2/s)" = "par",
+                  "Albedo" = "albedo",
+                  "Net SW Radiation (W/m2)" = "net_rs",
+                  "Net LW Radiation (W/m2)" = "net_ri",
+                  "Total Downwelling (W/m2)" = "up_tot",
+                  "Total Upwelling (W/m2)" = "dn_tot",
+                  "Wind Speed (m/s)" = "wnd_spd",
+                  "Wind Direction (degree)" = "wnd_dir"))
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+renderPlot({
+  c <- climate[date >= input$daterange[[1]] & date <= input$daterange[[2]],.SD,.SDcols=c("date","date_time",input$variable)]
+ 
+  setnames(c,input$variable,"selected")
+  
+  # plot_ly(c,x=~date_time,y=~airtemp, type="scatter")},
+ggplot(c, aes(date_time, selected))+
+  geom_line()+
+  #labs(title="Air Temperature",y=expression("Temperature ("~degree~"C)"))+
+  labs(y=input$variable)
+ theme_bw()}, 
+height= 400)
 ```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
