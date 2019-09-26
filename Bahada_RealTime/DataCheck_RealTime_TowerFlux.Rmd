@@ -1,23 +1,14 @@
 ---
 title: "Jornada Bahada Site Data Check: Flux Table"
 author: "Marguerite Mauritz"
-output: html_document
+output: flexdashboard::flex_dashboard
 runtime: shiny
 ---
 
-
-These graphs show most recent incoming eddy covariance and ancillary data from the tower at the Jornada Bahada Site. Data are 30 min mean values.
-
-
-##### **Note: Flux calculations are preliminary and for visualisation only!!**
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
-
 # load required libraries
+library(flexdashboard)
 library(data.table)
 library(ggplot2)
 library(gridExtra)
@@ -42,7 +33,18 @@ flux[,date_time := parse_date_time(TIMESTAMP, c("%Y!-%m-%d %H:%M:%S",
 flux[,':=' (year = year(date_time), doy = yday(date_time), date = date(date_time))]
 ```
 
-```{r, echo = FALSE, warning = FALSE, message = FALSE}
+Sidebar {.sidebar}
+=====================================================================
+###Select Date Range and variables
+
+These graphs show most recent incoming eddy covariance and ancillary data from the tower at the Jornada Bahada Site. Data are 30min mean values.
+
+**Note: Flux calculations are preliminary and for visualisation only!!** 
+
+------------------------------------------------
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+
 inputPanel(
   dateRangeInput("daterange", "Date range:",
                  start = min(flux$date),
@@ -51,32 +53,30 @@ inputPanel(
                  max = max(flux$date))
   )
 
-   radioButtons("variable", "Variable:",
-                c("CO2 Flux (mg/m2/sec)" = "Fc_wpl",
-                  "Relative Humidity (%)" = "rh",
-                  "Absolute Humidity (kPa)" = "e",
-                  "Atmospheric Pressure (kPa)" = "atm_press",
-                  "Total Precipitation (mm)" = "precip",
-                  "Leaf Wetness (mV)" = "lws_5m",
-                  "PAR (umol/m2/s)" = "par",
-                  "Albedo" = "albedo",
-                  "Net SW Radiation (W/m2)" = "net_rs",
-                  "Net LW Radiation (W/m2)" = "net_ri",
-                  "Total Downwelling (W/m2)" = "up_tot",
-                  "Total Upwelling (W/m2)" = "dn_tot",
-                  "Wind Speed (m/s)" = "wnd_spd",
-                  "Wind Direction (degree)" = "wnd_dir"))
+   radioButtons("variable", "Flux variables:",
+                c("CO2 Flux WPL (mg/m2/sec)",
+                  "CO2 mean concentration (mg/m3)" = "CO2_mean",
+                  "Sensible Heat WPL (W/m2)" = "Hc",
+                  "Latent Heat WPL (W/m2)" = "LE_wpl",
+                  "H2O mean concentration (g/m3)" = "H2O_Avg"))
+                 
+    radioButtons("variable", "Biomet variables:",
+                c("Air temperature, hmp (C)" = "t_hmp_mean",
+                "Air temperature, sonic (C)" = "ts_mean",
+                 "Air temperature, fine wire (C)" = "fw_Avg",
+                 "Atmospheric pressure (kPa)" = "atm_press_mean",
+                 "Precipitation (mm)" = "precip_Tot",
+                 "Leaf wetness, 5m (mV)" = "lws_1_Avg",
+                 "Leaf wetness, shrub (mV)" = "lws_2_Avg",
+                  "PAR (umol/m2/s)" = "par_Avg",
+                  "SW Radiation (W/m2)" = c("Rs_downwell_Avg","Rs_upwell_Avg"),
+                  "LW Radiation (W/m2)" = c("Rl_downwell_Avg","Rl_upwell_Avg"),
+                "Soil Heat Flux (W/m2)" = c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg")))
 
-renderPlot({
-  c <- climate[date >= input$daterange[[1]] & date <= input$daterange[[2]],.SD,.SDcols=c("date","date_time",input$variable)]
- 
-  setnames(c,input$variable,"selected")
-  
-  # plot_ly(c,x=~date_time,y=~airtemp, type="scatter")},
-ggplot(c, aes(date_time, selected))+
-  geom_line()+
-  #labs(title="Air Temperature",y=expression("Temperature ("~degree~"C)"))+
-  labs(y=input$variable)
- theme_bw()}, 
-height= 400)
+    radioButtons("variable", "Instrument variables:",
+                c("Battery (V)" = "batt_volt_Avg",
+                  "AGC/signal strength (unitless)" = "agc_Avg"))
 ```
+
+Plot
+=========================================================================
