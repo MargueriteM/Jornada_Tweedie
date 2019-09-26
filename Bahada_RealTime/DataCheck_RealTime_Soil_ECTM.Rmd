@@ -1,0 +1,96 @@
+---
+title: 'Jornada Bahada Site Data Check: Soil data (ECTM)'
+author: "Marguerite Mauritz"
+output: flexdashboard::flex_dashboard
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# load required libraries
+library(flexdashboard)
+library(data.table)
+library(ggplot2)
+library(gridExtra)
+library(lubridate)
+library(plotly)
+
+# import data directly from SEL Data Archive
+ectm <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_ECTM/2019/Raw_Data/ASCII/dataL1_ECTM_2019.csv",
+                  header = FALSE, skip=4, sep=",", fill=TRUE,
+                 na.strings=c(-9999,"#NAME?"),
+              col.names=c("timestamp","record",
+                                    "vwc_1","vwc_2","vwc_3","vwc_4","vwc_5","vwc_6","vwc_7","vwc_8",
+                                                 "ecp_1","ecp_2","ecp_3","ecp_4","ecp_5","ecp_6","ecp_7","ecp_8",
+                                                 "t_1","t_2","t_3","t_4","t_5","t_6","t_7","t_8"))
+
+# select only temperature and vwc columns to keep
+ectm[,':=' (ecp_1=NULL, ecp_2=NULL, ecp_3=NULL, ecp_4=NULL,
+                  ecp_5=NULL, ecp_6=NULL, ecp_7=NULL, ecp_8=NULL)]
+
+# convert the time stamp to a posixct format
+ectm[,date_time := parse_date_time(timestamp, c("%Y!-%m-%d %H:%M:%S",
+                                                    "%m-%d-%y %H:%M"))]
+
+# delete the record and timestamp column
+ectm[,':=' (record=NULL,timestamp=NULL)]
+
+
+ectm_long <- melt(ectm,c("date_time"))
+
+ectm_long[variable %in% c("vwc_1", "vwc_2","vwc_3","vwc_4","vwc_5","vwc_6","vwc_7","vwc_8"), metric := "moisture"]
+
+ectm_long[variable %in% c("t_1", "t_2","t_3","t_4","t_5","t_6","t_7","t_8"), metric := "temperature"]
+
+ectm_long[,probeID := as.integer(sapply(strsplit(as.character(variable),"_"),"[",2))]
+
+# create derivative date columns
+ectm_long[,':=' (year = year(date_time), doy = yday(date_time), date = date(date_time))]
+```
+
+Column {.sidebar}
+---------------------------------------
+###Select Date Range and variables
+
+These graphs show most recent incoming soil temperature and moisture data from the tower at the Jornada Bahada Site. Data are 1min values.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+dateRangeInput("daterange", "Date range:",
+                 start = min(ectm_long$date),
+                 end   = max(ectm_long$date),
+                 min = min(ectm_long$date),
+                 max = max(ectm_long$date))
+
+ radioButtons("probeID", "Probe Number:",
+              c("1" = 1L,
+                "2" = 2L,
+                "3" = 3L,
+                "4" = 4L, 
+                "5" = 5L,
+                "6" = 6L, 
+                "7" = 7L, 
+                "8" = 8L))
+
+```
+
+
+Column
+-------------------------------------------------------------
+
+Please be patient. 
+The data loads slowly because these are big files and the format is bulky.
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+ renderPlot({
+    c <- ectm_long[probeID == input$probeID & date >= input$daterange[[1]] & date <= input$daterange[[2]],]
+  
+    #setnames(c,input$variable1,"selected")
+  
+  # plot_ly(c,x=~date_time,y=~airtemp, type="scatter")},
+  ggplot(c, aes(x=date_time, y=value, colour=variable))+
+    geom_line()+
+    #labs(Title = "Soil Temperature", y="Temperature (C)")+
+ theme_bw() +
+    facet_grid(metric~.)})
+```
