@@ -5,7 +5,7 @@ output: html_document
 runtime: shiny
 ---
   
-These graphs show most recent incoming climate data from the tower at the Jornada Bahada Site
+These graphs show most recent incoming climate data from the tower at the Jornada Bahada Site. Data are 1min mean values. 
 
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
@@ -169,8 +169,7 @@ climate <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/
                              "lws_5m","net_rs","net_ri","up_tot","dn_tot",
                              "co2_raw","h2o_raw"))
 # convert the time stamp to a posixct format
-climate[,date_time := parse_date_time(timestamp, c("%m-%d-%y %H:%M","%m-%d-%y %H:%M:%S",
-                                                   "%Y!-%m-%d %H:%M:%S"))]
+climate[,date_time := parse_date_time(timestamp, c("%m-%d-%y %H:%M","%m-%d-%y %H:%M:%S", "%Y!-%m-%d %H:%M:%S"))]
 
 
 # create derivative date columns
