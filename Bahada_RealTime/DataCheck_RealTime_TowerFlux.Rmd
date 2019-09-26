@@ -73,9 +73,6 @@ radioButtons("variable2", "Biomet variables:",
                "Soil Heat Flux 2 (W/m2)" = "hfp01_2_Avg",
                "Soil Heat Flux 3 (W/m2)" = "hfp01_3_Avg",
                 "Soil Heat Flux 4 (W/m2)" = "hfp01_4_Avg"))
-            
-#  "LW Radiation (W/m2)" = c("Rl_downwell_Avg","Rl_upwell_Avg"),
-# "Soil Heat Flux (W/m2)" = c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg")))
 
 radioButtons("variable3", "Instrument variables:",
              c("Battery (V)" = "batt_volt_Avg",
