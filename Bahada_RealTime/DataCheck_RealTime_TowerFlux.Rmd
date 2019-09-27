@@ -1,0 +1,120 @@
+---
+title: "Jornada Bahada Site Data Check: Flux Table"
+author: "Marguerite Mauritz"
+output: flexdashboard::flex_dashboard
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# load required libraries
+library(flexdashboard)
+library(data.table)
+library(ggplot2)
+library(gridExtra)
+library(lubridate)
+library(plotly)
+
+# import data directly from SEL Data Archive
+flux_colnames <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/2019/Raw_Data/ASCII/dataL1_flux_2019.csv",
+                  header = TRUE, skip=1,sep=",", fill=TRUE,
+                 na.strings=c(-9999,"#NAME?"))[1,]
+
+flux <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/2019/Raw_Data/ASCII/dataL1_flux_2019.csv",
+                  header = FALSE, skip=4, sep=",", fill=TRUE,
+                 na.strings=c(-9999,"#NAME?"),
+              col.names=colnames(flux_colnames))
+
+# convert the time stamp to a posixct format
+flux[,date_time := parse_date_time(TIMESTAMP, c("%Y!-%m-%d %H:%M:%S",
+                                                    "%m-%d-%y %H:%M"))]
+
+# create derivative date columns
+flux[,':=' (year = year(date_time), doy = yday(date_time), date = date(date_time))]
+```
+
+Column {.sidebar}
+---------------------------------------
+###Select Date Range and variables
+
+These graphs show most recent incoming eddy covariance and ancillary data from the tower at the Jornada Bahada Site. Data are 30min mean values.
+
+**Note: Flux calculations are preliminary and for visualisation only!!** 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+dateRangeInput("daterange", "Date range:",
+                 start = min(flux$date),
+                 end   = max(flux$date),
+                 min = min(flux$date),
+                 max = max(flux$date))
+
+radioButtons("variable1", "Flux variables:",
+             c("CO2 Flux WPL (mg/m2/sec)" = "Fc_wpl",
+               "CO2 mean concentration (mg/m3)" = "CO2_mean",
+               "Sensible Heat WPL (W/m2)" = "Hc",
+               "Latent Heat WPL (W/m2)" = "LE_wpl",
+               "H2O mean concentration (g/m3)" = "H2O_Avg"))
+
+radioButtons("variable2", "Biomet variables:",
+             c("Air temperature, hmp (C)" = "t_hmp_mean",
+               "Air temperature, sonic (C)" = "Ts_mean",
+               "Air temperature, fine wire (C)" = "fw_Avg",
+               "Atmospheric pressure (kPa)" = "atm_press_mean",
+               "Precipitation (mm)" = "precip_Tot",
+               "Leaf wetness, 5m (mV)" = "lws_1_Avg",
+               "Leaf wetness, shrub (mV)" = "lws_2_Avg",
+               "PAR (umol/m2/s)" = "par_Avg",
+               "Short Wave IN (W/m2)" = "Rs_upwell_Avg",
+               "Short Wave OUT (W/m2)" = "Rs_downwell_Avg",
+               "Long Wave IN (W/m2)" = "Rl_upwell_Avg",
+               "Long Wave OUT (W/m2)" = "Rl_downwell_Avg",
+               "Soil Heat Flux 1 (W/m2)" = "hfp01_1_Avg",
+               "Soil Heat Flux 2 (W/m2)" = "hfp01_2_Avg",
+               "Soil Heat Flux 3 (W/m2)" = "hfp01_3_Avg",
+                "Soil Heat Flux 4 (W/m2)" = "hfp01_4_Avg"))
+
+radioButtons("variable3", "Instrument variables:",
+             c("Battery (V)" = "batt_volt_Avg",
+               "AGC/signal strength (unitless)" = "agc_Avg"))
+
+ 
+```
+
+
+Column
+-------------------------------------------------------------
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+  renderPlot({
+    c <- flux[date >= input$daterange[[1]] & date <= input$daterange[[2]],.SD,.SDcols=c("date","date_time",input$variable1)]
+  
+    setnames(c,input$variable1,"selected")
+  
+  # plot_ly(c,x=~date_time,y=~airtemp, type="scatter")},
+  ggplot(c, aes(date_time, selected))+
+    geom_line()+
+    labs(Title = "Flux variables", y=input$variable1)+
+ theme_bw()})
+
+renderPlot({
+    c <- flux[date >= input$daterange[[1]] & date <= input$daterange[[2]],.SD,.SDcols=c("date","date_time",input$variable2)]
+  
+    setnames(c,input$variable2,"selected")
+  
+  # plot_ly(c,x=~date_time,y=~airtemp, type="scatter")},
+  ggplot(c, aes(date_time, selected))+
+    geom_line()+
+    labs(Title = "Biomet variables", y=input$variable2)+
+ theme_bw()})
+
+renderPlot({
+    c <- flux[date >= input$daterange[[1]] & date <= input$daterange[[2]],.SD,.SDcols=c("date","date_time",input$variable3)]
+  
+    setnames(c,input$variable3,"selected")
+  
+  # plot_ly(c,x=~date_time,y=~airtemp, type="scatter")},
+  ggplot(c, aes(date_time, selected))+
+    geom_line()+
+    labs(Title = "Instrument variables", y=input$variable3)+
+ theme_bw()})
+```
