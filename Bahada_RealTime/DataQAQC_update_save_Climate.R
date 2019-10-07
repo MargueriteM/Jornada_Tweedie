@@ -36,9 +36,14 @@ library(plotly)
 # H2O_raw: mmol/m3
 
 # import most recent file
+climate.loggerinfo <-fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/2019/Raw_Data/ASCII/dataL1_met_2019.csv",
+                         header = FALSE, sep=",", skip = 0,fill=TRUE,
+                         na.strings=c(-9999,"#NAME?"))[1,]
+
 climate.colnames <-fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/2019/Raw_Data/ASCII/dataL1_met_2019.csv",
                                      header = TRUE, sep=",", skip = 1,fill=TRUE,
-                                     na.strings=c(-9999,"#NAME?"))[1,]
+                                     na.strings=c(-9999,"#NAME?"))[1:2,]
+
 climate <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/2019/Raw_Data/ASCII/dataL1_met_2019.csv",
                  header = FALSE, sep=",", skip = 4,fill=TRUE,
                  na.strings=c(-9999,"#NAME?"),
@@ -98,6 +103,10 @@ climate.save <- copy(climate[,.(timestamp,record,airtemp,rh,e,
                                 co2_raw,h2o_raw)])
 
 colnames(climate.save) <- colnames(climate.colnames)
+colnames(climate.loggerinfo) <- colnames(climate.colnames)
+
+# add information on the data logger, column names, units in the same format as the raw datafile
+climate.save <- rbind(climate.loggerinfo,climate.colnames, climate.save)
 
 # save in QAQC folder with start and end date in the file name
 # write.table(climate.save,
@@ -109,5 +118,5 @@ colnames(climate.save) <- colnames(climate.colnames)
 #         year(enddate),sprintf("%02d",(month(enddate))),sprintf("%02d",(day(enddate))),
 #         sprintf("%02d",(hour(enddate))),sprintf("%02d",(minute(enddate))),
 #          sprintf("%02d",(second(enddate))), ".csv",sep=""),
-#   sep=",", dec=".", row.names=FALSE)
+#   sep=",", dec=".", row.names=FALSE, col.names=FALSE)
 
