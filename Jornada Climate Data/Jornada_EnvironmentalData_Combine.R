@@ -220,7 +220,7 @@ precip <- melt(precip,measure.vars=c("tower","SN2","SN6"), variable.name="SN",va
 ggplot(precip, aes(date_time, mean.val, colour=SN))+geom_line()
 
 precip_extra <- copy(env_30min[variable=="precip.tot"&veg=="BARE"&!is.na(date_time),
-                               .(variable,datastream,location,probe_id,veg,height,depth,veg_depth,
+                               .(variable,datastream,location,probe_id,veg,height,depth,
                                  date_time,SN,year,month,doy,
                                  coverage)])
 precip[SN=="tower",SN := NA]
@@ -361,6 +361,10 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP")
 ## fixed 2014 data gap':
 # save(biomet, file="Biomet_EddyPro_2010_2019_20190709.Rdata")
 
+## fixed mean precip when it rained but one rain guage was broken (results in underestimate of mean precip across guages):
+# save(biomet, file="Biomet_EddyPro_2010_2019_20190906.Rdata")
+
+
 # load("Biomet_EddyPro_2010_2019_20190709.Rdata")
 
 # save Biomet Data for EddyPro for each year (csv) after editing timestamp
@@ -461,7 +465,108 @@ t <- ggplot(biomet[!is.na(date_time)&year(date_time)<=2019,],aes(date_time,Ta_1_
 
 grid.arrange(p,t, nrow=2)
 
+# Lab meeting September 30: 
+library(scales)
+library(gridExtra)
 
+p1 <- ggplot(biomet[!is.na(date_time)&year(date_time)<=2019,],aes(date_time,P_rain_1_1_1,colour=factor(year(date_time))))+
+  geom_line()+
+  scale_x_datetime(limits=c(as.POSIXct("2010-01-01 00:00:00"),
+                            as.POSIXct("2019-05-31 00:00:00")),
+                   breaks="1 year",
+                   labels=date_format("%Y"))+
+  scale_colour_discrete(name="Year")+
+  labs(x="Date", y="Total precipitation (mm)") +
+  theme(
+    plot.title=element_text(size = 14),
+    axis.text.x=element_blank(),
+    axis.title.x=element_blank(),
+    #axis.text.x=element_text(size=10,margin=unit(c(2,2,2,2),"mm")),
+    axis.text.y=element_text(size=14,margin=unit(c(2,2,2,2),"mm")),
+    axis.title.y=element_text(size=15),
+    axis.ticks.length=unit(-1.0,"mm"),
+    strip.background = element_blank(),
+    strip.text=element_text(size=10),
+    legend.title=element_text(size=10),
+    legend.text=element_text(size=9),
+    legend.key = element_rect(fill=NA, colour=NA),
+    legend.position = "none",
+    panel.background=element_rect(fill="white",colour="black"),
+    plot.margin=unit(c(1,1,1,2.5),"mm"))
+
+
+t1 <- ggplot(biomet[!is.na(date_time)&year(date_time)<=2019,],aes(date_time,Ta_1_1_1, colour=factor(year(date_time))))+
+  geom_line()+
+  geom_hline(yintercept=0)+
+  scale_x_datetime(limits=c(as.POSIXct("2010-01-01 00:00:00"),
+                            as.POSIXct("2019-05-31 00:00:00")),
+                   breaks="1 year",
+                   labels=date_format("%Y"))+
+  scale_colour_discrete(name="Year")+
+  labs( x="Date", y=expression("Temperature ("~degree~"C)")) +
+  theme(
+    plot.title=element_text(size = 14),
+    axis.text.x=element_text(size=14,margin=unit(c(2,2,2,2),"mm")),
+    axis.text.y=element_text(size=14,margin=unit(c(2,2,2,2),"mm")),
+    axis.title=element_text(size=15),
+    axis.ticks.length=unit(-1.0,"mm"),
+    strip.background = element_blank(),
+    strip.text=element_text(size=12),
+    legend.title=element_text(size=10),
+    legend.text=element_text(size=9),
+    legend.key = element_rect(fill=NA, colour=NA),
+    legend.position = "none",
+    panel.background=element_rect(fill="white",colour="black"),
+    plot.margin=unit(c(2,1,1,1),"mm")) #top,right,bottom,left)
+
+grid.arrange(p1,t1, nrow=2)
+
+# calculate mean monthly temperature and cummulative precip
+biomet[,':=' (month = month(date_time),
+              year=year(date_time))]
+
+TP_monthly <- biomet[date(date_time)<as.Date("2019-07-01"),list(temp.mean = mean(Ta_1_1_1, na.rm=TRUE),
+                           precip.tot = sum(P_rain_1_1_1, na.rm=TRUE)),
+                     by="month,year"]
+
+TP_annual <- biomet[date(date_time)<as.Date("2019-07-01"),list(temp.mean = mean(Ta_1_1_1, na.rm=TRUE),
+                                                              precip.tot = sum(P_rain_1_1_1, na.rm=TRUE)),
+                   by="year"]
+
+# graph scatter of temp and precip
+ggplot(TP_monthly, aes(temp.mean, precip.tot, colour=factor(month)))+
+  geom_point(size=3)+
+  labs(y="Total Rain",x="Mean Temperature")+
+  theme_bw()+
+  guides(colour=guide_legend(title="Month"))
+
+# graph monthly rain 
+p_month <- ggplot(TP_monthly, aes(factor(month),precip.tot, fill=factor(month)))+
+  geom_boxplot()+
+  labs(y="Total Rain",x="Month")+
+  theme_bw()+
+  guides(fill="none")
+
+# graph monthly temp 
+t_month <- ggplot(TP_monthly, aes(factor(month),temp.mean, fill=factor(month)))+
+  geom_boxplot()+
+  labs(y="Mean Temperature",x="Month")+
+  theme_bw()+
+  guides(fill="none")
+
+grid.arrange(p_month,t_month, ncol=2)
+
+# graph annual rain 
+p_year <- ggplot(TP_annual, aes(year,precip.tot))+
+  geom_line()+
+  geom_point(aes(colour=factor(year)),size=3)+
+  lims(y=c(0,500))+
+  labs(y="Total Rain",x="Year")+
+  theme_bw()+
+  scale_x_continuous(labels=seq(2010,2019,1),breaks=seq(2010,2019,1))+
+  guides(colour="none")
+
+p_year
 
 # graph data coverage for SN and tower
 # soil moisture

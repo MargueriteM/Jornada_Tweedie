@@ -7,6 +7,7 @@
 
 # load libraries
 library(ggplot2) # library for making figures in ggplot package
+library(plotly)
 library(lubridate) # library for easier date manipulation 
 library(data.table) # library for data table which is more efficient with large data sets
 library(reader)
@@ -116,11 +117,32 @@ flux[FC<(-30)|FC>30, filter_fc := 1L]
 
 
 # look at the fluxes by month for each year
-ggplot(flux[filter_fc !=1&month==12,],
-       aes(DOY_START,FC,colour=factor(FC_SSITC_TEST)))+
-  geom_point()+
-  #ylim(c(-30,30))+
+p_flux <- ggplot(flux[filter_fc !=1&month==1&DOY_START<31,],
+       aes(DOY_START,FC))+
+  geom_point(aes(colour=factor(FC_SSITC_TEST)))+
+  geom_line()+
+  geom_hline(yintercept=c(-5,5))+
+  #ylim(c(-5,5))+
          facet_grid(year~.,scales="free_y")
+
+# p_flux
+
+# make figure of full time series with plotly
+p_flux_ts <- ggplot(flux[filter_fc !=1,],
+                 aes(date_time,FC,colour=factor(FC_SSITC_TEST)))+
+  geom_point()
+  #ylim(c(-5,5))
+
+# ggplotly(p_flux_ts)
+
+# 27 Sep 2019: refilter
+
+# Jan: remove qc==1 and flux >5 or flux < -5
+# ggplot(flux[DOY_START<31&filter_fc !=1&month==1&
+#               !((FC_SSITC_TEST==1&FC>5|FC_SSITC_TEST==1&FC<(-5))),]
+
+# Feb: 
+
 
 # January:
 # 2010 
@@ -132,25 +154,26 @@ ggplot(flux[filter_fc !=1&month==12,],
 # 2016: FC>5 | FC<(-5) and check out with PAR/Temp
 # 2017: FC>5 | FC<(-5) and check out with PAR/Temp
 # 2018: FC>5 | FC<(-5) and check out with PAR/Temp
-flux[month==1 & (FC>5 | FC<(-5)), filter_fc := 1L]
+flux[month==1 & (FC>5 | FC<(-5))& filter_fc!=1 , filter_fc := 2L]
 
 # February: 
 # all years remove FC>6 & FC<(-6)
-flux[month==2 & (FC>6 | FC<(-6)), filter_fc := 1L]
+flux[month==2 & (FC>6 | FC<(-6))& filter_fc!=1 , filter_fc := 2L]
 
 # March
 # all years exept 2013 (had big uptake spike ~15... check that out)
 # remove FC>7 | FC< (-7)
-flux[month==3 & year!=2013 & (FC>7 | FC<(-7)), filter_fc := 1L]
+flux[month==3 & year!=2013 & (FC>7 | FC<(-7))& filter_fc!=1 , filter_fc := 2L]
 
 # April
 # all years except 2013 (check out lump)
 # remove FC>10 | FC< (-10)
-flux[month==4 & year!=2013 & (FC>10 | FC<(-10)), filter_fc := 1L]
+flux[month==4 & year!=2013 & (FC>10 | FC<(-10))& filter_fc!=1 , filter_fc := 2L]
 
 # May 
 # 2010: ~1 day of data, looks Ok
-# 2011: looks OK
+# 2011: FC>4
+# 2012: FC > 6
 # 2012: looks OK
 # 2013: FC< (-6) | FC>4
 # 2014: FC>5
@@ -158,91 +181,122 @@ flux[month==4 & year!=2013 & (FC>10 | FC<(-10)), filter_fc := 1L]
 # 2016: FC>5
 # 2017: no data
 # 2018: OK
-flux[month==5 & year ==2013 & (FC>4 | FC<(-6)), filter_fc := 1L]
-flux[month==5 & year ==2014 & (FC>4), filter_fc := 1L]
-flux[month==5 & year ==2015 & (FC>6 | FC<(-10)), filter_fc := 1L]
-flux[month==5 & year ==2016 & (FC>5), filter_fc := 1L]
+flux[month==5 & year ==2011 & FC>4 & filter_fc!=1 , filter_fc := 2L]
+flux[month==5 & year ==2012 & FC>6 & filter_fc!=1 , filter_fc := 2L]
+flux[month==5 & year ==2013 & (FC>4 | FC<(-6))& filter_fc!=1 , filter_fc := 2L]
+flux[month==5 & year ==2014 & (FC>4)& filter_fc!=1 , filter_fc := 2L]
+flux[month==5 & year ==2015 & (FC>6 | FC<(-10))& filter_fc!=1 , filter_fc := 2L]
+flux[month==5 & year ==2016 & (FC>5)& filter_fc!=1 , filter_fc := 2L]
 
 # June
 # all years remove FC>7 & FC<(-7)
-flux[month==6 & (FC>7 | FC<(-7)), filter_fc := 1L]
+flux[month==6 & (FC>7 | FC<(-7))& filter_fc!=1 , filter_fc := 2L]
 
 # July
 # all years remove FC>6 & FC<(-6)
-flux[month==7 & (FC>6 | FC<(-6)), filter_fc := 1L]
+flux[month==7 & (FC>6 | FC<(-6))& filter_fc!=1 , filter_fc := 2L]
 
 # August
 # all years remove FC>6 & FC<(-6)
-flux[month==8 & (FC>6 | FC<(-6)), filter_fc := 1L]
+flux[month==8 & (FC>6 | FC<(-6))& filter_fc!=1 , filter_fc := 2L]
 
 # September
 # all years remove FC>10 & FC<(-10)
-flux[month==9 & (FC>10 | FC<(-10)), filter_fc := 1L]
+flux[month==9 & (FC>10 | FC<(-10))& filter_fc!=1 , filter_fc := 2L]
 
 # 2013, 2014, 2017: FC>5
-flux[month==9 & year %in% c(2013,2014,2017) & (FC>5), filter_fc := 1L]
+flux[month==9 & year %in% c(2013,2014,2017) & (FC>5)& filter_fc!=1 , filter_fc := 2L]
 
 # 2015, 2018: FC>5 | FC< (-5)
-flux[month==9 & year %in% c(2015,2018) & (FC>5 | FC<(-5)), filter_fc := 1L]
+flux[month==9 & year %in% c(2015,2018) & (FC>5 | FC<(-5))& filter_fc!=1 , filter_fc := 2L]
 
 # 2016: FC>2.5 | FC<(-4)
-flux[month==9 &  year==2016 & (FC>2.5 | FC<(-4)), filter_fc := 1L]
+flux[month==9 &  year==2016 & (FC>2.5 | FC<(-4))& filter_fc!=1 , filter_fc := 2L]
 
 # October
+# 2011: FC>10
+#     : DOY_START>297 & DOY_START<298 & FC>4
+flux[month==10 &  year==2011 & (FC>10)& filter_fc!=1 , filter_fc := 2L]
+flux[month==10 &  year==2011 & DOY_START>297 & DOY_START<298 & FC>4 & filter_fc!=1 , filter_fc := 2L]
+
+# 2012: FC>19
+ # spike on DOY 300 looks real.
+flux[month==10 &  year==2012 & (FC>19)& filter_fc!=1 , filter_fc := 2L]
+
 # 2013: FC>5 | FC< (-7.5)
-flux[month==10 &  year==2013 & (FC>5 | FC<(-7.5)), filter_fc := 1L]
+flux[month==10 &  year==2013 & (FC>5 | FC<(-7.5))& filter_fc!=1 , filter_fc := 2L]
 
 # 2014: FC < (-7.5)
-flux[month==10 &  year==2014 & (FC<(-7.5)), filter_fc := 1L]
+flux[month==10 &  year==2014 & (FC<(-7.5))& filter_fc!=1 , filter_fc := 2L]
 
 # 2015: FC>5 | FC< (-10)
-flux[month==10 &  year==2015 & (FC>5 | FC<(-10)), filter_fc := 1L]
+flux[month==10 &  year==2015 & (FC>5 | FC<(-10))& filter_fc!=1 , filter_fc := 2L]
 
 # 2016: FC>3
-flux[month==10 &  year==2016 & (FC>3), filter_fc := 1L]
+flux[month==10 &  year==2016 & (FC>3)& filter_fc!=1 , filter_fc := 2L]
 
 # 2017: FC>5 | FC< (-5)
-flux[month==10 &  year==2017 & (FC>5 | FC<(-5)), filter_fc := 1L]
+flux[month==10 &  year==2017 & (FC>5 | FC<(-5))& filter_fc!=1 , filter_fc := 2L]
 
 # 2018 FC>5 | FC < (-4)
-flux[month==10 &  year==2018 & (FC>5 | FC<(-4)), filter_fc := 1L]
+flux[month==10 &  year==2018 & (FC>5 | FC<(-4))& filter_fc!=1 , filter_fc := 2L]
 
 # November
+# 2011: DOY_START>325.4 & DOY_START<325.7
+flux[month==11 &  year==2011 & DOY_START>325.4 & DOY_START<325.7 & filter_fc!=1 , filter_fc := 2L]
+
+# 2012: FC > 5 & FC < -5
+flux[month==11 &  year==2012 & (FC>5 | FC<(-5))& filter_fc!=1 , filter_fc := 2L]
+
 # 2013: FC>5 | FC< (-5)
-flux[month==11 &  year==2013 & (FC>5 | FC<(-5)), filter_fc := 1L]
+flux[month==11 &  year==2013 & (FC>5 | FC<(-5))& filter_fc!=1 , filter_fc := 2L]
 
-# 2014: FC>5 | FC< (-56
-flux[month==11 &  year==2014 & (FC>5 | FC<(-6)), filter_fc := 1L]
+# 2014: FC>5 | FC< (-5)
+flux[month==11 &  year==2014 & (FC>5 | FC<(-6))& filter_fc!=1 , filter_fc := 2L]
 
-# 2015: FC>5 | FC< (-56
-flux[month==11 &  year==2015 & (FC>5 | FC<(-6)), filter_fc := 1L]
+# 2015: FC>5 | FC< (-5)
+flux[month==11 &  year==2015 & (FC>5 | FC<(-6))& filter_fc!=1 , filter_fc := 2L]
 
 # 2016: FC>10 | FC< (-10)
-flux[month==11 &  year==2016 & (FC>10 | FC<(-10)), filter_fc := 1L]
+flux[month==11 &  year==2016 & (FC>10 | FC<(-10))& filter_fc!=1 , filter_fc := 2L]
 
 # 2017: FC>10 | FC< (-10)
-flux[month==11 &  year==2017 & (FC>10 | FC<(-10)), filter_fc := 1L]
+flux[month==11 &  year==2017 & (FC>10 | FC<(-10))& filter_fc!=1 , filter_fc := 2L]
 
 # 2018 FC>5 | FC < (-6)
-flux[month==11 &  year==2018 & (FC>5 | FC<(-6)), filter_fc := 1L]
+flux[month==11 &  year==2018 & (FC>5 | FC<(-6))& filter_fc!=1 , filter_fc := 2L]
 
 # December
+# 2011: DOY_START>338 & DOY_START<340 & FC<(-4)
+#     : DOY_START>336.7 & DOY_START<337.25
+#     : DOY_START>353 & DOY_START<353.75
+#     : DOY_START>356.75 & DOY_START<358
+flux[month==12 &  year==2011 &DOY_START>338 & DOY_START<340 & FC<(-4)& filter_fc!=1 , filter_fc := 2L]
+flux[month==12 &  year==2011 & DOY_START>336.7 & DOY_START<337.25 & filter_fc!=1 , filter_fc := 2L]
+flux[month==12 &  year==2011 & DOY_START>353 & DOY_START<353.75 & filter_fc!=1 , filter_fc := 2L]
+flux[month==12 &  year==2011 & DOY_START>356.75 & DOY_START<358 & filter_fc!=1 , filter_fc := 2L]
+
+# 2012: DOY>360 & FC>4
+# there's a spike near DOY 349, leaving that because there's a similar magnitude uptake spike a few days later
+# 
+flux[month==12 &  year==2012 & DOY_START>360 & FC>4 & filter_fc!=1 , filter_fc := 2L]
+
 # 2013: FC>10 | FC< (-6)
-flux[month==12 &  year==2013 & (FC>10 | FC<(-6)), filter_fc := 1L]
+flux[month==12 &  year==2013 & (FC>10 | FC<(-6))& filter_fc!=1 , filter_fc := 2L]
 
 # 2014: FC>9 | FC< (-10)
-flux[month==12 &  year==2014 & (FC>9 | FC<(-10)), filter_fc := 1L]
+flux[month==12 &  year==2014 & (FC>9 | FC<(-10))& filter_fc!=1 , filter_fc := 2L]
 
 # 2015: OK
 
 # 2017: FC>9| FC< (-10)
-flux[month==12 &  year==2016 & (FC>9 | FC<(-10)), filter_fc := 1L]
+flux[month==12 &  year==2016 & (FC>9 | FC<(-10))& filter_fc!=1 , filter_fc := 2L]
 
 # 2017: FC>10 |FC< (-6)
-flux[month==12 &  year==2017 & (FC>10 | FC<(-6)), filter_fc := 1L]
+flux[month==12 &  year==2017 & (FC>10 | FC<(-6))& filter_fc!=1 , filter_fc := 2L]
 
 # 2018 FC>10 | FC < (-10)
-flux[month==12 &  year==2018 & (FC>10 | FC<(-10)), filter_fc := 1L]
+flux[month==12 &  year==2018 & (FC>10 | FC<(-10))& filter_fc!=1 , filter_fc := 2L]
 
 # after time-series look at light and temperature relationships
 ggplot(flux[filter_fc !=1 & PPFD_IN_1_1_1>20,],
@@ -277,37 +331,37 @@ ggplot(flux[month==12,],
 # 2013: remove June FC <(-5) & FC_SSITC_TEST==1,
 #       remove July FC < (-3) & FC_SSITC_TEST==1, 
 #       remove July FC > 5 & FC_SSITC_TEST==1
-flux[month==6 &  year==2013 & FC<(-5) & FC_SSITC_TEST==1, filter_fc := 1L]
-flux[month==7 &  year==2013 & (FC<(-3) | FC>5) & FC_SSITC_TEST==1, filter_fc := 1L]
+flux[month==6 &  year==2013 & FC<(-5) & FC_SSITC_TEST==1& filter_fc!=1 , filter_fc := 2L]
+flux[month==7 &  year==2013 & (FC<(-3) | FC>5) & FC_SSITC_TEST==1& filter_fc!=1 , filter_fc := 2L]
 
 # 2015: remove January FC < (-3) & FC_SSITC_TEST==1
-flux[month==1 &  year==2015 & FC<(-3) & FC_SSITC_TEST==1, filter_fc := 1L]
+flux[month==1 &  year==2015 & FC<(-3) & FC_SSITC_TEST==1& filter_fc!=1 , filter_fc := 2L]
 
 # 2016: remove April FC < (-3) & FC_SSITC_TEST==1
-flux[month==4 &  year==2016 & FC<(-3) & FC_SSITC_TEST==1, filter_fc := 1L]
+flux[month==4 &  year==2016 & FC<(-3) & FC_SSITC_TEST==1& filter_fc!=1 , filter_fc := 2L]
 
 # based on TA relationship
 # remove all nighttime FC < -2.5. 
 # based on all years these are really unlikely values
-flux[PPFD_IN_1_1_1<20 & FC < (-2.5), filter_fc := 1L]
+flux[PPFD_IN_1_1_1<20 & FC < (-2.5)& filter_fc!=1 , filter_fc := 2L]
 # 2010: OK
 # 2011: remove March FC >5 & PPFD < 20
-flux[month==3 &  year==2011 & FC>(5) & PPFD_IN_1_1_1<20, filter_fc := 1L]
+flux[month==3 &  year==2011 & FC>(5) & PPFD_IN_1_1_1<20& filter_fc!=1 , filter_fc := 2L]
 
 # 2012: OK
 # 2013: remove April DOY_START>98.5 & DOY_START<99.25 (ALL data)
-flux[month==4 &  year==2013 & DOY_START>98.5 & DOY_START<99.25, filter_fc := 1L]
+flux[month==4 &  year==2013 & DOY_START>98.5 & DOY_START<99.25& filter_fc!=1 , filter_fc := 2L]
 
 # 2014: OK
 # 2015: remove September FC>5
-flux[month==9 &  year==2015 & FC>(5), filter_fc := 1L]
+flux[month==9 &  year==2015 & FC>(5)& filter_fc!=1 , filter_fc := 2L]
 
 # 2018: remove August FC>4.5
 #       remove November FC>2.5
 #       remove December FC < (-5)
-flux[month==8 &  year==2018 & FC>(4.5), filter_fc := 1L]
-flux[month==11 &  year==2018 & FC>(2.5), filter_fc := 1L]
-flux[month==12 &  year==2018 & FC<(-5), filter_fc := 1L]
+flux[month==8 &  year==2018 & FC>(4.5)& filter_fc!=1 , filter_fc := 2L]
+flux[month==11 &  year==2018 & FC>(2.5)& filter_fc!=1 , filter_fc := 2L]
+flux[month==12 &  year==2018 & FC<(-5)& filter_fc!=1 , filter_fc := 2L]
 
 # a few points remain that are a bit out of pattern but it gets into really fine-tooth combing
 # and depending on the analysis and need for the data those points can be removed if they 
@@ -319,6 +373,50 @@ ggplot(flux[filter_fc !=1&year==2015&month>4&month<9,],
   geom_line()+
   #ylim(c(-30,30))+
   facet_grid(year~.,scales="free_y")
+
+# look at what got removed with the visual filter, = 2L
+ggplot(flux,
+       aes(DOY_START,FC))+
+  geom_point(aes(colour=factor(filter_fc)))+
+  geom_line()+
+  #ylim(c(-30,30))+
+  facet_grid(year~.,scales="free_y")
+
+ggplot(flux[filter_fc !=1&filter_fc!=2,],
+       aes(DOY_START,FC))+
+  geom_point(aes(colour=factor(FC_SSITC_TEST)))+
+  geom_line()+
+  #ylim(c(-30,30))+
+  facet_grid(year~.,scales="free_y")
+
+# make a histogram of what got removed with 2L
+ggplot(flux,
+       aes(FC, fill=factor(filter_fc)))+
+         geom_density()+
+         facet_grid(.~year)
+
+ggplot(flux[filter_fc!=1,],
+       aes(FC, fill=factor(filter_fc)))+
+  geom_density(alpha=0.5)+
+  facet_grid(.~year)
+
+ggplot(flux[filter_fc==2,],
+       aes(FC, fill=factor(FC_SSITC_TEST)))+
+  geom_density(alpha=0.5)+
+  facet_grid(.~year)
+
+
+# graph the removed values with 2L
+ggplot(flux[filter_fc!=1 & month==12,])+
+  geom_point(aes(DOY_START, FC, colour=factor(filter_fc)))+
+  geom_line(aes(DOY_START, FC))+
+  facet_grid(year~.)
+
+# plot the FC with all 'bad' points removed
+ggplot(flux[filter_fc==0 & month==12,])+
+     geom_point(aes(DOY_START, FC, colour=factor(filter_fc)))+
+     geom_line(aes(DOY_START, FC))+
+     facet_grid(year~.)
 
 ###### H ######
 # look at H  by month for each year
@@ -372,6 +470,10 @@ ggplot(flux[filter_LE!=1&month==1&hour(date_time)>0,],
 # remove LE < (-50) this is a generally outlying value
 flux[LE < (-50), filter_LE := 1L]
 
+# remove LE >1000 this is a generally outlying value
+flux[LE >1000, filter_LE := 1L]
+
+
 # 2013: remove DOY_START>98.25 & DOY_START<100
 flux[year==2013 & DOY_START>98.25 & DOY_START<100, filter_LE := 1L]
 
@@ -409,6 +511,7 @@ ggplot(flux[filter_LE!=1 | filter_H!=1,], aes(NETRAD_1_1_1 + (G_1_1_1+G_2_1_1)/2
 
 # plot radiation
 ggplot(flux,aes(x=date_time))+
+  geom_point(aes(y=SW_OUT_1_1_1, colour="SWout"))+
   geom_line(aes(y=NETRAD_1_1_1, colour="Rn"))+
   geom_point(aes(y=NETRAD_1_1_1, colour="Rn"))+
   geom_line(aes(y=SW_IN_1_1_1, colour="Rg"))+
@@ -418,9 +521,7 @@ ggplot(flux,aes(x=date_time))+
   geom_line(aes(y=LW_IN_1_1_1, colour="LWin"))+
   geom_point(aes(y=LW_IN_1_1_1, colour="LWin"))+
   geom_line(aes(y=LW_OUT_1_1_1, colour="LWout"))+
-  geom_point(aes(y=LW_OUT_1_1_1, colour="LWout"))+
-  geom_line(aes(y=SW_OUT_1_1_1, colour="SWout"))+
-  geom_point(aes(y=SW_OUT_1_1_1, colour="SWout"))
+  geom_point(aes(y=LW_OUT_1_1_1, colour="LWout"))
 
 # look at energy balance closure
 # first calculate daily sums 
@@ -490,10 +591,18 @@ t <- ggplot(flux,aes(date_time,Ta_1_1_1-275.3, colour=factor(year)))+geom_line()
 grid.arrange(p,t, nrow=2)
 
 # plot all energy fluxes looking at daily sums
-eb_daily <- flux[,lapply(.SD,function (x) {sum(x, na.rm=TRUE)}),by="date",.SDcols=c("NETRAD_1_1_1",
+eb_daily <- flux[filter_H!=1 | filter_LE!=1,lapply(.SD,function (x) {sum(x, na.rm=TRUE)}),
+                 by="date",
+                 .SDcols=c("NETRAD_1_1_1",
                                                       "H", "LE",
                                                       "G_1_1_1", "G_1_2_1",
                                                       "G_2_1_1", "G_2_2_1")]
+
+
+# residual = Rn - G - H - LE
+# closure fration = (H + LE) / (Rn + G)
+eb_daily[, ':=' (eb.res=(NETRAD_1_1_1 - ((G_1_1_1+G_2_1_1)/2) - H - LE),
+           cf = (H + LE)/(NETRAD_1_1_1 + ((G_1_1_1+G_2_1_1)/2)))]
 
 
 ggplot(eb_daily[month(date)==12,], aes(x=yday(date)))+
@@ -508,7 +617,18 @@ ggplot(eb_daily[month(date)==12,], aes(x=yday(date)))+
   geom_line(aes(y=LE, colour="LE"))+
   geom_line(aes(y=H+LE+(G_1_1_1+G_1_2_1+G_2_1_1+G_2_2_1)/4, colour="H+LE+SHF"),colour="black")+
   #geom_point(aes(y=LE, colour="LE"))
-  facet_grid(year(date)~.)
+  facet_grid(year(date)~., scales="free_y")
+
+ggplot(eb_daily[month(date)==12,], aes(x=yday(date)))+
+  geom_line(aes(y=NETRAD_1_1_1, colour="Rn_1_1_1"))+
+  geom_line(aes(y=H+LE+(G_1_1_1+G_1_2_1+G_2_1_1+G_2_2_1)/4, colour="H+LE+SHF"))+
+  facet_grid(year(date)~., scales="free_y")
+
+# daily closure fraction
+ggplot(eb_daily, aes(x=date))+
+  geom_line(aes(y=cf, colour="closure fraction"))+
+  geom_point(aes(y=cf, colour="closure fraction"))+
+  ylim(c(-100,100))
 
 
 ### save data for Dawn's LTAR synthesis
@@ -572,5 +692,15 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/LTAR_Synthesis_Browning")
 # I manually modified and renamed the metadata file because the output here has _1_1_1 in all the biomet variables
 ## write.table(description.ltar, file="FluxData_jerbajada_METADATA_20190813.csv",sep=",", dec=".", row.names=FALSE)
 
+# save all filtered data for ReddyProc: ustar filter & gap-fill
+setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
 
+save(flux,file="JER_flux_2010_2018_EddyPro_Output_filterID_20190929.Rdata")
+flux_filter <- copy(flux)
+flux_filter[filter_fc!=0, FC := NA]
+flux_filter[filter_H!=0, H := NA]
+flux_filter[filter_LE!=0, LE := NA]
+
+save(flux_filter,
+     file="JER_flux_2010_2018_EddyPro_Output_filtered_20190929.Rdata")
 
