@@ -124,10 +124,25 @@ climate.save <- rbind(climate.loggerinfo,climate.colnames, climate.save)
 # save the R script that went along with creating the file to have a record of QA/QC
 # use rstudioapi to get the path of the current script and then copy it to the 
 # server location
+# then rename the Rscript to have the same dates as the datafile
 
 # http://theautomatic.net/2018/07/11/manipulate-files-r/ 
+# http://www.milanor.net/blog/operating-on-files-with-r-copy-and-rename/ 
 # file.copy("source_file.txt", "destination_folder")
 
 file.copy(rstudioapi::getActiveDocumentContext()$path,
           "/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/2019/QAQC/")
+
+file.rename(from = file.path("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/2019/QAQC/",
+                             "DataQAQC_update_save_Climate.R"),
+            to = file.path("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/2019/QAQC/",
+           paste("Data_QAQC_update_save_Climate_",year(startdate),sprintf("%02d",(month(startdate))),sprintf("%02d",(day(startdate))),
+                                 sprintf("%02d",(hour(startdate))),sprintf("%02d",(minute(startdate))),
+                                sprintf("%02d",(second(startdate))),
+                                "_",
+                                 year(enddate),sprintf("%02d",(month(enddate))),sprintf("%02d",(day(enddate))),
+                                 sprintf("%02d",(hour(enddate))),sprintf("%02d",(minute(enddate))),
+                                sprintf("%02d",(second(enddate))), ".R",sep="")))
+
+
 
