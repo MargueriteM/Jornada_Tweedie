@@ -120,3 +120,14 @@ climate.save <- rbind(climate.loggerinfo,climate.colnames, climate.save)
 #          sprintf("%02d",(second(enddate))), ".csv",sep=""),
 #   sep=",", dec=".", row.names=FALSE, col.names=FALSE)
 
+
+# save the R script that went along with creating the file to have a record of QA/QC
+# use rstudioapi to get the path of the current script and then copy it to the 
+# server location
+
+# http://theautomatic.net/2018/07/11/manipulate-files-r/ 
+# file.copy("source_file.txt", "destination_folder")
+
+file.copy(rstudioapi::getActiveDocumentContext()$path,
+          "/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/2019/QAQC/")
+
