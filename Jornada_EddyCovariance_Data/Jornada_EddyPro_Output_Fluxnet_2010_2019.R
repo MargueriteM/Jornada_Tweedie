@@ -12,6 +12,7 @@ library(lubridate) # library for easier date manipulation
 library(data.table) # library for data table which is more efficient with large data sets
 library(reader)
 library(tidyr)
+library(stringr) # allows string manipulation
 library(lsr) # contains quantileCut function
 library(gridExtra)
 library(viridis)
@@ -69,6 +70,48 @@ flux <- rbind(flux2010a, flux2010b, flux2011a, flux2011b, flux2012a, flux2012b,
 flux[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
   ,':='(date=as.Date.POSIXct(date_time),month=month(date_time),year=year(date_time))]
 
+# figure out the missing 2010 data
+# read raw file names: what data files are missing?
+rawfiles2010a <-  list.files(path="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_IN_EddyCovariance/2010_2012/2010",
+                        full.names=FALSE,pattern="dataL1_ts_")
+
+rawfiles2010aDT <- as.data.table(rawfiles2010a)
+
+colnames(rawfiles2010aDT) <- "files"
+
+rawfiles2010b <-  list.files(path="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_IN_EddyCovariance/2010_2012/2010/20190908_run",
+                            full.names=FALSE,pattern="dataL1_ts_")
+
+rawfiles2010bDT <- as.data.table(rawfiles2010b)
+
+colnames(rawfiles2010bDT) <- "files"
+
+rawfiles2010 <- rbind(rawfiles2010aDT,rawfiles2010bDT)
+
+rawfiles2010[,':=' (filedate = sapply(strsplit(as.character(files),"_"),"[",3),
+                    filetime = str_extract(sapply(strsplit(as.character(files),"_"),"[",4),"[0-9]{4}"))][, ':='
+                      (date = as.Date(filedate, format="%Y%m%d"),
+                        record = 1L)]
+
+# check that the header columns all match for raw flux data
+wd_rawa <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_IN_EddyCovariance/2010_2012/2010/"
+wd_rawb <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_IN_EddyCovariance/2010_2012/2010/20190908_run"
+
+col.compare<- function(x){t(as.data.table(strsplit(readLines(con=x,
+                                                             n=2),","))[,2])}
+
+colnames2010a <- do.call("rbind",lapply(paste(wd_rawa,rawfiles2010a,sep="/"),
+                                        col.compare))
+
+colnames2010b <- do.call("rbind",lapply(paste(wd_rawb,rawfiles2010b,sep="/"),
+                                        col.compare))
+
+
+
+# look at dates with data files created
+ggplot(rawfiles2010, aes(date, record))+geom_point(size=0.1)
+
+ggplot(rawfiles2010[month(date)==6,], aes(date, record))+geom_point(size=0.1)
 
 # make some plots
 # graph precipitation
@@ -382,7 +425,15 @@ ggplot(flux,
   #ylim(c(-30,30))+
   facet_grid(year~.,scales="free_y")
 
-ggplot(flux[filter_fc !=1&filter_fc!=2,],
+ggplot(flux[filter_fc !=1&month==1&DOY_START<31],
+       aes(DOY_START,FC))+
+  geom_point(aes(colour=factor(filter_fc)))+
+  geom_line()+
+  #ylim(c(-30,30))+
+  facet_grid(year~.,scales="free_y")
+
+
+ggplot(flux[filter_fc !=1&filter_fc!=2&month==1&DOY_START<31,],
        aes(DOY_START,FC))+
   geom_point(aes(colour=factor(FC_SSITC_TEST)))+
   geom_line()+
