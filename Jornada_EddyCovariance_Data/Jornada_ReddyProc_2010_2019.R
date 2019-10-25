@@ -106,6 +106,8 @@ EProc$sGetEstimatedUstarThresholdDistribution()
 EProc$sGetUstarScenarios()
 
 # show ustar figure
+EProc$sPlotNEEVersusUStarForSeason()
+
 EProc$sPlotNEEVersusUStarForSeason(season = "2015001",
                                    format = "pdf", dir = "/Users/memauritz/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered",
                                    UstarColName = "Ustar",
@@ -240,12 +242,13 @@ print(RecoAgg)
 # export the results to a csv file
 # fWriteDataframeToFile(CombinedData, 'JER_2014_2016_ReddyProc_20190828.txt', Dir = "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/")
 
-#setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/")
-#combined_colnames <- colnames((fread('JER_2014_2016_ReddyProc_20190828.txt',header=TRUE))[1,])
+# setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/")
+# combined_colnames <- colnames((fread('JER_2014_2016_ReddyProc_20190828.txt',header=TRUE))[1,])
 
 #CombinedData <- fread('JER_2014_2016_ReddyProc_20190828.txt', dec=",",
 #                      na.strings=c("-9999","-9999.0","NAN","#NAME?"),
-#                      header=FALSE,skip=2,col.names=combined_colnames)
+#                      header=FALSE,skip=2,col.names=combined_colnames,
+# colClasses = "numeric)
 
 
 ggplot(subset(CombinedData,DoY==50), aes(Hour,PotRad_U95))+geom_line()
