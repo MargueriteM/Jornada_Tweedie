@@ -130,9 +130,11 @@ climate.save <- rbind(climate.loggerinfo,climate.colnames, climate.save)
 # http://www.milanor.net/blog/operating-on-files-with-r-copy-and-rename/ 
 # file.copy("source_file.txt", "destination_folder")
 
+# copy file to new location
 file.copy(rstudioapi::getActiveDocumentContext()$path,
           "/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/2019/QAQC/")
 
+# rename
 file.rename(from = file.path("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/2019/QAQC/",
                              "DataQAQC_update_save_Climate.R"),
             to = file.path("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/2019/QAQC/",

@@ -16,6 +16,7 @@ library(ggplot2)
 library(gridExtra)
 library(lubridate)
 library(plotly)
+library(shiny)
 
 # WINDROSE FUNCTION
 ################
