@@ -16,6 +16,7 @@ library(stringr) # allows string manipulation
 library(lsr) # contains quantileCut function
 library(gridExtra)
 library(viridis)
+library(zoo)
 #############
 # IMPORT DATA
 #############
@@ -62,9 +63,12 @@ flux2017 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_
 flux2018 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2018/eddypro_JER_2018_fluxnet_2019-08-02T101350_adv.csv",
                   sep=",", header=TRUE, na.strings=c("-9999"))
 
+flux2019 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2019/eddypro_JER_2019_fluxnet_2019-12-24T011346_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"))
+
 # combine all individual years of flux runs
 flux <- rbind(flux2010a, flux2010b, flux2011a, flux2011b, flux2012a, flux2012b,
-              flux2013,flux2014,flux2015, flux2016, flux2017, flux2018)
+              flux2013,flux2014,flux2015, flux2016, flux2017, flux2018, flux2019)
 
 # format date
 flux[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
@@ -170,13 +174,6 @@ p_flux <- ggplot(flux[filter_fc !=1&month==1&DOY_START<31,],
 
 # p_flux
 
-# make figure of full time series with plotly
-p_flux_ts <- ggplot(flux[filter_fc !=1,],
-                 aes(date_time,FC,colour=factor(FC_SSITC_TEST)))+
-  geom_point()
-  #ylim(c(-5,5))
-
-# ggplotly(p_flux_ts)
 
 # 27 Sep 2019: refilter
 
@@ -553,6 +550,20 @@ ggplot(flux[filter_LE!=1,],
   geom_line()+
   facet_grid(year~.,scales="free_y")
 
+
+# COMPARE ROLLING MEANS APPROACH TO FILTER Fc, LE, H
+# use rollmeanr from zoo
+# 3 days = (24/0.5)*3 = 144
+flux[filter_fc !=1, ':=' (FC_rollmean = rollapply(FC, width=(24/0.5)*3, fill=0, FUN=mean, na.rm=TRUE, align="right"),
+             FC_rollsd = rollapply(FC, width=(24/0.5)*3, fill=0, FUN=sd, na.rm=TRUE, align="right"))]
+
+threshold <- 1
+
+ggplot(flux[filter_fc!=1,])+
+  geom_line(aes(DOY_START, FC))+
+  geom_line(aes(DOY_START, FC_rollmean), colour="green")+
+  geom_ribbon(aes(x=DOY_START, ymin=FC_rollmean-threshold*FC_rollsd, ymax=FC_rollmean+threshold*FC_rollsd), alpha=0.5)+
+  facet_grid(year~.)
 
 # energy balance
 ggplot(flux[filter_LE!=1 | filter_H!=1,], aes(NETRAD_1_1_1 + (G_1_1_1+G_2_1_1)/2, (H+LE)))+
