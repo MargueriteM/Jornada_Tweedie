@@ -2,8 +2,10 @@
 #  This code gets data output by Eddy Pro  #
 #           written by: M. Mauritz         #
 #             May 2019                     #
-#    update: 9 August 2019                   #
+#    update: 9 August 2019                 #
 ############################################
+
+# 20200128: add SD based filters (3 day running mean/SD seperately for day/night and remove Fc, H, LE more than 3SD out of range from running mean)
 
 # load libraries
 library(ggplot2) # library for making figures in ggplot package
