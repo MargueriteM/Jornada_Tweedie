@@ -63,12 +63,17 @@ flux2017 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_
 flux2018 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2018/eddypro_JER_2018_fluxnet_2019-08-02T101350_adv.csv",
                   sep=",", header=TRUE, na.strings=c("-9999"))
 
-flux2019 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2019/eddypro_JER_2019_fluxnet_2019-12-24T011346_adv.csv",
+flux2019a <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2019/eddypro_JER_2019_fluxnet_2019-12-24T011346_adv.csv",
                   sep=",", header=TRUE, na.strings=c("-9999"))
+
+flux2019b <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2019/eddypro_JER_2019_2_fluxnet_2020-01-27T215912_adv.csv",
+                   sep=",", header=TRUE, na.strings=c("-9999"))
+
+
 
 # combine all individual years of flux runs
 flux <- rbind(flux2010a, flux2010b, flux2011a, flux2011b, flux2012a, flux2012b,
-              flux2013,flux2014,flux2015, flux2016, flux2017, flux2018, flux2019)
+              flux2013,flux2014,flux2015, flux2016, flux2017, flux2018, flux2019a, flux2019b)
 
 # format date
 flux[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
@@ -523,29 +528,29 @@ flux[LE >1000, filter_LE := 1L]
 
 
 # 2013: remove DOY_START>98.25 & DOY_START<100
-flux[year==2013 & DOY_START>98.25 & DOY_START<100, filter_LE := 1L]
+flux[year==2013 & DOY_START>98.25 & DOY_START<100, filter_LE := 2L]
 
 # 2014: remove March LE>500
-flux[year==2014 & month==3 & LE>500, filter_LE := 1L]
+flux[year==2014 & month==3 & LE>500, filter_LE := 2L]
 
 # 2015: remove July LE > 900
-flux[year==2015 & month==7 & LE>900, filter_LE := 1L]
+flux[year==2015 & month==7 & LE>900, filter_LE := 2L]
 
 # 2016: remove Novemeber LE > 1000
-flux[year==2016 & month==11 & LE>1000, filter_LE := 1L]
+flux[year==2016 & month==11 & LE>1000, filter_LE := 2L]
 
 # 2017: remove August LE >500
-flux[year==2017 & month==8 & LE>500, filter_LE := 1L]
+flux[year==2017 & month==8 & LE>500, filter_LE := 2L]
 
 # 2018: remove March LE>300
 #       remove August LE > 400
 #       remove Novermber LE > 150
-flux[year==2018 & month==3 & LE>300, filter_LE := 1L]
-flux[year==2018 & month==8 & LE>400, filter_LE := 1L]
-flux[year==2018 & month==11 & LE>150, filter_LE := 1L]
+flux[year==2018 & month==3 & LE>300, filter_LE := 2L]
+flux[year==2018 & month==8 & LE>400, filter_LE := 2L]
+flux[year==2018 & month==11 & LE>150, filter_LE := 2L]
 
 # look at all LE
-ggplot(flux[filter_LE!=1,],
+ggplot(flux[filter_LE==0,],
        aes(DOY_START,LE))+
   geom_line()+
   facet_grid(year~.,scales="free_y")
@@ -554,16 +559,217 @@ ggplot(flux[filter_LE!=1,],
 # COMPARE ROLLING MEANS APPROACH TO FILTER Fc, LE, H
 # use rollmeanr from zoo
 # 3 days = (24/0.5)*3 = 144
-flux[filter_fc !=1, ':=' (FC_rollmean = rollapply(FC, width=(24/0.5)*3, fill=0, FUN=mean, na.rm=TRUE, align="right"),
-             FC_rollsd = rollapply(FC, width=(24/0.5)*3, fill=0, FUN=sd, na.rm=TRUE, align="right"))]
+# exclude the level 1 filtered data that removes QC code==2, bad AGC, and values outside +/-30 range
+flux[filter_fc !=1, ':=' (FC_rollmean3 = rollapply(FC, width=(24/0.5)*3, fill=0, FUN=mean, na.rm=TRUE, align="right"),
+             FC_rollsd3 = rollapply(FC, width=(24/0.5)*3, fill=0, FUN=sd, na.rm=TRUE, align="right"),
+             FC_rollmean5 = rollapply(FC, width=(24/0.5)*5, fill=0, FUN=mean, na.rm=TRUE, align="right"),
+             FC_rollsd5 = rollapply(FC, width=(24/0.5)*5, fill=0, FUN=sd, na.rm=TRUE, align="right"),
+             FC_rollmean7 = rollapply(FC, width=(24/0.5)*7, fill=0, FUN=mean, na.rm=TRUE, align="right"),
+             FC_rollsd7 = rollapply(FC, width=(24/0.5)*7, fill=0, FUN=sd, na.rm=TRUE, align="right"))]
 
-threshold <- 1
+# also calculate a 3 day moving mean and SD for daytime and nighttime
+flux[filter_fc !=1, ':=' (FC_rollmean3_daynight = rollapply(FC, width=(24/0.5)*3, fill=0, FUN=mean, na.rm=TRUE, align="right"),
+                          FC_rollsd3_daynight = rollapply(FC, width=(24/0.5)*3, fill=0, FUN=sd, na.rm=TRUE, align="right")),
+     by=NIGHT]
 
-ggplot(flux[filter_fc!=1,])+
+
+threshold <- 3
+
+# graph the 3 and 5 day SD ribbons around measured flux
+ggplot(flux[filter_fc!=1&year==2016,])+
   geom_line(aes(DOY_START, FC))+
-  geom_line(aes(DOY_START, FC_rollmean), colour="green")+
-  geom_ribbon(aes(x=DOY_START, ymin=FC_rollmean-threshold*FC_rollsd, ymax=FC_rollmean+threshold*FC_rollsd), alpha=0.5)+
+  #geom_line(aes(DOY_START, FC_rollmean), colour="green")+
+  geom_ribbon(aes(x=DOY_START, ymin=FC_rollmean3-threshold*FC_rollsd3, ymax=FC_rollmean3+threshold*FC_rollsd3), alpha=0.5)+
+  geom_ribbon(aes(x=DOY_START, ymin=FC_rollmean7-threshold*FC_rollsd7, ymax=FC_rollmean7+threshold*FC_rollsd7), colour="blue",alpha=0.3)+
+  
   facet_grid(year~.)
+
+# graph the 3 day SD ribbons around measured flux by day/night
+ggplot(flux[filter_fc!=1&year==2016,])+
+  geom_line(aes(DOY_START, FC))+
+  #geom_line(aes(DOY_START, FC_rollmean), colour="green")+
+  geom_ribbon(aes(x=DOY_START, ymin=FC_rollmean3_daynight-threshold*FC_rollsd3_daynight,
+                  ymax=FC_rollmean3_daynight+threshold*FC_rollsd3_daynight, fill=factor(NIGHT)), alpha=0.5)+
+  facet_grid(NIGHT~.)
+
+# mark any Fc>3*FCrollsd3 (3 day moving SD) for removal
+flux[,filter_fc_roll := 0L]
+flux[filter_fc==1, filter_fc_roll := 1L]
+flux[FC>FC_rollmean3+threshold*FC_rollsd3|FC<FC_rollmean3-threshold*FC_rollsd3, filter_fc_roll := 2L]
+
+# by Day/Night mark any Fc>3*FCrollsd3 (3 day moving SD) for removal
+flux[,filter_fc_roll_daynight := 0L]
+flux[filter_fc==1, filter_fc_roll_daynight := 1L]
+flux[FC>FC_rollmean3_daynight+threshold*FC_rollsd3_daynight|
+       FC<FC_rollmean3_daynight-threshold*FC_rollsd3_daynight, filter_fc_roll_daynight := 2L]
+
+
+# view the marked fluxes in ~25 day chunks
+ggplot(flux[filter_fc_roll!=1&DOY_START>=25&DOY_START<=50,], aes(DOY_START, FC, colour=factor(filter_fc_roll)))+
+  geom_point()+
+  facet_grid(year~.)
+
+# view the marked fluxes in ~25 day chunks for day/night
+ggplot(flux[filter_fc_roll_daynight!=1&DOY_START>=301&DOY_START<=365,], aes(DOY_START, FC, colour=factor(filter_fc_roll_daynight)))+
+  geom_point()+
+  facet_grid(year~.)
+
+# graph with the fluxes from the 3SD 3day day/night filter removed
+ggplot(flux[filter_fc_roll_daynight==0,], aes(DOY_START, FC))+
+  geom_line()+
+  facet_grid(year~.)
+
+# graph fluxes with the 3SD 3day day/night filter removed and with my manual filter
+ggplot()+
+  geom_line(data=flux[filter_fc==0], aes(DOY_START, FC, colour="manual"), colour="blue")+
+  geom_line(data=flux[filter_fc_roll_daynight==0], aes(DOY_START, FC, colour="SD day/night"), colour="green")+
+  facet_grid(year~.)
+  
+# SD filter for LE
+# COMPARE ROLLING MEANS APPROACH TO FILTER Fc, LE, H
+# use rollmeanr from zoo
+# 3 days = (24/0.5)*3 = 144
+# exclude the level 1 filtered data that removes QC code==2, bad AGC, and values outside +/-30 range
+flux[filter_LE !=1, ':=' (LE_rollmean3 = rollapply(LE, width=(24/0.5)*3, fill=0, FUN=mean, na.rm=TRUE, align="right"),
+                          LE_rollsd3 = rollapply(LE, width=(24/0.5)*3, fill=0, FUN=sd, na.rm=TRUE, align="right"),
+                          LE_rollmean5 = rollapply(LE, width=(24/0.5)*5, fill=0, FUN=mean, na.rm=TRUE, align="right"),
+                          LE_rollsd5 = rollapply(LE, width=(24/0.5)*5, fill=0, FUN=sd, na.rm=TRUE, align="right"),
+                          LE_rollmean7 = rollapply(LE, width=(24/0.5)*7, fill=0, FUN=mean, na.rm=TRUE, align="right"),
+                          LE_rollsd7 = rollapply(LE, width=(24/0.5)*7, fill=0, FUN=sd, na.rm=TRUE, align="right"))]
+
+# also calculate a 3 day moving mean and SD for daytime and nighttime
+flux[filter_LE !=1, ':=' (LE_rollmean3_daynight = rollapply(LE, width=(24/0.5)*3, fill=0, FUN=mean, na.rm=TRUE, align="right"),
+                          LE_rollsd3_daynight = rollapply(LE, width=(24/0.5)*3, fill=0, FUN=sd, na.rm=TRUE, align="right")),
+     by=NIGHT]
+
+
+# threshold <- 3
+
+# graph the 3 and 5 day SD ribbons around measured flux
+ggplot(flux[filter_LE!=1&year==2015,])+
+  geom_line(aes(DOY_START, LE))+
+  #geom_line(aes(DOY_START, LE_rollmean), colour="green")+
+  geom_ribbon(aes(x=DOY_START, ymin=LE_rollmean3-threshold*LE_rollsd3, ymax=LE_rollmean3+threshold*LE_rollsd3), alpha=0.5)+
+  geom_ribbon(aes(x=DOY_START, ymin=LE_rollmean7-threshold*LE_rollsd7, ymax=LE_rollmean7+threshold*LE_rollsd7), colour="blue",alpha=0.3)+
+  
+  facet_grid(year~.)
+
+# graph the 3 day SD ribbons around measured flux by day/night
+ggplot(flux[filter_LE!=1&year==2015,])+
+  geom_line(aes(DOY_START, LE))+
+  #geom_line(aes(DOY_START, LE_rollmean), colour="green")+
+  geom_ribbon(aes(x=DOY_START, ymin=LE_rollmean3_daynight-threshold*LE_rollsd3_daynight,
+                  ymax=LE_rollmean3_daynight+threshold*LE_rollsd3_daynight, fill=factor(NIGHT)), alpha=0.5)+
+  facet_grid(NIGHT~.)
+
+# mark any LE>3*LErollsd3 (3 day moving SD) for removal
+flux[,filter_le_roll := 0L]
+flux[filter_LE==1, filter_le_roll := 1L]
+flux[LE>LE_rollmean3+threshold*LE_rollsd3|LE<LE_rollmean3-threshold*LE_rollsd3, filter_le_roll := 2L]
+
+# by Day/Night mark any LE>3*LErollsd3 (3 day moving SD) for removal
+flux[,filter_le_roll_daynight := 0L]
+flux[filter_LE==1, filter_le_roll_daynight := 1L]
+flux[LE>LE_rollmean3_daynight+threshold*LE_rollsd3_daynight|
+       LE<LE_rollmean3_daynight-threshold*LE_rollsd3_daynight, filter_le_roll_daynight := 2L]
+
+
+# view the marked fluxes in ~25 day chunks
+ggplot(flux[filter_le_roll!=1&DOY_START>=25&DOY_START<=50,], aes(DOY_START, LE, colour=factor(filter_le_roll)))+
+  geom_point()+
+  facet_grid(year~.)
+
+# view the marked fluxes in ~25 day chunks for day/night
+ggplot(flux[filter_le_roll_daynight!=1&DOY_START>=51&DOY_START<=100,], aes(DOY_START, LE, colour=factor(filter_le_roll_daynight)))+
+  geom_point()+
+  facet_grid(year~.)
+
+# graph with the fluxes from the 3SD 3day day/night filter removed
+ggplot(flux[filter_le_roll_daynight==0,], aes(DOY_START, LE))+
+  geom_line()+
+  facet_grid(year~.)
+
+# graph fluxes with the 3SD 3day day/night filter removed and with my manual filter
+ggplot()+
+  geom_line(data=flux[filter_LE==0], aes(DOY_START, LE, colour="manual"), colour="blue")+
+  geom_line(data=flux[filter_le_roll_daynight==0], aes(DOY_START, LE, colour="SD day/night"), colour="green")+
+  facet_grid(year~.)
+
+
+# SD filter for H
+# COMPARE ROLLING MEANS APPROACH TO FILTER Fc, LE, H
+# use rollmeanr from zoo
+# 3 days = (24/0.5)*3 = 144
+# exclude the level 1 filtered data that removes QC code==2, bad AGC, and values outside +/-30 range
+flux[filter_H !=1, ':=' (H_rollmean3 = rollapply(H, width=(24/0.5)*3, fill=0, FUN=mean, na.rm=TRUE, align="right"),
+                          H_rollsd3 = rollapply(H, width=(24/0.5)*3, fill=0, FUN=sd, na.rm=TRUE, align="right"),
+                          H_rollmean5 = rollapply(H, width=(24/0.5)*5, fill=0, FUN=mean, na.rm=TRUE, align="right"),
+                          H_rollsd5 = rollapply(H, width=(24/0.5)*5, fill=0, FUN=sd, na.rm=TRUE, align="right"),
+                          H_rollmean7 = rollapply(H, width=(24/0.5)*7, fill=0, FUN=mean, na.rm=TRUE, align="right"),
+                          H_rollsd7 = rollapply(H, width=(24/0.5)*7, fill=0, FUN=sd, na.rm=TRUE, align="right"))]
+
+# also calculate a 3 day moving mean and SD for daytime and nighttime
+flux[filter_H !=1, ':=' (H_rollmean3_daynight = rollapply(H, width=(24/0.5)*3, fill=0, FUN=mean, na.rm=TRUE, align="right"),
+                          H_rollsd3_daynight = rollapply(H, width=(24/0.5)*3, fill=0, FUN=sd, na.rm=TRUE, align="right")),
+     by=NIGHT]
+
+
+# threshold <- 3
+
+# graph the 3 and 5 day SD ribbons around measured flux
+ggplot(flux[filter_H!=1&year==2015,])+
+  geom_line(aes(DOY_START, H))+
+  #geom_line(aes(DOY_START, H_rollmean), colour="green")+
+  geom_ribbon(aes(x=DOY_START, ymin=H_rollmean3-threshold*H_rollsd3, ymax=H_rollmean3+threshold*H_rollsd3), alpha=0.5)+
+  geom_ribbon(aes(x=DOY_START, ymin=H_rollmean7-threshold*H_rollsd7, ymax=H_rollmean7+threshold*H_rollsd7), colour="blue",alpha=0.3)+
+  
+  facet_grid(year~.)
+
+# graph the 3 day SD ribbons around measured flux by day/night
+ggplot(flux[filter_H!=1&year==2015,])+
+  geom_line(aes(DOY_START, H))+
+  #geom_line(aes(DOY_START, H_rollmean), colour="green")+
+  geom_ribbon(aes(x=DOY_START, ymin=H_rollmean3_daynight-threshold*H_rollsd3_daynight,
+                  ymax=H_rollmean3_daynight+threshold*H_rollsd3_daynight, fill=factor(NIGHT)), alpha=0.5)+
+  facet_grid(NIGHT~.)
+
+# mark any H>3*Hrollsd3 (3 day moving SD) for removal
+flux[,filter_h_roll := 0L]
+flux[filter_H==1, filter_h_roll := 1L]
+flux[H>H_rollmean3+threshold*H_rollsd3|H<H_rollmean3-threshold*H_rollsd3, filter_h_roll := 2L]
+
+# by Day/Night mark any H>3*Hrollsd3 (3 day moving SD) for removal
+flux[,filter_h_roll_daynight := 0L]
+flux[filter_H==1, filter_h_roll_daynight := 1L]
+flux[H>H_rollmean3_daynight+threshold*H_rollsd3_daynight|
+       H<H_rollmean3_daynight-threshold*H_rollsd3_daynight, filter_h_roll_daynight := 2L]
+
+
+# view the marked fluxes in ~25 day chunks
+ggplot(flux[filter_h_roll!=1&DOY_START>=25&DOY_START<=50,], aes(DOY_START, H, colour=factor(filter_h_roll)))+
+  geom_point()+
+  facet_grid(year~.)
+
+# view the marked fluxes in ~25 day chunks for day/night
+ggplot(flux[filter_h_roll_daynight!=1&DOY_START>=51&DOY_START<=100,], aes(DOY_START, H, colour=factor(filter_h_roll_daynight)))+
+  geom_point()+
+  facet_grid(year~.)
+
+# graph with the fluxes from the 3SD 3day day/night filter removed
+ggplot(flux[filter_h_roll_daynight==0,], aes(DOY_START, H))+
+  geom_line()+
+  facet_grid(year~.)
+
+# graph fluxes with the 3SD 3day day/night filter removed and with my manual filter
+ggplot()+
+  geom_line(data=flux[filter_H==0], aes(DOY_START, H, colour="manual"), colour="blue")+
+  geom_line(data=flux[filter_h_roll_daynight==0], aes(DOY_START, H, colour="SD day/night"), colour="green")+
+  facet_grid(year~.)
+
+
+#########
+########### Filtering DONE ###############
+###########
 
 # energy balance
 ggplot(flux[filter_LE!=1 | filter_H!=1,], aes(NETRAD_1_1_1 + (G_1_1_1+G_2_1_1)/2, (H+LE)))+
