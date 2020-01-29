@@ -769,7 +769,7 @@ ggplot()+
 
 #########
 ########### Filtering DONE ###############
-###########
+########### 
 
 # energy balance
 ggplot(flux[filter_LE!=1 | filter_H!=1,], aes(NETRAD_1_1_1 + (G_1_1_1+G_2_1_1)/2, (H+LE)))+
@@ -961,14 +961,27 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/LTAR_Synthesis_Browning")
 ## write.table(description.ltar, file="FluxData_jerbajada_METADATA_20190813.csv",sep=",", dec=".", row.names=FALSE)
 
 # save all filtered data for ReddyProc: ustar filter & gap-fill
-setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
+# setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
+# 
+# save(flux,file="JER_flux_2010_2018_EddyPro_Output_filterID_20190929.Rdata")
+# flux_filter <- copy(flux)
+# flux_filter[filter_fc!=0, FC := NA]
+# flux_filter[filter_H!=0, H := NA]
+# flux_filter[filter_LE!=0, LE := NA]
+# 
+# save(flux_filter,
+#      file="JER_flux_2010_2018_EddyPro_Output_filtered_20190929.Rdata")
+# 
 
-save(flux,file="JER_flux_2010_2018_EddyPro_Output_filterID_20190929.Rdata")
-flux_filter <- copy(flux)
-flux_filter[filter_fc!=0, FC := NA]
-flux_filter[filter_H!=0, H := NA]
-flux_filter[filter_LE!=0, LE := NA]
-
-save(flux_filter,
-     file="JER_flux_2010_2018_EddyPro_Output_filtered_20190929.Rdata")
-
+# save filtered data with SD filter
+# setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
+# 
+# save(flux,file="JER_flux_2010_2019_EddyPro_Output_filterID_SD_20200128.Rdata")
+# 
+# flux_filter_sd <- copy(flux)
+# flux_filter_sd[filter_fc_roll_daynight!=0, FC := NA]
+# flux_filter_sd[filter_h_roll_daynight!=0, H := NA]
+# flux_filter_sd[filter_le_roll_daynight!=0, LE := NA]
+# 
+# save(flux_filter_sd,
+#      file="JER_flux_2010_2019_EddyPro_Output_filtered_SD_20200128.Rdata")
