@@ -15,6 +15,9 @@
 #          April 2019                     #
 ###########################################
 
+# 30 Jan 2020: added information to biomet preparation (create biomet2) that retains more sensor info. Merge this to the post-EppyPro data
+# https://ameriflux.lbl.gov/data/aboutdata/data-variables/ 
+
 # TO DO: 
 # fixed tower precip for SN to be sum of 5 min data (on 2019-05-08)
 # depths for ECTM?! And cover type -> probably will have to dig up probes.
@@ -240,7 +243,7 @@ env_30min <- rbind(env_30min, precip)
 
 # look at soil moisture and temperature
 ggplot(env_30min[variable %in% c("soilmoisture","soiltemp"),],
-       aes(date_time, mean.val,colour=veg, shape=height))+
+       aes(date_time, mean.val,colour=veg, linetype=height))+
   geom_line()+
   facet_grid(paste(variable,location,sep="_")~., scales="free_y")
 
@@ -299,10 +302,43 @@ ggplot(biomet_mean_precip[year(date_time)==2015,],aes(date_time,P_rain_1_1_1))+g
 biomet_mean_soilM <- env_30min[variable %in% c("soilmoisture"),
                            list(SWC_1_1_1 = mean(mean.val, na.rm=TRUE)),
             by="date_time"]
+
+# 2020-01-30: for biomet2 to merge after EddyPro processing because I think the variables are better than my first pass averaging
+# report SWC seperately for each depth, averaged for veg and bare, add SWC_X_Y_A, 'A' at the end to indicate aggregate
+biomet2_mean_soilM_veg <- env_30min[!is.na(mean.val) & variable %in% c("soilmoisture") & veg %in% c("LATR","PRGL","MUPO","SHRUB"),
+                               list(SWC = mean(mean.val),
+                                    SWC_SD = sd(mean.val),
+                                    SWC_N = length(mean.val)),
+                               by="date_time,height"]
+
+biomet2_mean_soilM_veg <- dcast(biomet2_mean_soilM_veg,date_time~height, value.var=c("SWC", "SWC_SD", "SWC_N"))
+
+# change column names to EddyPro format
+# shrub = 1, bare = 2
+setnames(biomet2_mean_soilM_veg,c("SWC_-10","SWC_-15","SWC_-2", "SWC_-20","SWC_-30","SWC_-5",
+                                  "SWC_SD_-10","SWC_SD_-15","SWC_SD_-2", "SWC_SD_-20","SWC_SD_-30","SWC_SD_-5",
+                                  "SWC_N_-10","SWC_N_-15","SWC_N_-2", "SWC_N_-20","SWC_N_-30","SWC_N_-5"),
+         c("SWC_1_3_A","SWC_1_4_A","SWC_1_1_A", "SWC_1_5_A","SWC_1_6_A","SWC_1_2_A",
+           "SWC_1_3_SD","SWC_1_4_SD","SWC_1_1_SD", "SWC_1_5_SD","SWC_1_6_SD","SWC_1_2_SD",
+           "SWC_1_3_N","SWC_1_4_N","SWC_1_1_N", "SWC_1_5_N","SWC_1_6_N","SWC_1_2_N"))
+
+biomet2_mean_soilM_bare <- env_30min[!is.na(mean.val) & variable %in% c("soilmoisture") & veg %in% c("BARE"),
+  list(SWC = mean(mean.val),
+       SWC_SD = sd(mean.val),
+       SWC_N = length(mean.val)),
+  by="date_time,height"]
+
+
 # soil temperature = Ts
 biomet_mean_soilT <- env_30min[variable %in% c("soiltemp"),
                            list(Ts_1_1_1 = mean(mean.val, na.rm=TRUE)),
                            by="date_time"]
+
+# soil temperature = Ts
+biomet2_mean_soilT <- env_30min[variable %in% c("soiltemp"),
+                               list(Ts_1_1_A = mean(mean.val, na.rm=TRUE)),
+                               by="date_time"]
+
 
 # soil heat flux plates: soil heat flux, average across depths, separate by veg types
 biomet_mean_hfp <- env_30min[variable %in% c("hfp"),veg_depth:= paste(veg,height,sep="_")][
