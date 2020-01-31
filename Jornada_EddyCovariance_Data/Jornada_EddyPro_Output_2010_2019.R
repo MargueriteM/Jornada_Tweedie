@@ -1,8 +1,10 @@
 #############################################
 #  This code gets data output by Eddy Pro   #
 #           written by: M. Mauritz          #
-#                  May 2019                 #
+#                  Jan 2020                 #
 #############################################
+
+# Jan 2020: rewrite code to use same files at Jornada_EddyPro_Output_Fluxnet_2010_2019.R
 
 # load libraries
 library(ggplot2) # library for making figures in ggplot package
