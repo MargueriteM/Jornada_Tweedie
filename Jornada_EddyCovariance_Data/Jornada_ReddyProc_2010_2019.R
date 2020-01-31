@@ -10,21 +10,30 @@ library(lubridate)
 library(gridExtra)
 library(dplyr)
 library(ggplot2)
+library(gtable)
+library(grid)
+library(zoo)
+library(bit64)
 
 # import filtered flux data file from Eddy Pro as data table
 # filtered in: Jornada_EddyPro_Output_Fluxnext_2010_2019.R
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
-load("JER_flux_2010_2018_EddyPro_Output_filtered_20190929.Rdata")
+# load("JER_flux_2010_2018_EddyPro_Output_filtered_20190929.Rdata")
+
+# 29 Jan 2020
+# import data that was filtered by 3SD filter
+load("JER_flux_2010_2019_EddyPro_Output_filtered_SD_20200128.Rdata")
 
 
 # convert date to POSIXct and get a year, day, hour column
-flux_filter[,':=' (date_time = parse_date_time(TIMESTAMP_START,"YmdHM",tz="UTC"),
+# if this step doesn't work, make sure bit64 library is loaded otherwise the timestamps importa in a non-sensical format
+flux_filter_sd[,':=' (date_time = parse_date_time(TIMESTAMP_START,"YmdHM",tz="UTC"),
             date_time_end = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
   ,':='(Year_end = year(date_time_end),Year=year(date_time),DoY=yday(date_time),
         hours = hour(date_time), mins = minute(date_time))]
 
 # there's duplicated data in 2012 DOY 138
-flux_filter <- (flux_filter[!(duplicated(flux_filter, by=c("TIMESTAMP_START")))])
+flux_filter <- (flux_filter_sd[!(duplicated(flux_filter_sd, by=c("TIMESTAMP_START")))])
 
 
 # format data columns for ReddyProc
@@ -59,7 +68,7 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
  
  
  # create a grid of full dates and times
- filled <- expand.grid(date=seq(as.Date("2011-01-01"),as.Date("2018-12-31"), "days"),
+ filled <- expand.grid(date=seq(as.Date("2011-01-01"),as.Date("2019-11-27"), "days"),
                        Hour=seq(0,23.5, by=0.5))
  filled$Year <- year(filled$date)
  filled$DoY <- yday(filled$date)
@@ -105,41 +114,41 @@ EProc$sGetEstimatedUstarThresholdDistribution()
 # Ustar values
 EProc$sGetUstarScenarios()
 
-# show ustar figure
-EProc$sPlotNEEVersusUStarForSeason()
-
-EProc$sPlotNEEVersusUStarForSeason(season = "2015001",
-                                   format = "pdf", dir = "/Users/memauritz/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered",
-                                   UstarColName = "Ustar",
-                                   NEEColName = "NEE",
-                                   TempColName = "Tair",
-                                   WInch = 16 * 0.394, HInchSingle = 6 * 0.394,
-                                   data = cbind(EProc$sDATA, EProc$sTEMP,
-                                                EProc$sUSTAR_DETAILS$bins[, c("uStarBin",
-                                                                              "tempBin")]))
-
-sEddyProc_sPlotNEEVersusUStarForSeason(season = "2015001",
-                                       format = "pdf", dir = "/Users/memauritz/Desktop/TweedieLab/Projects/Jornada/LTAR_Synthesis_Browning",
-                                       UstarColName = "Ustar",
-                                       NEEColName = "NEE",
-                                       TempColName = "Tair",
-                                       WInch = 16 * 0.394, HInchSingle = 6 * 0.394,
-                                       data = cbind(EProc$sDATA, EProc$sTEMP,
-                                                    EProc$sUSTAR_DETAILS$bins[, c("uStarBin",
-                                                                                  "tempBin")]))
-
-plotNEEVersusUStarTempClass(NEEUStar.F = cbind(EProc$sDATA, EProc$sTEMP,
-                                               EProc$sUSTAR_DETAILS$bins[, c("uStarBin",
-                                                                             "tempBin")]),
-                            uStarTh=0.105,
-                            UstarColName = "Ustar",
-                            NEEColName = "NEE",
-                            TempColName = "Tair")
+# # show ustar figure
+# EProc$sPlotNEEVersusUStarForSeason()
+# 
+# EProc$sPlotNEEVersusUStarForSeason(season = "2015001",
+#                                    format = "pdf", dir = "/Users/memauritz/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered",
+#                                    UstarColName = "Ustar",
+#                                    NEEColName = "NEE",
+#                                    TempColName = "Tair",
+#                                    WInch = 16 * 0.394, HInchSingle = 6 * 0.394,
+#                                    data = cbind(EProc$sDATA, EProc$sTEMP,
+#                                                 EProc$sUSTAR_DETAILS$bins[, c("uStarBin",
+#                                                                               "tempBin")]))
+# 
+# sEddyProc_sPlotNEEVersusUStarForSeason(season = "2015001",
+#                                        format = "pdf", dir = "/Users/memauritz/Desktop/TweedieLab/Projects/Jornada/LTAR_Synthesis_Browning",
+#                                        UstarColName = "Ustar",
+#                                        NEEColName = "NEE",
+#                                        TempColName = "Tair",
+#                                        WInch = 16 * 0.394, HInchSingle = 6 * 0.394,
+#                                        data = cbind(EProc$sDATA, EProc$sTEMP,
+#                                                     EProc$sUSTAR_DETAILS$bins[, c("uStarBin",
+#                                                                                   "tempBin")]))
+# 
+# plotNEEVersusUStarTempClass(NEEUStar.F = cbind(EProc$sDATA, EProc$sTEMP,
+#                                                EProc$sUSTAR_DETAILS$bins[, c("uStarBin",
+#                                                                              "tempBin")]),
+#                             uStarTh=0.105,
+#                             UstarColName = "Ustar",
+#                             NEEColName = "NEE",
+#                             TempColName = "Tair")
 
 
 # use MDS for gap-filling
 EProc$sMDSGapFillUStarScens('NEE')
-EProc$sMDSGapFillUStarScens('NEE')
+# EProc$sMDSGapFillUStarScens('NEE')
 
 
 # column names that denote Ustar uncertainty
@@ -169,6 +178,14 @@ EProc$sPlotFingerprintY('NEE_U50_f', Year = 2015)
 EProc$sPlotFingerprintY('NEE', Year = 2016)
 EProc$sPlotFingerprintY('NEE_U50_f', Year = 2016)
 
+EProc$sPlotFingerprintY('NEE', Year = 2017)
+EProc$sPlotFingerprintY('NEE_U50_f', Year = 2017)
+
+EProc$sPlotFingerprintY('NEE', Year = 2018)
+EProc$sPlotFingerprintY('NEE_U50_f', Year = 2018)
+
+EProc$sPlotFingerprintY('NEE', Year = 2018)
+EProc$sPlotFingerprintY('NEE_U50_f', Year = 2019)
 
 
 # Partition NEE data and gap-fill Met data
@@ -349,9 +366,22 @@ ggplot(CombinedData,
 daily_sum_dt <- as.data.table(subset(CombinedData))
 daily_sum <- daily_sum_dt[,list(NEE_daily = sum(NEE_U50_f*1800*1*10^-6*12.01),
                                 GPP_daily = sum(GPP_U50_f*1800*1*10^-6*12.01),
-                                Reco_daily = sum(Reco_U50*1800*1*10^-6*12.01)), 
+                                Reco_daily = sum(Reco_U50*1800*1*10^-6*12.01),
+                                Tair_mean = mean(Tair)), 
                           by="Year,DoY"]
 
+# add a date variable to daily_sum
+daily_sum[Year==2011,date:= as.Date(DoY-1, origin = "2011-01-01")]
+daily_sum[Year==2012,date:= as.Date(DoY-1, origin = "2012-01-01")]
+daily_sum[Year==2013,date:= as.Date(DoY-1, origin = "2013-01-01")]
+daily_sum[Year==2014,date:= as.Date(DoY-1, origin = "2014-01-01")]
+daily_sum[Year==2015,date:= as.Date(DoY-1, origin = "2015-01-01")]
+daily_sum[Year==2016,date:= as.Date(DoY-1, origin = "2016-01-01")]
+daily_sum[Year==2017,date:= as.Date(DoY-1, origin = "2017-01-01")]
+daily_sum[Year==2018,date:= as.Date(DoY-1, origin = "2018-01-01")]
+
+
+# calculate cumulative sums
 daily_cum_sum <- daily_sum[,list(NEE_cum = cumsum(NEE_daily),
                                 GPP_cum = cumsum(GPP_daily),
                                  Reco_cum = cumsum(Reco_daily)),
@@ -359,6 +389,12 @@ daily_cum_sum <- daily_sum[,list(NEE_cum = cumsum(NEE_daily),
 
 annual_sum <- daily_sum[,list(NEE_annual = sum(NEE_daily)),
                         by="Year"]
+
+# save daily and annual sums
+#setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/")
+#write.table(daily_sum, "JER_ReddyProc_daily_sum_CO2_2011_2018.csv", sep=",", dec=".", row.names=FALSE)
+#write.table(annual_sum, "JER_ReddyProc_annual_sum_CO2_2011_2018.csv", sep=",", dec=".", row.names=FALSE)
+
 
 fig_daily_NEE <- ggplot(daily_sum, aes(DoY, NEE_daily))+
   geom_line(colour="blue")+
@@ -375,6 +411,17 @@ ggplot(annual_sum, aes(factor(Year),NEE_annual))+
 # plot daily precip
 precip_daily <- flux_filter[,list(precip.tot = sum(P_RAIN_1_1_1)),
                             by="Year,DoY"]
+
+# add a date variable to daily precip
+precip_daily[Year==2011,date:= as.Date(DoY-1, origin = "2011-01-01")]
+precip_daily[Year==2012,date:= as.Date(DoY-1, origin = "2012-01-01")]
+precip_daily[Year==2013,date:= as.Date(DoY-1, origin = "2013-01-01")]
+precip_daily[Year==2014,date:= as.Date(DoY-1, origin = "2014-01-01")]
+precip_daily[Year==2015,date:= as.Date(DoY-1, origin = "2015-01-01")]
+precip_daily[Year==2016,date:= as.Date(DoY-1, origin = "2016-01-01")]
+precip_daily[Year==2017,date:= as.Date(DoY-1, origin = "2017-01-01")]
+precip_daily[Year==2018,date:= as.Date(DoY-1, origin = "2018-01-01")]
+
 
 fig_daily_rain <- ggplot(precip_daily[Year!=2010,], aes(DoY, precip.tot))+
   geom_line(colour="blue")+
@@ -429,6 +476,172 @@ jorn15_scale <- function() scale_x_continuous(
   breaks = c(155, 168, 175, 182, 189, 196),
   #limits = c(150, 198),
   labels = c("Jun 4", "Jun 17", "Jun 24", "Jul 1", "Jul 8", "Jul 15"))
+
+
+# for CZO and to match the Reynolds Creek data plot Oct 2014 - Oct 2015
+fig_nee_czo <- ggplot(daily_sum[(Year==2014&DoY>=274) | (Year==2015&DoY<274)], aes(date, NEE_daily))+
+  geom_line(colour="black")+
+  geom_hline(yintercept=0)+
+  labs(y="Daily NEP (gC/m2/dy)")+
+  scale_x_date(name="Water Year 2015",date_breaks = "1 month",
+                     date_labels="%b")+
+  annotate(geom="text", x=as.Date("2015-09-28"), y=0.67, label="(b)",
+           color="black")+
+  theme(axis.text.y = element_text(margin=unit(c(2,2,2,2),"mm")),
+        axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.length=unit(-1,"mm"),
+        panel.background = element_rect(fill="white"),
+        panel.border = element_rect(colour="black", fill=NA),
+        panel.grid = element_blank(),
+        plot.margin=unit(c(0.5,2,0.5,2.8),"mm"))
+
+fig_gpp_reco_czo <- ggplot(daily_sum[(Year==2014&DoY>=274) | (Year==2015&DoY<274)])+
+  geom_line(aes(date, GPP_daily),colour="#009933",size=0.4)+
+  geom_line(aes(date, Reco_daily),colour="#CC6600",linetype="dashed",size=0.7)+
+  geom_hline(yintercept=0)+
+  labs(y="Daily GEP and ER (gC/m2/dy)")+
+  scale_x_date(name="Water Year 2015",date_breaks = "1 month",
+                                                     date_labels="%b")+
+  annotate(geom="text", x=as.Date("2015-09-28"), y=2.5, label="(c)",
+           color="black")+
+  theme(axis.text.x = element_text(margin=unit(c(2,2,2,2),"mm")),
+        axis.text.y = element_text(margin=unit(c(2,2,2,2),"mm")),
+        axis.ticks.length=unit(-1,"mm"),
+        panel.background = element_rect(fill="white"),
+            panel.border = element_rect(colour="black", fill=NA),
+            panel.grid = element_blank(),
+        plot.margin=unit(c(0.5,2,2,3.2),"mm"))
+
+
+# fig_reco_czo <- ggplot(daily_sum[(Year==2014&DoY>=274) | (Year==2015&DoY<274)], aes(date, Reco_daily))+
+#   geom_line(colour="blue")+
+#   geom_hline(yintercept=0)+
+#   labs(y="Daily cumulative ER (gC/m2/dy)")+
+#   scale_x_date(name="Water Year 2015",date_breaks = "1 month",
+#                date_labels="%b")+
+#   theme_bw()
+
+fig_precip_czo <- ggplot(precip_daily[(Year==2014&DoY>=274) | (Year==2015&DoY<274)], aes(date, precip.tot))+
+  geom_bar(colour="#3333CC",stat="identity")+
+  labs(y="Total Rain (mm/dy)")+
+  scale_x_date(name="Water Year 2015",date_breaks = "1 month",
+               date_labels="%b")+
+  annotate(geom="text", x=as.Date("2015-09-28"), y=12.3, label="(a)",
+                                          color="black")+
+  theme(axis.text.y = element_text(margin=unit(c(2,2,2,2),"mm")),
+        axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.length=unit(-1,"mm"),
+        panel.background = element_rect(fill="white"),
+        panel.border = element_rect(colour="black", fill=NA),
+        panel.grid = element_blank(),
+        plot.margin=unit(c(1,2,0.5,2),"mm"))
+
+
+# arrange the figures making them all the same size:
+g1 <- ggplotGrob(fig_precip_czo)
+g2 <- ggplotGrob(fig_nee_czo)
+g3 <- ggplotGrob(fig_gpp_reco_czo)
+
+g <- rbind(g1, g2, g3, size = "first")
+g$widths <- unit.pmax(g1$widths, g2$widths, g3$widths)
+grid.newpage()
+grid.draw(g)
+
+# save figure
+# ggsave("Fig_NEE_GPP_ER_PPT_2015_CZO", plot = g, device = "jpeg", path = "~/Desktop/TweedieLab/Proposals/2019/CZO",
+#        scale = 1,height=6.83, width=4.83,
+#        dpi = 500)
+
+
+# make a figure that zooms in on only June
+fig_nee_czo_jun <- ggplot(daily_sum[(Year==2015&month(date)==6)], aes(date, NEE_daily))+
+  geom_line(colour="black")+
+  geom_hline(yintercept=0)+
+  labs(y="Daily NEP (gC/m2/dy)")+
+  scale_x_date(name="June 2015",date_breaks = "5 days",
+               date_labels="%d")+
+  annotate(geom="text", x=as.Date("2015-06-28"), y=0.67, label="(b)",
+           color="black")+
+  theme(axis.text.y = element_text(margin=unit(c(2,2,2,2),"mm")),
+        axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.length=unit(-1,"mm"),
+        panel.background = element_rect(fill="white"),
+        panel.border = element_rect(colour="black", fill=NA),
+        panel.grid = element_blank(),
+        plot.margin=unit(c(0.5,2,0.5,2.8),"mm"))
+
+fig_gpp_reco_czo_jun <- ggplot(daily_sum[(Year==2015&month(date)==6)])+
+  geom_line(aes(date, GPP_daily),colour="#009933",size=0.4)+
+  geom_line(aes(date, Reco_daily),colour="#CC6600",linetype="dashed",size=0.7)+
+  geom_hline(yintercept=0)+
+  labs(y="Daily GEP and ER (gC/m2/dy)")+
+  scale_x_date(name="June 2015",date_breaks = "5 days",
+               date_labels="%d")+
+  annotate(geom="text", x=as.Date("2015-06-28"), y=2.5, label="(c)",
+           color="black")+
+  theme(axis.text.x = element_text(margin=unit(c(2,2,2,2),"mm")),
+        axis.text.y = element_text(margin=unit(c(2,2,2,2),"mm")),
+        axis.ticks.length=unit(-1,"mm"),
+        panel.background = element_rect(fill="white"),
+        panel.border = element_rect(colour="black", fill=NA),
+        panel.grid = element_blank(),
+        plot.margin=unit(c(0.5,2,2,3.2),"mm"))
+
+
+
+fig_precip_czo_jun <- ggplot()+
+  geom_bar(aes(date, precip.tot),fill="#3333CC",stat="identity",data=precip_daily[(Year==2015&month(date)==6)])+
+  geom_hline(yintercept=0,colour="#3333CC")+
+  geom_line(aes(date, Tair_mean/10),data=daily_sum[(Year==2015&month(date)==6)])+
+  labs(y="Total Rain (mm/dy)")+
+ scale_y_continuous(sec.axis = sec_axis(~.*10, name = expression("Temperature ("~degree~"C)")))+
+  scale_x_date(name="June 2015",date_breaks = "5 days",
+               date_labels="%d")+
+  annotate(geom="text", x=as.Date("2015-06-28"), y=3.8, label="(a)",
+           color="black")+
+  theme(axis.text.y = element_text(margin=unit(c(2,2,2,2),"mm")),
+        axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.length=unit(-1,"mm"),
+        panel.background = element_rect(fill="white"),
+        panel.border = element_rect(colour="black", fill=NA),
+        panel.grid = element_blank(),
+        plot.margin=unit(c(1,2,0.5,2),"mm"))
+
+
+# arrange the figures making them all the same size:
+g4 <- ggplotGrob(fig_precip_czo_jun)
+g5 <- ggplotGrob(fig_nee_czo_jun)
+g6 <- ggplotGrob(fig_gpp_reco_czo_jun)
+
+g.jun <- rbind(g4, g5, g6, size = "first")
+g.jun$widths <- unit.pmax(g4$widths, g5$widths, g6$widths)
+grid.newpage()
+grid.draw(g.jun)
+
+# save figure
+# ggsave("Fig_NEE_GPP_ER_PPT_June_2015_CZO", plot = g.jun, device = "jpeg", path = "~/Desktop/TweedieLab/Proposals/2019/CZO",
+#        scale = 1,height=6.83, width=4.83,
+#        dpi = 500)
+
+# create a running mean 
+daily_run <- daily_sum[,list(date=unique(date),
+                             NEE_daily_roll= rollmean(x=NEE_daily,
+                            k=7,
+                            fill=NA))]
+
+# plot to see what it looks like
+ggplot()+
+  geom_line(data=daily_run[(year(date)==2014&yday(date)>=274) | (year(date)==2015&yday(date)<274)], aes(date,NEE_daily_roll),size=2)+
+  geom_line(data=daily_sum[(Year==2014&DoY>=274) | (Year==2015&DoY<274)], aes(date, NEE_daily),colour="red")
+
+# save as csv
+#setwd("~/Desktop/TweedieLab/Proposals/2019/CZO")
+#write.table(daily_run[(year(date)==2014&yday(date)>=274) | (year(date)==2015&yday(date)<274),],
+#            "Daily_NEE_runningmean_water2015.csv", sep=",", dec=".", row.names=FALSE)
 
 # for Anthony and Isabelle's nutrient paper, exclude the long gap-filled days
 # exclude days 169 to 176 (18 to 25 June)
