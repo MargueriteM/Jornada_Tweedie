@@ -87,6 +87,11 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
 # calculate VPD from rH and Tair in hPa (mbar), at > 10 hPa the light response curve parameters change
 edata$VPD <- fCalcVPDfromRHandTair(edata$rH, edata$Tair)
 
+# export data for online tool of ReddyProc,
+#write.table(edata, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20203001/JER_ReddyProc_Input_2011_2019_20200131.txt", sep=" ", dec=".",row.names=FALSE)
+
+# Run ReddyProc
+
 EddyDataWithPosix <- edata %>% 
   fConvertTimeToPosix('YDH', Year = 'Year', Day = 'DoY', Hour = 'Hour')
 
