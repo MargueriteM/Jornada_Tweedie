@@ -6,6 +6,7 @@
 ############################################
 
 # 20200128: add SD based filters (3 day running mean/SD seperately for day/night and remove Fc, H, LE more than 3SD out of range from running mean)
+# 20200205: update with 2010 data processed in batches of files with 14 and 15 data rows (see Jornada_EC_2010_diagnosing.R)
 
 # load libraries
 library(ggplot2) # library for making figures in ggplot package
@@ -25,11 +26,19 @@ library(zoo)
 # EddyPro 7.0.4 has column name slip problems, using Fluxnet output!
 
 # read the data in fluxnet format
-flux2010a <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/eddypro_JER_2010_fluxnet_2019-08-08T131210_adv.csv",
-                  sep=",", header=TRUE, na.strings=c("-9999"))
+flux2010a <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/length14/eddypro_JER_2010_length14_fluxnet_2020-02-04T105358_adv.csv",
+                   sep=",", header=TRUE, na.strings=c("-9999"))
 
-flux2010b <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/20190806_2/eddypro_JER_2010_fluxnet_2019-08-09T172917_adv.csv",
-                  sep=",", header=TRUE, na.strings=c("-9999"))
+flux2010b <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/length14_2/eddypro_JER_2010_length14_2_fluxnet_2020-02-04T183325_adv.csv",
+                   sep=",", header=TRUE, na.strings=c("-9999"))
+
+flux2010c <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/length15/eddypro_JER_2010_length15_fluxnet_2020-02-04T160313_adv.csv",
+                   sep=",", header=TRUE, na.strings=c("-9999"))
+
+flux2010 <- rbind(flux2010a, flux2010b, flux2010c)
+flux2010 <- (flux2010[!(duplicated(flux2010, by=c("TIMESTAMP_START")))])
+flux2010[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
+  ,':='(date=as.Date.POSIXct(date_time),month=month(date_time),year=year(date_time))]
 
 
 flux2011a <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2011/eddypro_JER_2011_fluxnet_2019-08-08T131507_adv.csv",
@@ -74,55 +83,63 @@ flux2019b <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out
 
 
 # combine all individual years of flux runs
-flux <- rbind(flux2010a, flux2010b, flux2011a, flux2011b, flux2012a, flux2012b,
+flux <- rbind(flux2010a, flux2010b, flux2010c, flux2011a, flux2011b, flux2012a, flux2012b,
               flux2013,flux2014,flux2015, flux2016, flux2017, flux2018, flux2019a, flux2019b)
+
+# remove duplicate data
+flux <- (flux[!(duplicated(flux, by=c("TIMESTAMP_START")))])
+
+# make sure the data are ordered:
+flux <- flux[order(TIMESTAMP_START),]
 
 # format date
 flux[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
   ,':='(date=as.Date.POSIXct(date_time),month=month(date_time),year=year(date_time))]
 
-# figure out the missing 2010 data
-# read raw file names: what data files are missing?
-rawfiles2010a <-  list.files(path="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_IN_EddyCovariance/2010_2012/2010",
-                        full.names=FALSE,pattern="dataL1_ts_")
+########################
+# # figure out the missing 2010 data
+# # read raw file names: what data files are missing?
+# rawfiles2010a <-  list.files(path="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_IN_EddyCovariance/2010_2012/2010",
+#                         full.names=FALSE,pattern="dataL1_ts_")
+# 
+# rawfiles2010aDT <- as.data.table(rawfiles2010a)
+# 
+# colnames(rawfiles2010aDT) <- "files"
+# 
+# rawfiles2010b <-  list.files(path="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_IN_EddyCovariance/2010_2012/2010/20190908_run",
+#                             full.names=FALSE,pattern="dataL1_ts_")
+# 
+# rawfiles2010bDT <- as.data.table(rawfiles2010b)
+# 
+# colnames(rawfiles2010bDT) <- "files"
+# 
+# rawfiles2010 <- rbind(rawfiles2010aDT,rawfiles2010bDT)
+# 
+# rawfiles2010[,':=' (filedate = sapply(strsplit(as.character(files),"_"),"[",3),
+#                     filetime = str_extract(sapply(strsplit(as.character(files),"_"),"[",4),"[0-9]{4}"))][, ':='
+#                       (date = as.Date(filedate, format="%Y%m%d"),
+#                         record = 1L)]
+# 
+# # check that the header columns all match for raw flux data
+# wd_rawa <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_IN_EddyCovariance/2010_2012/2010/"
+# wd_rawb <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_IN_EddyCovariance/2010_2012/2010/20190908_run"
+# 
+# col.compare<- function(x){t(as.data.table(strsplit(readLines(con=x,
+#                                                              n=2),","))[,2])}
+# 
+# colnames2010a <- do.call("rbind",lapply(paste(wd_rawa,rawfiles2010a,sep="/"),
+#                                         col.compare))
+# 
+# colnames2010b <- do.call("rbind",lapply(paste(wd_rawb,rawfiles2010b,sep="/"),
+#                                         col.compare))
+# 
+# 
 
-rawfiles2010aDT <- as.data.table(rawfiles2010a)
-
-colnames(rawfiles2010aDT) <- "files"
-
-rawfiles2010b <-  list.files(path="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_IN_EddyCovariance/2010_2012/2010/20190908_run",
-                            full.names=FALSE,pattern="dataL1_ts_")
-
-rawfiles2010bDT <- as.data.table(rawfiles2010b)
-
-colnames(rawfiles2010bDT) <- "files"
-
-rawfiles2010 <- rbind(rawfiles2010aDT,rawfiles2010bDT)
-
-rawfiles2010[,':=' (filedate = sapply(strsplit(as.character(files),"_"),"[",3),
-                    filetime = str_extract(sapply(strsplit(as.character(files),"_"),"[",4),"[0-9]{4}"))][, ':='
-                      (date = as.Date(filedate, format="%Y%m%d"),
-                        record = 1L)]
-
-# check that the header columns all match for raw flux data
-wd_rawa <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_IN_EddyCovariance/2010_2012/2010/"
-wd_rawb <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_IN_EddyCovariance/2010_2012/2010/20190908_run"
-
-col.compare<- function(x){t(as.data.table(strsplit(readLines(con=x,
-                                                             n=2),","))[,2])}
-
-colnames2010a <- do.call("rbind",lapply(paste(wd_rawa,rawfiles2010a,sep="/"),
-                                        col.compare))
-
-colnames2010b <- do.call("rbind",lapply(paste(wd_rawb,rawfiles2010b,sep="/"),
-                                        col.compare))
-
-
-
-# look at dates with data files created
-ggplot(rawfiles2010, aes(date, record))+geom_point(size=0.1)
-
-ggplot(rawfiles2010[month(date)==6,], aes(date, record))+geom_point(size=0.1)
+# # look at dates with data files created
+# ggplot(rawfiles2010, aes(date, record))+geom_point(size=0.1)
+# 
+# ggplot(rawfiles2010[month(date)==6,], aes(date, record))+geom_point(size=0.1)
+########################
 
 # make some plots
 # graph precipitation
@@ -578,7 +595,7 @@ flux[filter_fc !=1, ':=' (FC_rollmean3_daynight = rollapply(FC, width=(24/0.5)*3
 threshold <- 3
 
 # graph the 3 and 5 day SD ribbons around measured flux
-ggplot(flux[filter_fc!=1&year==2016,])+
+ggplot(flux[filter_fc!=1&year==2010,])+
   geom_line(aes(DOY_START, FC))+
   #geom_line(aes(DOY_START, FC_rollmean), colour="green")+
   geom_ribbon(aes(x=DOY_START, ymin=FC_rollmean3-threshold*FC_rollsd3, ymax=FC_rollmean3+threshold*FC_rollsd3), alpha=0.5)+
@@ -587,7 +604,7 @@ ggplot(flux[filter_fc!=1&year==2016,])+
   facet_grid(year~.)
 
 # graph the 3 day SD ribbons around measured flux by day/night
-ggplot(flux[filter_fc!=1&year==2016,])+
+ggplot(flux[filter_fc!=1&year==2010,])+
   geom_line(aes(DOY_START, FC))+
   #geom_line(aes(DOY_START, FC_rollmean), colour="green")+
   geom_ribbon(aes(x=DOY_START, ymin=FC_rollmean3_daynight-threshold*FC_rollsd3_daynight,
@@ -978,12 +995,23 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/LTAR_Synthesis_Browning")
 # save filtered data with SD filter
 # setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
 # 
+# 20200206: fixed 2010!! save filtered data set. 
+# save(flux,file="JER_flux_2010_2019_EddyPro_Output_filterID_SD_2010good_20200206.Rdata")
+
+# 20200128: save with SD filter implemented
 # save(flux,file="JER_flux_2010_2019_EddyPro_Output_filterID_SD_20200128.Rdata")
 # 
-# flux_filter_sd <- copy(flux)
-# flux_filter_sd[filter_fc_roll_daynight!=0, FC := NA]
-# flux_filter_sd[filter_h_roll_daynight!=0, H := NA]
-# flux_filter_sd[filter_le_roll_daynight!=0, LE := NA]
-# 
+
+
+flux_filter_sd <- copy(flux)
+flux_filter_sd[filter_fc_roll_daynight!=0, FC := NA]
+flux_filter_sd[filter_h_roll_daynight!=0, H := NA]
+flux_filter_sd[filter_le_roll_daynight!=0, LE := NA]
+
+# 20200206: fixed 2010!! save filtered data set. 
+# save(flux,file="JER_flux_2010_2019_EddyPro_Output_filtered_SD_2010good_20200206.Rdata")
+
+# 20200128: save with SD filter implemented
 # save(flux_filter_sd,
 #      file="JER_flux_2010_2019_EddyPro_Output_filtered_SD_20200128.Rdata")
+
