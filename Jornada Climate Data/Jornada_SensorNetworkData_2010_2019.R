@@ -320,12 +320,12 @@ SN_30min[sensor=="lws" & mean.val<0, mean.val := NA]
 # MUPO 30cm: July 2013 it looks like MUPO 30cm had a baseline shift? Or really high recharge precip??
 SN_30min[sensor=="moisture"&veg=="MUPO"&depth==30&date_time>=as.Date("2013-07-01"),
          mean.val := NA]
-# MUPO 20cm: 4 Sep to 23 Oct 2017; April 2018; 26 Oct 2018; on & after 19 Nov 2018
+# MUPO 20cm: 4 Sep to 23 Oct 2017; April 2018; after October 27 2018
 SN_30min[sensor=="moisture"&veg=="MUPO"&depth==20&
                   (date_time>=as.Date("2017-09-04") & date_time<=as.Date("2017-10-23") |
                   date_time>=as.Date("2018-04-01") & date_time<=as.Date("2018-04-30") |
-                    date_time>=as.POSIXct("2018-10-26 9:30",tz="UTC") & date_time<=as.POSIXct("2018-10-26 22:00",tz="UTC")|
-                  date_time>=as.Date("2018-11-18")), mean.val := NA]
+                  date_time>=as.Date("2018-10-27")), mean.val := NA]
+
 
 # PRGL 5cm: high outlying value in August 2015 >0.4
 SN_30min[sensor=="moisture"&veg=="PRGL"&depth==5&year==2015&month==8&mean.val>0.4,
@@ -335,9 +335,16 @@ SN_30min[sensor=="moisture"&veg=="PRGL"&depth==5&year==2015&month==8&mean.val>0.
 SN_30min[sensor=="moisture"&veg=="PRGL"&depth==5&date_time>=as.Date("2015-09-01"),
          mean.val := NA]
 
+# PRGL all: 
+# 2018-02-20 to 2018-02-22 remove points < 0.05 from several sensors
+SN_30min[sensor=="moisture"&veg=="PRGL"&date_time>=as.Date("2018-02-20")&
+           date_time<=as.Date("2018-02-22")&mean.val<0.05,
+         mean.val := NA]
+
 # PRGL remove all after January 2019 (sensors got moved on ~19 June...have to update metadata)
 SN_30min[sensor=="moisture"&veg=="PRGL"&date_time>=as.Date("2019-01-01"),
          mean.val := NA]
+
 
 # LATR 5cm: probe goes bad after 12 Feb 2017
 SN_30min[sensor=="moisture"&veg=="LATR"&depth==5&
@@ -349,9 +356,20 @@ SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&
            (date_time>=as.Date("2015-02-23") & date_time<=as.Date("2015-04-30") |
               date_time >= as.Date("2019-02-14")), mean.val := NA]
 
+# from 2018-05-22 to 2018-05-24 10cm LATR point>0.07
+SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&date_time>=as.Date("2018-05-22")&
+           date_time<=as.Date("2018-05-24")&mean.val>0.07,
+         mean.val := NA]
+
 # LATR 20cm: values seem bad after 3 March 2019
 SN_30min[sensor=="moisture"&veg=="LATR"&depth==20&
               date_time >= as.Date("2019-03-03"), mean.val := NA]
+
+
+# BARE 5cm 2019 June 20-30 remove all
+SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
+           (date_time>=as.Date("2019-06-20") & date_time<=as.Date("2019-06-30")),
+         mean.val := NA]  
 
 # BARE 10cm: strange 6 Aug to 16 Sep 2015; Jul 24 to Sep 5 2016;
 #                    5 Oct 2018 (do just Oct in code) mean.val>0.4;
@@ -366,6 +384,33 @@ SN_30min[sensor=="moisture"&veg=="BARE"&depth==10&date_time>=as.Date("2018-10-05
 # Bare 10cm in 2017 values > 1
 SN_30min[sensor=="moisture"&veg=="BARE"&depth==10&year==2017&mean.val>1,
          mean.val := NA]                  
+
+# Bare 30cm 2018-10-09 to 2018-10-11 remove points<0
+SN_30min[sensor=="moisture"&veg=="BARE"&depth==30&date_time>=as.Date("2018-10-09")&
+           date_time<=as.Date("2018-10-11")&mean.val>0,
+         mean.val := NA]                  
+
+
+# moisture
+# remove periods when the sensors are bad. (see above)
+# by years
+ggplot(SN_30min[sensor=="moisture"&date_time>=as.Date("2018-10-01") & date_time<=as.Date("2018-12-24"),],
+       aes(date_time, mean.val, colour=factor(depth)))+
+  geom_line(aes(linetype=factor(depth)))+
+  labs(title="Soil Moisture") +
+  facet_grid(veg~., scales="free_y")
+
+ggplot(SN_30min[sensor%in%c("moisture","rain","lws")&year>=2018&mean.val<100,], aes(date_time, mean.val, colour=factor(depth)))+
+  geom_point(size=0.1)+
+  labs(title="Soil Moisture") +
+  facet_grid(sensor+veg~., scales="free_y")+
+  theme_bw()
+
+# by veg type
+ggplot(SN_30min[sensor=="moisture"&veg=="MUPO",], aes(doy, mean.val, colour=factor(depth)))+
+  geom_line(aes(linetype=factor(depth)))+
+  labs(title="Soil Moisture") +
+  facet_grid(year~., scales="free_y")
 
 
 ############
@@ -382,6 +427,7 @@ SN_30min[sensor=="par" & mean.val<0, mean.val := NA]
 # remove FLCE104 mean.val>400
 # remove Oct 2015 mean.val>1000
 # remove FLCE Sep 2017 mean.val>200
+# 2018: remove FLCE mean.val > 400
 
 SN_30min[sensor=="par"&SN=="SN1"&veg=="PRGL"&date_time>as.Date("2013-09-05"), mean.val := NA]
 SN_30min[sensor=="par"&SN=="SN1"&date_time>as.Date("2015-04-16")&date_time<as.Date("2015-06-03"), mean.val := NA ]
@@ -390,6 +436,12 @@ SN_30min[sensor=="par"&SN=="SN1"&date_time>as.Date("2015-11-07")&date_time<as.Da
 SN_30min[sensor=="par"&SN=="SN1"&veg=="FLCE104"&year==2016&mean.val>400, mean.val := NA ]
 SN_30min[sensor=="par"&SN=="SN1"&year==2015&month==10&mean.val>1000, mean.val := NA]
 SN_30min[sensor=="par"&SN=="SN1"&veg=="FLCE"&year==2017&month==9&mean.val>200, mean.val := NA]
+SN_30min[sensor=="par"&SN=="SN1"&veg=="FLCE"&year==2018&mean.val>400, mean.val := NA]
+
+# SN2 LATR:
+# remove 2019 mean.val>400
+SN_30min[sensor=="par"&SN=="SN2"&veg=="LATR"&year==2019&mean.val>400, mean.val := NA]
+
 
 # SN3 DAPU: 
 # remove Aug/Sep 2015 mean.val>1000
@@ -397,6 +449,11 @@ SN_30min[sensor=="par"&SN=="SN1"&veg=="FLCE"&year==2017&month==9&mean.val>200, m
 
 SN_30min[sensor=="par"&SN=="SN3"&veg=="DAPU"&year==2015&month>=8&month<=9&mean.val>1000, mean.val := NA]
 SN_30min[sensor=="par"&SN=="SN3"&veg=="DAPU"&year==2017&month==4&mean.val>1000, mean.val := NA]
+
+# SN7 FLCE:
+# remove 2020 mean.val>2000
+SN_30min[sensor=="par"&SN=="SN7"&veg=="FLCE"&year==2020&mean.val>2000, mean.val := NA]
+
 
 ############
 
@@ -503,6 +560,8 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Combined")
 # write.table(SN_30min, file="SensorNetwork_L1_2010_2019_30min_20190625.csv", sep=",", row.names = FALSE)
 # added additional data up to July 2019-07-09-1130, need to go back and fix sensor replacement info
 # write.table(SN_30min, file="SensorNetwork_L1_2010_201907091130_30min.csv", sep=",", row.names = FALSE)
+# save half hour means from 2010-2019 (ends on 11-26 due to system communication outage)
+# write.table(SN_30min, file="SensorNetwork_L1_2010_20191126_30min.csv", sep=",", row.names = FALSE)
 
 
 # FOR ANTHONY: save December 2018 to March 2019 soil moisture nad precip for Bare
