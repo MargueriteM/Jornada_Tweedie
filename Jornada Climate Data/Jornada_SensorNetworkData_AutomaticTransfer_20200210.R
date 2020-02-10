@@ -52,7 +52,7 @@ save_dir_final <- "/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada
 # Get the column names of each sensor network data set and
 # compare to the columns that should be in the data
 
-#########################################
+################### Fix Column Format Function ######################
 fix_columns <- function(SNdata,colnames_data) {
   char <- melt.data.table(SNdata[,lapply(.SD, function(x) {is.character(x)==TRUE})])
   char_col <- as.character(droplevels(char[value == TRUE,]$variable))
@@ -167,8 +167,8 @@ write.table(SN_test_long,file=paste(paste('SensorNetwork',
 # ggplot(SN_test_long[sensor=="moisture" & Date>=as.Date("2019-06-20")&Date<=as.Date("2019-06-21"),],
 #         aes(Date,value,colour=depth))+geom_point()+facet_grid(veg~., scales = "free_y")
 # 
-# ggplot(SN_test_long2[sensor=="moisture",],
-#        aes(Date,value,colour=depth))+geom_point(size=0.25)+facet_grid(veg~., scales = "free_y")
+# ggplot(SN_test_long[sensor=="moisture",],
+#         aes(Date,value,colour=depth))+geom_point(size=0.25)+facet_grid(veg~., scales = "free_y")
 # 
 # ggplot(SN_test_long[sensor=="rain" & month(Date)>=6 & month(Date)<=7,],
 #       aes(Date,value))+geom_point(size=0.25)+facet_grid(veg~., scales = "free_y")
