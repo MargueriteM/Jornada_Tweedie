@@ -17,10 +17,10 @@ library(lubridate)
 
 # create directories for reading and moving files
 # directory where new data comes in
-data_dir <- "/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/2019/RawData"
+data_dir <- "/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/2020/RawData"
 
 # directory where the final processed file goes
-save_dir_final <- "/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/2019"
+save_dir_final <- "/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/2020"
 
 
 # Units of data:
