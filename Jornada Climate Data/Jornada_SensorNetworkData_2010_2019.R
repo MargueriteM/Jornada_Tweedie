@@ -45,7 +45,7 @@ library(lattice)
 
 # Also get the column names of each sensor network data set and compare to the columns that should be in the data
 
-#########################################
+################# Fix columns function ########################
 fix_columns <- function(SNdata,colnames_data) {
   char <- melt.data.table(SNdata[,lapply(.SD, function(x) {is.character(x)==TRUE})])
   char_col <- as.character(droplevels(char[value == TRUE,]$variable))
@@ -120,13 +120,13 @@ colnames2010[, ':=' (sensor = sapply(strsplit(as.character(R_column_names),"_"),
 # and it often doesn't look like good data
 # colnames.
 
-# 2015 is a complete list of all columns that SHOULD be in the data. 
+# 2019 is is a complete list of all columns that SHOULD be in the data and is an update on colnames2015
 # use that to screen and remove extra columns
-colnames2015 <- fread(file="~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/MetaData/JER_SensorNetwork_ColumnNames_2015.csv",
+colnames2019 <- fread(file="~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/MetaData/JER_SensorNetwork_ColumnNames_2019.csv",
                       sep=",",
                       header=TRUE) 
 
-colnames2015[, ':=' (sensor = sapply(strsplit(as.character(R_column_names),"_"),"[",1),
+colnames2019[, ':=' (sensor = sapply(strsplit(as.character(R_column_names),"_"),"[",1),
                      SN = sapply(strsplit(as.character(R_column_names),"_"),"[",2),
                      veg = sapply(strsplit(as.character(R_column_names),"_"),"[",3),
                      depth = sapply(strsplit(as.character(R_column_names),"_"),"[",4))]
@@ -139,7 +139,7 @@ SN_2010_2014 <- do.call("rbind", lapply(SNfiles[1:5], header = TRUE, fread, sep=
 
 # after 2014 the format varies so read in each sensor network one by one
 sink("/dev/null") # this command suppresses output, otherwise R prints all the content of the files
-lapply(SNfiles[6:11], function(fname){
+lapply(SNfiles[6:length(SNfiles)], function(fname){
   input<- fread(fname, sep=",", header=TRUE, na.strings=c(-9999,-888.88,"#NAME?","NA"))
   obj_name <- paste("SN",
                     strsplit(as.character(tools::file_path_sans_ext(basename(fname))),"_","[",2)[[1]][2],
@@ -169,8 +169,10 @@ SN_2015[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
 SN_2016[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
 SN_2017[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
 SN_2018[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
-SN_2019[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
+SN_20190101000000[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
 SN_20190401000000[, date_time := ymd_hms(Date)][, Date:=date_time][, date_time:=NULL]
+SN_20190513130000[, date_time := ymd_hms(Date)][, Date:=date_time][, date_time:=NULL]
+SN_20200130125500[, date_time := ymd_hms(Date)][, Date:=date_time][, date_time:=NULL]
 
 
 # fix character and logical columns in each data set so that they can be melted
@@ -185,7 +187,7 @@ SN_2010_2014_fx <- fix_2010[[1]]
 colcheck_2010 <- fix_2010[[2]]
 
 # 2015
-fix_2015 <- fix_columns(SN_2015,colnames2015)
+fix_2015 <- fix_columns(SN_2015,colnames2019)
 SN_2015_fx <- fix_2015[[1]]
 colcheck_2015 <- fix_2015[[2]]
 
@@ -205,7 +207,7 @@ colcheck_2015 <- fix_2015[[2]]
 # ggplot(SN_2015_long[sensor=="battery",], aes(Date,timecheck))+geom_point()+facet_grid(R_column_names~.)
 
 # 2016
-fix_2016 <- fix_columns(SN_2016,colnames2015)
+fix_2016 <- fix_columns(SN_2016,colnames2019)
 SN_2016_fx <- fix_2016[[1]]
 colcheck_2016 <- fix_2016[[2]]
 
@@ -214,7 +216,7 @@ colcheck_2016 <- fix_2016[[2]]
 SN_2016_fx[,c(colcheck_2016) := NULL]
 
 # 2017
-fix_2017 <- fix_columns(SN_2017,colnames2015)
+fix_2017 <- fix_columns(SN_2017,colnames2019)
 SN_2017_fx <- fix_2017[[1]]
 colcheck_2017 <- fix_2017[[2]]
 
@@ -223,7 +225,7 @@ colcheck_2017 <- fix_2017[[2]]
 SN_2017_fx[,c(colcheck_2017) := NULL]
 
 # 2018
-fix_2018 <- fix_columns(SN_2018,colnames2015)
+fix_2018 <- fix_columns(SN_2018,colnames2019)
 SN_2018_fx <- fix_2018[[1]]
 colcheck_2018 <- fix_2018[[2]]
 
@@ -232,39 +234,56 @@ colcheck_2018 <- fix_2018[[2]]
 SN_2018_fx[,c(colcheck_2018) := NULL]
 
 # 2019
-fix_2019 <- fix_columns(SN_2019,colnames2015)
-SN_2019_fx <- fix_2019[[1]]
-colcheck_2019 <- fix_2019[[2]]
+fix_2019_1 <- fix_columns(SN_20190101000000,colnames2019)
+SN_2019_1_fx <- fix_2019_1[[1]]
+colcheck_2019_1 <- fix_2019_1[[2]]
+SN_2019_1_fx[,c(colcheck_2019_1) := NULL]
 
-# combine 2015-2019
-SN_2015_2019_fx <- rbind(SN_2015_fx,SN_2016_fx,SN_2017_fx,SN_2018_fx, SN_2019_fx, fill=TRUE)
+
+fix_2019_2 <- fix_columns(SN_20190513130000,colnames2019)
+SN_2019_2_fx <- fix_2019_2[[1]]
+colcheck_2019_2 <- fix_2019_2[[2]]
+SN_2019_2_fx[,c(colcheck_2019_2) := NULL]
+
+fix_2020 <- fix_columns(SN_20200130125500,colnames2019)
+SN_2020_fx <- fix_2020[[1]]
+colcheck_2020 <- fix_2020[[2]]
+SN_2020_fx[,c(colcheck_2020) := NULL]
+
+
+# combine 2015-2020 (except 20190401000000 which is in long format)
+SN_2015_2020_fx <- rbind(SN_2015_fx,SN_2016_fx,SN_2017_fx,SN_2018_fx, SN_2019_1_fx, SN_2019_2_fx,
+                         SN_2020_fx, fill=TRUE)
 
 
 # change the format of the data from wide to long so it's easier to work with
 # melt will give an error because of int and num column str
 # all data will be in "value" column
 SN_2010_2014_long <- melt.data.table(SN_2010_2014_fx,c("Date"))
-SN_2015_2019_long <- melt.data.table(SN_2015_2019_fx,c("Date"))
+SN_2015_2020_long <- melt.data.table(SN_2015_2020_fx,c("Date"))
 
 # merge the column names to the data and split into additional descriptors
 # descriptors are: sensor, SN, veg, depth
 SN_2010_2014_long <- merge(SN_2010_2014_long, colnames2010, by="variable")
-SN_2015_2019_long <- merge(SN_2015_2019_long, colnames2015, by="variable")
+SN_2015_2020_long <- merge(SN_2015_2020_long, colnames2019, by="variable")
 
 # combine data from all years
 # 20190401000000 is already fixed from the automatic transfer and format stage. 
 # it just needs value converted to numeric and then appended
 SN_20190401fx <- SN_20190401000000[, value := as.numeric(value)]
-SN_2010_2019 <- rbind(SN_2010_2014_long, SN_2015_2019_long,SN_20190401fx)
+SN_2010_2020 <- rbind(SN_2010_2014_long, SN_2015_2020_long,SN_20190401fx)
+
+# remove duplicates from SN_2010_2020
+SN_2010_2020 <- SN_2010_2020[!duplicated(SN_2010_2020),]
 
 # calculate half-hour means using ceiling date which takes each time to the next half-hour,
 # ie: 15:00:01 goes to 15:30, etc. 
-SN_30min <- SN_2010_2019[sensor!="rain", list(mean.val = mean(value, na.rm=TRUE)),
+SN_30min <- SN_2010_2020[sensor!="rain", list(mean.val = mean(value, na.rm=TRUE)),
 by=.(SN,veg,depth,sensor,ceiling_date(Date,"30 minutes"))][,date_time := ceiling_date][,ceiling_date:=NULL]
 
 # for precip calculate the sum. Ignore NA because the way the data is offloaded from the sensors creates lots of NAs when the timestamps
 # don't perfectly match across all the SN. The result is that NAs get introduced where they shouldn't be, and I lose rain events.
-SN_30min_rain <- SN_2010_2019[sensor=="rain", list(mean.val = sum(value, na.rm=TRUE)),
+SN_30min_rain <- SN_2010_2020[sensor=="rain", list(mean.val = sum(value, na.rm=TRUE)),
                          by=.(SN,veg,depth,sensor,ceiling_date(Date,"30 min"))][,date_time := ceiling_date][,ceiling_date:=NULL]
 
 
@@ -491,3 +510,14 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Anthony_soilCO2_fluxes")
  # write.table(SN_30min[date_time>=as.Date("2018-12-01") &date_time <= as.Date("2019-03-31") &
  # (sensor=="moisture" | (sensor=="rain"&veg=="BARE")),],
  # file="SEL_JER_SensorNetwork_30min_VWC_precip_20181201_20190331_20190508.csv", sep=",", row.names = FALSE)
+
+# cast the SN_20190401000000 file into wide format and save that way as well
+SN_20190401000000.wide <- dcast(SN_20190401000000[,.(Date,variable,value)],
+                   Date ~ variable, fun.aggregate = mean, value.var = "value")
+
+# setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork")
+#  write.table(SN_20190401000000.wide, file="SensorNetwork_20190401000000_20190709113000_5min .csv",
+# sep=",", row.names = FALSE)
+
+
+
