@@ -406,6 +406,8 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/Compiled")
 # write.table(met30_long, file="TowerMet_L1_2010_2019_30min_20190627.csv", sep=",", row.names = FALSE)
 # save up to May 2019
 # write.table(met30_long, file="TowerMet_L1_2010_20190531_30min.csv", sep=",", row.names = FALSE)
+# save up to Jan 12 2020
+# write.table(met30_long, file="TowerMet_L1_2010_20200112_30min.csv", sep=",", row.names = FALSE)
 
 
 # calculate daily precip
