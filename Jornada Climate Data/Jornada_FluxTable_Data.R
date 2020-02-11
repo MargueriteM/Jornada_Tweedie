@@ -497,7 +497,6 @@ ggplot(flux_Rs_Rl[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_A
                                "Rl_upwell_Avg"="yellow",
                                "Rl_downwell_Avg"="red"))
 
-
 # net Rs
 ggplot(testRs_Rl[date_time>as.Date("2012-08-25"),],
        aes(date_time, Rs_downwell_Avg-Rs_upwell_Avg))+geom_line()
@@ -516,6 +515,13 @@ ggplot(testRs_Rl,
   geom_point()
 #####################################################################
 
+# plot all variables
+ggplot(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
+           "Rn_nr_Avg", "lws_1_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg"),], 
+       aes(date_time,value))+
+  geom_line()+
+  facet_grid(variable~., scales="free_y")
+
 
 # save 30min filtered HFP, Rs, Rl, Rn, LWS from flux table 
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining")
@@ -527,6 +533,11 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining
 # write.table(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
 # "Rn_nr_Avg", "lws_1_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg","gapfill_id"),.(date_time,variable,value)],
 # file="FluxTable_L1_2010_20190531_30min.csv", sep=",", row.names = FALSE)
+
+# save data updated to Jan 12 2020
+# write.table(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
+# "Rn_nr_Avg", "lws_1_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg","gapfill_id"),.(date_time,variable,value)],
+# file="FluxTable_L1_2010_20200112_30min.csv", sep=",", row.names = FALSE)
 
 
 
