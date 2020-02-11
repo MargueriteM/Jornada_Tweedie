@@ -174,6 +174,9 @@ ectm_30min_long[rep==2 & date_time>as.Date("2018-09-17") & date_time < as.Date("
 ectm_30min_long[rep==3 & year==2018 & month==11, value:=NA]
 
 # 2019:
+# probe 1 remove after 2019
+ectm_30min_long[rep %in% c(1) & year==2019, value := NA]
+
 # probe 2 remove diff2 between -0.25 and 0.25 and temps < -5 (because diff2 misses a few)
 ectm_30min_long[rep %in% c(2) & year==2019 & 
                   ((diff2<(-0.25) | diff2>0.25) | value < (-05)), value := NA]
@@ -181,32 +184,50 @@ ectm_30min_long[rep %in% c(2) & year==2019 &
 # probe 2 remove diff2 between -0.25 and 0.25 and temps < 10 after April (because diff2 misses a few)
 ectm_30min_long[rep %in% c(2) & year==2019 & month>3 & value <= (10), value := NA]
 
-# probe 7, 8 remove all: not working
-ectm_30min_long[rep %in% c(7,8) & year==2019, value := NA]
+
+# probe 3 remove after 2019
+ectm_30min_long[rep %in% c(3) & year==2019, value := NA]
+
+# probe 4 remove after 2019
+ectm_30min_long[rep %in% c(4) & year==2019, value := NA]
+
+
 # probe 5, 6 remove diff2 between -0.25 and 0.25 and temps < -5 (because diff2 misses a few)
 ectm_30min_long[rep %in% c(5,6) & year==2019 & 
                   ((diff2<(-0.25) | diff2>0.25) | value < (-05)), value := NA]
 
-# probe 6 remove <5 after March
-ectm_30min_long[rep %in% c(6) & year==2019 & month>=3 & value < (5), value := NA]
-
-
 # probe 5 temp gets weird after end of Mar Remove after
 ectm_30min_long[variable=="t_5_mean_na" & year==2019 & month>=3, value:=NA]
 
+# probe 5 remove after Mar 2019
+ectm_30min_long[rep %in% c(5) & date_time>as.Date("2019-03-31") & date_time<as.Date("2020-01-13"), value := NA]
 
-# probe 5 vwc gets weird after end of Jan. Remove feb
-ectm_30min_long[variable=="vwc_5_mean_na" & year==2019 & month>=2, value:=NA]
+
+# probe 5 vwc gets weird after end of Jan. Remove feb and onward
+ectm_30min_long[variable=="vwc_5_mean_na" & date_time>as.Date("2019-01-31") & date_time<as.Date("2020-01-13"), value:=NA]
+
+# probe 6 remove <5 after March
+ectm_30min_long[rep %in% c(6) & year==2019 & month>=3 & value < (5), value := NA]
+# probe 6 remove after May 2019
+ectm_30min_long[rep %in% c(6) & date_time>as.Date("2019-04-30")& date_time<as.Date("2020-01-13"), value := NA]
+
+# probe 7, 8 remove all: not working
+ectm_30min_long[rep %in% c(7,8) & year==2019, value := NA]
+
 
 # remove vwc > 0.2 for all before April in 2019
 ectm_30min_long[measurement == "vwc" & year==2019 & month<=4 & value>0.2, value:=NA]
 
+# 2020
+# remove 4, 7, 8 in moisture
+ectm_30min_long[measurement == "vwc"& rep %in% c(4,7,8) & year==2020, value := NA]
+
 # look at data in figures and remoce points that are obviously bad. 
 
 # make a figure of temperature
-ggplot(ectm_30min_long[measurement=="t"&year==2019,],
+ggplot(ectm_30min_long[measurement=="t"&year>=2019,],
        aes(date_time,value,colour=variable))+
-  geom_point()+
+  #geom_point()+
   geom_line()+
   geom_hline(yintercept=c(0,40))+
   facet_grid(variable~.)
@@ -214,7 +235,7 @@ ggplot(ectm_30min_long[measurement=="t"&year==2019,],
 
 # make a figure of VWC 
 # look at summary of vwc data when there are no NAs
-ggplot(ectm_30min_long[measurement=="vwc" & year==2019,],
+ggplot(ectm_30min_long[measurement=="vwc" & year>=2019,],
        aes(date_time,value,colour=variable))+
   geom_point()+
   geom_hline(yintercept=0)+
@@ -252,15 +273,7 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SoilSensor_ECTM/Combined")
 # save updated to 31 May 2019
 # write.table(ectm_30min_long, file="Soil_Temp_VWC_ECTM_L1_2010_20190531_30min.csv", sep=",", row.names = FALSE)
 
-
-# try a heat map/geom tile for soil temp sensor t_8
-# following code in: 
-# https://www.r-graph-gallery.com/heatmap/ and 
-# https://www.r-graph-gallery.com/283-the-hourly-heatmap/
-
-ggplot(ectm_30min_long[variable=="t_8"],
-       aes(date,hour, fill=value))+
-  geom_tile(color= "white",size=0.1)+
-  scale_fill_gradient(low="blue",high="red")
+# save updated to 12 Jan 2020
+# write.table(ectm_30min_long, file="Soil_Temp_VWC_ECTM_L1_2010_20200112_30min.csv", sep=",", row.names = FALSE)
 
 
