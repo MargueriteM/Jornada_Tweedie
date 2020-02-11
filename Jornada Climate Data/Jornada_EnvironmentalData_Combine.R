@@ -109,7 +109,7 @@ library(data.table) # library for data table which is more efficient with large 
 #############
 # Sensor network data:
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Combined")
-SN_30min <- fread("SensorNetwork_L1_2010_201907091130_30min.csv", sep=",", header=TRUE)
+SN_30min <- fread("SensorNetwork_L1_2010_20200210_30min.csv", sep=",", header=TRUE)
 # format date and add column to deginate the data stream
 SN_30min[, ':=' (date_time = ymd_hms(date_time), datastream = "SN", location = "SN")]
 setnames(SN_30min, 'sensor', 'variable')
@@ -129,7 +129,7 @@ SN_30min[variable=="atm_press", mean.val := mean.val/10]
 
 # Tower Met Data
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/Compiled")
-met_30min <- fread("TowerMet_L1_2010_20190531_30min.csv", sep=",", header=TRUE)
+met_30min <- fread("TowerMet_L1_2010_20200112_30min.csv", sep=",", header=TRUE)
 # format date and add column to deginate the data stream
 met_30min[, ':=' (date_time = ymd_hms(date_time), datastream = "climate",location = "tower")]
 setnames(met_30min, 'value', 'mean.val')
@@ -142,7 +142,7 @@ met_30min[variable=="precip.tot", veg := "BARE"]
 
 # Data from FluxTable: Rs, Rl, HFP, LWS_1 (in shrub)
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining")
-flux_30min <- fread("FluxTable_L1_2010_20190531_30min.csv", sep=",", header=TRUE)
+flux_30min <- fread("FluxTable_L1_2010_20200112_30min.csv", sep=",", header=TRUE)
 flux_30min[, ':=' (date_time = ymd_hms(date_time), year=year(date_time),datastream = "flux", location = "tower")]
 setnames(flux_30min, 'value', 'mean.val')
 
@@ -158,7 +158,7 @@ flux_30min[variable == "Rl_upwell_Avg", variable := "Rl_up"]
 
 # Tower soil temperature and moisture data (ECTM)
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SoilSensor_ECTM/Combined")
-soil_30min <- fread("Soil_Temp_VWC_ECTM_L1_2010_20190531_30min.csv", sep=",", header=TRUE)
+soil_30min <- fread("Soil_Temp_VWC_ECTM_L1_2010_20200112_30min.csv", sep=",", header=TRUE)
 # format date and add column to deginate the data stream, get rid or uneccessary columns
 setnames(soil_30min, c('value','variable'), c('mean.val', 'probe_id'))
 soil_30min[measurement == "t", variable := "soiltemp"]
@@ -400,6 +400,9 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP")
 ## fixed mean precip when it rained but one rain guage was broken (results in underestimate of mean precip across guages):
 # save(biomet, file="Biomet_EddyPro_2010_2019_20190906.Rdata")
 
+# save biomet data up to 12 Jan 2020
+# save(biomet, file="Biomet_EddyPro_2010_2020_20200112.Rdata")
+
 
 # load("Biomet_EddyPro_2010_2019_20190709.Rdata")
 
@@ -416,6 +419,9 @@ source("~/Desktop/R/R_programs/Functions/SaveFiles_Biomet_EddyPro.R")
 
 # save each year
 # savebiomet(biomet,2010,2019)
+
+# save 2019
+# savebiomet(biomet,2019,2019)
 
 # save daily biomet data for Anthony and Isa Nutrient paper
 biomet_anthony <- copy(biomet[date_time>=as.POSIXct("2015-05-01",tz="UTC") &
