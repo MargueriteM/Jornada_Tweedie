@@ -109,7 +109,7 @@ library(data.table) # library for data table which is more efficient with large 
 #############
 # Sensor network data:
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Combined")
-SN_30min <- fread("SensorNetwork_L1_2010_20200210_30min.csv", sep=",", header=TRUE)
+SN_30min <- fread("SensorNetwork_L1_2010_20200213_30min.csv", sep=",", header=TRUE)
 # format date and add column to deginate the data stream
 SN_30min[, ':=' (date_time = ymd_hms(date_time), datastream = "SN", location = "SN")]
 setnames(SN_30min, 'sensor', 'variable')
@@ -299,8 +299,30 @@ ggplot(biomet_mean_precip[year(date_time)==2015,],aes(date_time,P_rain_1_1_1))+g
 
 # soilmoisture & soiltemp: average from tower and SN regardless of depth or veg
 # soil moisture = soil water content
-biomet_mean_soilM <- env_30min[variable %in% c("soilmoisture"),
-                           list(SWC_1_1_1 = mean(mean.val, na.rm=TRUE)),
+
+biomet_mean_soilM <- copy(env_30min[variable %in% c("soilmoisture"),])
+
+# for biomet soil moisture averaging reemove the periods with baseline shift
+ggplot(biomet_mean_soilM[year>2017], aes(date_time,mean.val, colour=factor(depth)))+
+  geom_line()+
+  facet_grid(paste(location,veg)~.)
+
+
+# LATR 10cm: had a baseline shift 14 Feb 2019.
+biomet_mean_soilM[veg=="LATR"&depth==10&
+           (date_time>=as.Date("2019-02-14")), mean.val := NA]
+
+# LATR 20cm: had baseline shift after 3 March 2019 and does a few seept until reaching new baseline 3rd Apr 2019 
+biomet_mean_soilM[veg=="LATR"&depth==20&
+           date_time >= as.Date("2019-03-03"), mean.val := NA]
+
+
+# MUPO 20cm: in October 2018 there was a baseline shift! After this i believe the dynamics but not the values.
+biomet_mean_soilM[veg=="MUPO"&depth==20&
+           (date_time>=as.Date("2018-10-26")), mean.val := NA]
+
+
+biomet_mean_soilM <- biomet_mean_soilM[,list(SWC_1_1_1 = mean(mean.val, na.rm=TRUE)),
             by="date_time"]
 
 # 2020-01-30: for biomet2 to merge after EddyPro processing because I think the variables are better than my first pass averaging
@@ -450,6 +472,54 @@ ggplot(biomet_a_daily, aes(date,SWC_1_1_1))+geom_line()
 #setwd("~/Desktop/TweedieLab/Projects/Jornada/Anthony_nutrients_fluxes/")
 #write.table(biomet_a_daily, "JER_Biomet_daily_MayJuneJuly_2015_20190906.csv", row.names=FALSE, sep=",", dec=".")
 #write.table(biomet_anthony, "JER_Biomet_30min_MayJuneJuly_2015_20190906.csv", row.names=FALSE, sep=",", dec=".")
+
+
+# save data for Hayden
+# moisture-related data:
+# precip (mean of bare areas), soil moisture (individual probes)
+
+hadn_sm_long <- copy(env_30min[date_time >= as.Date("2018-01-01") &
+                                  variable %in% c("soilmoisture") & location=="SN",
+                                .(date_time,variable,veg,depth,mean.val)])
+
+hadn_mean_precip <- env_30min[date_time >= as.Date("2018-01-01") &
+                                variable %in% c("precip.tot") & veg=="BARE",
+                                  list(variable = unique(variable),
+                                       veg = "BARE",
+                                       depth = "NA",
+                                       mean.val = mean(mean.val, na.rm=TRUE)),
+                                  by="date_time"]
+
+hadn_long <- rbind(hadn_sm_long,hadn_mean_precip)
+
+ggplot(hadn_long, aes(date_time, mean.val, colour=factor(depth)))+
+  geom_line()+
+  facet_grid(paste(variable,veg)~., scales="free_y")
+
+# subset for wide format
+hadn_wide <- copy(env_30min[date_time >= as.Date("2018-01-01") &
+                                  variable %in% c("soilmoisture") & location=="SN",
+                                .(date_time,veg,depth,mean.val)][,sensorID := paste("VWC",veg,depth,sep="_")])
+
+# cast data into wide format
+hadn_wide <- dcast(hadn_wide, date_time ~ sensorID, value.var = "mean.val")
+# add precip data as a column
+hadn_wide <- merge(hadn_wide, hadn_mean_precip[,.(date_time,mean.val)], by="date_time")
+
+setnames(hadn_wide,"mean.val","P_rain")
+
+ggplot(hadn_wide, aes(date_time,P_rain))+geom_line()
+ggplot(hadn_wide, aes(date_time,VWC_LATR_20))+geom_line()
+
+# save
+# write.table(hadn_long,
+# file="~/Desktop/TweedieLab/People/Hayden/Precip_SoilMoisture_USJo1_2018_2019_long.csv",
+# row.names=FALSE, sep=",", dec=".")
+# 
+# write.table(hadn_wide,
+#             file="~/Desktop/TweedieLab/People/Hayden/Precip_SoilMoisture_USJo1_2018_2019_wide.csv",
+#             row.names=FALSE, sep=",", dec=".")
+
 
 # figures of biomet data for JER Short course Poster
 # time series of rain and temperature
