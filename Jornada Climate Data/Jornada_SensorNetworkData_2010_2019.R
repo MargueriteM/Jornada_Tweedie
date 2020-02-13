@@ -320,11 +320,12 @@ SN_30min[sensor=="lws" & mean.val<0, mean.val := NA]
 # MUPO 30cm: July 2013 it looks like MUPO 30cm had a baseline shift? Or really high recharge precip??
 SN_30min[sensor=="moisture"&veg=="MUPO"&depth==30&date_time>=as.Date("2013-07-01"),
          mean.val := NA]
-# MUPO 20cm: 4 Sep to 23 Oct 2017; April 2018; after October 27 2018
+# MUPO 20cm: 4 Sep to 23 Oct 2017; April 2018; from October 27 2018 to end of Feb 2018
+#            in October there was a baseline shift! After this i believe the dynamics but not the values.
 SN_30min[sensor=="moisture"&veg=="MUPO"&depth==20&
                   (date_time>=as.Date("2017-09-04") & date_time<=as.Date("2017-10-23") |
                   date_time>=as.Date("2018-04-01") & date_time<=as.Date("2018-04-30") |
-                  date_time>=as.Date("2018-10-27")), mean.val := NA]
+                  date_time>=as.Date("2018-10-27") & date_time<as.Date("2018-03-01")), mean.val := NA]
 
 
 # PRGL 5cm: high outlying value in August 2015 >0.4
@@ -351,19 +352,19 @@ SN_30min[sensor=="moisture"&veg=="LATR"&depth==5&
            date_time >= as.Date("2017-02-12"), mean.val := NA]
 
 
-# LATR 10cm: probe is strange 23 Feb to 30 Apr 2015; after 14 Feb 2019
+# LATR 10cm: probe is strange 23 Feb to 30 Apr 2015;
+#            had a baseline shift 14 Feb 2019. I believe the dynamics after this, not the absolute values
 SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&
-           (date_time>=as.Date("2015-02-23") & date_time<=as.Date("2015-04-30") |
-              date_time >= as.Date("2019-02-14")), mean.val := NA]
+           (date_time>=as.Date("2015-02-23") & date_time<=as.Date("2015-04-30")), mean.val := NA]
 
 # from 2018-05-22 to 2018-05-24 10cm LATR point>0.07
 SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&date_time>=as.Date("2018-05-22")&
            date_time<=as.Date("2018-05-24")&mean.val>0.07,
          mean.val := NA]
 
-# LATR 20cm: values seem bad after 3 March 2019
+# LATR 20cm: had baseline shift after 3 March 2019 and does a few seept until reaching new baseline 3rd Apr 2019 
 SN_30min[sensor=="moisture"&veg=="LATR"&depth==20&
-              date_time >= as.Date("2019-03-03"), mean.val := NA]
+              date_time >= as.Date("2019-03-03") date_time <= as.Date("2019-04-03"), mean.val := NA]
 
 
 # BARE 5cm 2019 June 20-30 remove all
@@ -561,7 +562,9 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Combined")
 # added additional data up to July 2019-07-09-1130, need to go back and fix sensor replacement info
 # write.table(SN_30min, file="SensorNetwork_L1_2010_201907091130_30min.csv", sep=",", row.names = FALSE)
 # save half hour means from 2010-2019 (ends on 11-26 due to system communication outage)
-# write.table(SN_30min, file="SensorNetwork_L1_2010_20191126_30min.csv", sep=",", row.names = FALSE)
+# write.table(SN_30min, file="SensorNetwork_L1_2010_20200210_30min.csv", sep=",", row.names = FALSE)
+# 2020-02-13 updated to retain LATR 10cm and 20cm, MUPO 20cm. These probes had baseling shifts but otherwise useful dynamics
+# write.table(SN_30min, file="SensorNetwork_L1_2010_20200213_30min.csv", sep=",", row.names = FALSE)
 
 
 # FOR ANTHONY: save December 2018 to March 2019 soil moisture nad precip for Bare
@@ -577,6 +580,5 @@ SN_20190401000000.wide <- dcast(SN_20190401000000[,.(Date,variable,value)],
 # setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork")
 #  write.table(SN_20190401000000.wide, file="SensorNetwork_20190401000000_20190709113000_5min .csv",
 # sep=",", row.names = FALSE)
-
 
 
