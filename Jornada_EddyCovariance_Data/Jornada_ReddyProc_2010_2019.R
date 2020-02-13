@@ -22,7 +22,8 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filt
 
 # 29 Jan 2020
 # import data that was filtered by 3SD filter
-load("JER_flux_2010_2019_EddyPro_Output_filtered_SD_20200128.Rdata")
+# load("JER_flux_2010_2019_EddyPro_Output_filtered_SD_20200128.Rdata")
+load("JER_flux_2010_2019_EddyPro_Output_filtered_SD_20200212.Rdata")
 
 
 # convert date to POSIXct and get a year, day, hour column
@@ -42,7 +43,7 @@ flux_filter <- (flux_filter_sd[!(duplicated(flux_filter_sd, by=c("TIMESTAMP_STAR
 flux_filter[mins==0, Hour := hours+0.0]
 flux_filter[mins==30, Hour := hours+0.5]
 
-edata <- flux_filter[Year>2010,.(Year,
+edata <- flux_filter[,.(Year,
                  DoY,
                  Hour,
                  FC,
@@ -68,7 +69,7 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
  
  
  # create a grid of full dates and times
- filled <- expand.grid(date=seq(as.Date("2011-01-01"),as.Date("2019-11-27"), "days"),
+ filled <- expand.grid(date=seq(as.Date("2010-01-01"),as.Date("2019-12-31"), "days"),
                        Hour=seq(0,23.5, by=0.5))
  filled$Year <- year(filled$date)
  filled$DoY <- yday(filled$date)
@@ -89,6 +90,7 @@ edata$VPD <- fCalcVPDfromRHandTair(edata$rH, edata$Tair)
 
 # export data for online tool of ReddyProc,
 #write.table(edata, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20203001/JER_ReddyProc_Input_2011_2019_20200131.txt", sep=" ", dec=".",row.names=FALSE)
+#write.table(edata, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200212/JER_ReddyProc_Input_2010_2019_20200212.txt", sep=" ", dec=".",row.names=FALSE)
 
 # Run ReddyProc
 
