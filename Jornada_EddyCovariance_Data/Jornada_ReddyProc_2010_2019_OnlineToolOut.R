@@ -14,29 +14,94 @@ library(bit64)
 
 # import filtered flux data file from Eddy Pro as data table
 # filtered in: Jornada_EddyPro_Output_Fluxnext_2010_2019.R
-ep.units <- (fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20203001/REddyResults_US-Jo1_20200131_678346206/output.txt",
+ep.units <- (fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200212/REddyResults_US-Jo1_20200213_725822790/output.txt",
                    header=TRUE))[1,]
 
-flux.ep <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20203001/REddyResults_US-Jo1_20200131_678346206/output.txt",
+flux.ep <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200212/REddyResults_US-Jo1_20200213_725822790/output.txt",
                       header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
                  col.names = colnames(ep.units))
 
 # for some reason na.strings won't recognize the -9999
 flux.ep[flux.ep == -9999] <- NA
 
+# get the 'edata' to add 2010 to the timeseries eventhough 2010 won't gap fill.... 
+setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
+
+# import data that was filtered by 3SD filter
+load("JER_flux_2010_2019_EddyPro_Output_filtered_SD_20200212.Rdata")
+
+# convert date to POSIXct and get a year, day, hour column
+# if this step doesn't work, make sure bit64 library is loaded otherwise the timestamps importa in a non-sensical format
+flux_filter_sd[,':=' (date_time = parse_date_time(TIMESTAMP_START,"YmdHM",tz="UTC"),
+                      date_time_end = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
+                        ,':='(Year_end = year(date_time_end),Year=year(date_time),DoY=yday(date_time),
+                              hours = hour(date_time), mins = minute(date_time))]
+
+# there's duplicated data in 2012 DOY 138
+flux_filter <- (flux_filter_sd[!(duplicated(flux_filter_sd, by=c("TIMESTAMP_START")))])
+
+# format data columns for ReddyProc
+# Year	DoY	Hour	NEE	LE	H	Rg	Tair	Tsoil	rH	VPD	Ustar 
+flux_filter[mins==0, Hour := hours+0.0]
+flux_filter[mins==30, Hour := hours+0.5]
+
+edata <- flux_filter[,.(Year,
+                        DoY,
+                        Hour,
+                        FC,
+                        LE,
+                        H,
+                        SW_IN_1_1_1,
+                        TA_1_1_1,
+                        RH_1_1_1,
+                        USTAR)]
+
+setnames(edata,c("FC","LE","H","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
+         c("NEE_orig","LE_orig","H_orig","Rg_orig","Tair_orig","rH_orig","Ustar"))
+
+# make all Rg<0 equal to 0 becuase ReddyProc won't accept values <0
+edata[Rg<0, Rg:=0]
+
+# create a grid of full dates and times
+filled <- expand.grid(date=seq(as.Date("2010-01-01"),as.Date("2019-12-31"), "days"),
+                      Hour=seq(0,23.5, by=0.5))
+filled$Year <- year(filled$date)
+filled$DoY <- yday(filled$date)
+
+filled$date <- NULL
+
+edata <- merge(edata,filled,by=c("Year","DoY","Hour"), all=TRUE)
+
+# online tool says hours must be between 0.5 and 24.0 
+# therefore add 0.5 to each hour
+edata[,Hour := Hour+0.5]
+
+# convert edata to data frame for ReddyProc
+edata <- as.data.frame(edata)
+
+# calculate VPD from rH and Tair in hPa (mbar), at > 10 hPa the light response curve parameters change
+edata$VPD <- fCalcVPDfromRHandTair(edata$rH, edata$Tair)
+
+# get only 2010 and go back to data table
+edata2010 <- as.data.table(subset(edata,Year==2010))
+
+flux.ep <- rbind(edata2010,flux.ep, fill=TRUE)
+
 # plot with no U* filter or gapfill
-ggplot(flux.ep, aes(DoY,NEE_orig))+
+ggplot(flux.ep[Year==2019,], aes(DoY,NEE_orig))+
   geom_line()+
   facet_grid(Year~.)
 
 fig_nee <- ggplot(subset(flux.ep), aes(DoY,NEE_orig))+
   geom_line()+
-  geom_point(aes(y=NEE_U50_f),data=subset(flux.ep, is.na(NEE_orig)),colour="red",size=1)+
+  geom_point(aes(y=NEE_U50_f),data=subset(flux.ep, is.na(NEE_orig)),colour="red",size=0.25)+
   facet_grid(.~Year)#+
 ylim(c(-10,10))
 
-fig_nee_fill <- ggplot(subset(flux.ep), aes(DoY,NEE_U50_f))+
-  geom_line()+
+fig_nee_fill <- ggplot((flux.ep))+
+  geom_line(aes(DoY,NEE_U50_f))+
+  geom_line(aes(DoY,NEE_orig), data = subset(flux.ep,Year==2010))+
+  
   facet_grid(.~Year)+
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank())#+
@@ -67,7 +132,7 @@ fig_vpd <- ggplot(subset(flux.ep), aes(DoY,VPD))+geom_line()+
 
 grid.arrange(fig_nee, fig_reco, fig_gpp, fig_vpd, nrow=4)
 
-grid.arrange(fig_nee, fig_reco, fig_gpp, nrow=3)
+grid.arrange(fig_reco, fig_gpp, fig_nee, nrow=3)
 
 grid.arrange(fig_nee_fill, fig_reco, fig_gpp, nrow=3)
 
@@ -126,7 +191,13 @@ daily_sum <- daily_sum_dt[,list(NEE_daily = sum(NEE_U50_f*1800*1*10^-6*12.01),
                                 Tair_mean = mean(Tair)), 
                           by="Year,DoY"]
 
+# create a running mean 
+daily_sum[,NEE_daily_roll := rollmean(x=NEE_daily,
+                                      k=7,
+                                      fill=NA)]
+
 # add a date variable to daily_sum
+daily_sum[Year==2010,date:= as.Date(DoY-1, origin = "2010-01-01")]
 daily_sum[Year==2011,date:= as.Date(DoY-1, origin = "2011-01-01")]
 daily_sum[Year==2012,date:= as.Date(DoY-1, origin = "2012-01-01")]
 daily_sum[Year==2013,date:= as.Date(DoY-1, origin = "2013-01-01")]
@@ -137,15 +208,33 @@ daily_sum[Year==2017,date:= as.Date(DoY-1, origin = "2017-01-01")]
 daily_sum[Year==2018,date:= as.Date(DoY-1, origin = "2018-01-01")]
 daily_sum[Year==2019,date:= as.Date(DoY-1, origin = "2019-01-01")]
 
+# plot to see what it looks like
+fig_runmean <- ggplot()+
+  #geom_line(data=daily_sum, aes(yday(date), NEE_daily),colour="red")+
+  geom_line(data=daily_sum, aes(yday(date),NEE_daily_roll))+
+  geom_hline(yintercept=0)+
+  facet_grid(.~Year)
+
+grid.arrange(fig_runmean+geom_vline(xintercept=200, colour="pink",size=1),
+             fig_daily_rain+geom_vline(xintercept=200,colour="pink",size=1), nrow=2)
+
 
 # calculate cumulative sums
 daily_cum_sum <- daily_sum[,list(NEE_cum = cumsum(NEE_daily),
                                  GPP_cum = cumsum(GPP_daily),
                                  Reco_cum = cumsum(Reco_daily)),
                            by="Year"]
+# plot the cumulative daily sums 
 
+# calculate annual budget
 annual_sum <- daily_sum[,list(NEE_annual = sum(NEE_daily)),
                         by="Year"]
+
+# plot the annual budgets
+ggplot(annual_sum, aes(factor(Year),NEE_annual))+
+  geom_bar(stat="identity")+
+  labs(y="Annual cumulative NEE gC/m2")+
+  theme_bw()
 
 # save daily and annual sums
 #setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/")
@@ -155,21 +244,19 @@ annual_sum <- daily_sum[,list(NEE_annual = sum(NEE_daily)),
 
 fig_daily_NEE <- ggplot(daily_sum, aes(DoY, NEE_daily))+
   geom_line(colour="green")+
+  geom_line(aes(yday(date),NEE_daily_roll))+
   geom_hline(yintercept=0)+
   labs(y="Daily cumulative NEE gC/m2")+
   facet_grid(.~Year)+
   theme_bw()
 
-ggplot(annual_sum, aes(factor(Year),NEE_annual))+
-  geom_bar(stat="identity")+
-  labs(y="Annual cumulative NEE gC/m2")+
-  theme_bw()
 
 # plot daily precip
-precip_daily <- flux_filter[,list(precip.tot = sum(P_RAIN_1_1_1)),
+precip_daily <- flux_filter[!is.na(P_RAIN_1_1_1),list(precip.tot = sum(P_RAIN_1_1_1)),
                             by="Year,DoY"]
 
 # add a date variable to daily precip
+precip_daily[Year==2010,date:= as.Date(DoY-1, origin = "2010-01-01")]
 precip_daily[Year==2011,date:= as.Date(DoY-1, origin = "2011-01-01")]
 precip_daily[Year==2012,date:= as.Date(DoY-1, origin = "2012-01-01")]
 precip_daily[Year==2013,date:= as.Date(DoY-1, origin = "2013-01-01")]
@@ -181,7 +268,7 @@ precip_daily[Year==2018,date:= as.Date(DoY-1, origin = "2018-01-01")]
 precip_daily[Year==2019,date:= as.Date(DoY-1, origin = "2019-01-01")]
 
 
-fig_daily_rain <- ggplot(precip_daily[Year!=2010,], aes(DoY, precip.tot))+
+fig_daily_rain <- ggplot(precip_daily, aes(DoY, precip.tot))+
   geom_line(colour="blue")+
   labs(y="Daily Total Rain (mm)")+
   facet_grid(.~Year)+
@@ -189,8 +276,21 @@ fig_daily_rain <- ggplot(precip_daily[Year!=2010,], aes(DoY, precip.tot))+
 
 grid.arrange(fig_daily_NEE,fig_daily_rain, nrow=2)
 
+# total precip
+annual_rain <- precip_daily[!is.na(precip.tot),list(precip.ann = sum(precip.tot)),
+                        by="Year"]
 
-# plot the daily NEE values by month and year
+# plot the annual budgets
+ggplot(annual_rain, aes((Year),precip.ann))+
+  geom_line()+
+  geom_point(aes(colour=factor(Year)),size=3)+
+  labs(y="Annual cumulative Rain, mm")+
+  scale_x_continuous(breaks=c(2010,2011,2012,2013,2014,2015,2016,2017,2018,2019),
+                     labels=c(2010,2011,2012,2013,2014,2015,2016,2017,2018,2019))+
+  theme_bw()
+
+
+# SEASONAL: plot the daily NEE values by month and year
 ggplot(daily_sum, aes(factor(DoY), NEE_daily))+
   geom_boxplot()+
   geom_hline(yintercept=0)+
@@ -200,21 +300,23 @@ ggplot(daily_sum, aes(factor(DoY), NEE_daily))+
   theme_bw()
 
 
-# create a running mean 
-daily_run <- daily_sum[,list(date=unique(date),
-                             NEE_daily_roll= rollmean(x=NEE_daily,
-                                                      k=7,
-                                                      fill=NA))]
 
-daily_run[,Year := year(date)]
+# save 2018 and 2019 data for Hayden
+write.table(flux.ep[Year %in% c("2018","2019"),.(Year,DoY,Hour,LE_orig,H_orig,Rg_orig,Tair_orig,rH_orig,VPD,
+LE_f, LE_fqc, LE_fall, LE_fall_qc, LE_fnum, LE_fsd, LE_fmeth, LE_fwin,
+H_f, H_fqc, H_fall, H_fall_qc, H_fnum, H_fsd, H_fmeth, H_fwin,
+Rg_f, Rg_fqc, Rg_fall, Rg_fall_qc, Rg_fnum, Rg_fsd, Rg_fmeth,Rg_fwin,
+Tair_f,  Tair_fqc, Tair_fall, Tair_fall_qc, Tair_fnum, Tair_fsd, Tair_fmeth, Tair_fwin,
+rH_f,rH_fqc, rH_fall, rH_fall_qc, rH_fnum, rH_fsd, rH_fmeth, rH_fwin,
+VPD_f, VPD_fqc, VPD_fall, VPD_fall_qc, VPD_fnum, VPD_fsd, VPD_fmeth, VPD_fwin)],
+file="~/Desktop/TweedieLab/People/Hayden/FluxData_USJo1_LE_H_2018_2019.csv", sep=",", dec=".",
+            row.names=FALSE)
 
-# plot to see what it looks like
-fig_runmean <- ggplot()+
-  geom_line(data=daily_run, aes(yday(date),NEE_daily_roll))+
- # geom_line(data=daily_sum, aes(yday(date), NEE_daily),colour="red")+
-  geom_hline(yintercept=0)+
-  facet_grid(.~Year)
 
-grid.arrange(fig_runmean+geom_vline(xintercept=200, colour="pink",size=1),
-             fig_daily_rain+geom_vline(xintercept=200,colour="pink",size=1), nrow=2)
+# save 2019 data for Anthony and then include the same climate data as with Hayden.
+write.table(flux.ep[Year==2019],
+            file="~/Desktop/TweedieLab/Projects/Jornada/Anthony_soilCO2_fluxes/FluxData_USJo1_2019.csv",
+            sep=",", dec=".",
+            row.names=FALSE)
+
 
