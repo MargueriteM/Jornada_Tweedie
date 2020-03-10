@@ -491,7 +491,7 @@ ggplot()+
  flux_filter_sd[filter_le_roll_daynight!=0, LE := NA]
 
  # 20200212: added all of 2019 (reran Jan - June)
-  save(flux,file="JER_flux_2010_2019_EddyPro_Output_filtered_SD_20200212.Rdata")
+#  save(flux_filter_sd,file="JER_flux_2010_2019_EddyPro_Output_filtered_SD_20200212.Rdata")
  
  
 # 20200206: fixed 2010!! save filtered data set. 
@@ -501,3 +501,53 @@ ggplot()+
 # save(flux_filter_sd,
 #      file="JER_flux_2010_2019_EddyPro_Output_filtered_SD_20200128.Rdata")
 
+ ### save data for Dawn's LTAR synthesis
+ 
+ # select 2014-2018 and use the SD filtered data. 
+ # the data contains only filtered data, all flagged data in Fc, H, LE removed
+ flux.ltar <- copy(flux_filter_sd[year %in% c(2014,2015,2016,2017,2018),])
+ 
+ # subset only desired data
+ flux.ltar1 <- copy(flux.ltar[,.(TIMESTAMP_START,
+                                 TIMESTAMP_END,
+                                 FC,
+                                 H,
+                                 LE,
+                                 FC_SSITC_TEST,
+                                 H_SSITC_TEST,
+                                 LE_SSITC_TEST,
+                                 USTAR,
+                                 TA_1_1_1,
+                                 RH_1_1_1,
+                                 PA_1_1_1,
+                                 WD_1_1_1,
+                                 MWS_1_1_1,
+                                 PPFD_IN_1_1_1,
+                                 P_RAIN_1_1_1,
+                                 LW_IN_1_1_1,
+                                 LW_OUT_1_1_1,
+                                 SW_OUT_1_1_1,
+                                 SW_IN_1_1_1)])
+ 
+ 
+ # make a quick figures to make sure data is there and OK
+ flux.ltar.long <- melt.data.table(flux.ltar1[,.(TIMESTAMP_END,FC,H,LE,USTAR)],
+                                   c("TIMESTAMP_END"))
+ 
+ ggplot(flux.ltar.long,aes(parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"), value))+
+   geom_line()+
+   facet_grid(variable~.,scales="free_y")
+ 
+ # save
+ setwd("~/Desktop/TweedieLab/Projects/Jornada/LTAR_Synthesis_Browning")
+ 
+ # 20200310 version has 2014-2018 data with SD filter and 30min with rain events removed
+ # write.table(flux.ltar1, file="FluxData_jerbajada_20200310.csv",
+ # sep=",", dec=".",row.names=FALSE, na="-9999", quote=FALSE)
+ 
+ # metadata file is created in Jornada_EddyPro_Output.R because that is able to take units from the full output files
+ # I manually modified and renamed the metadata file because the output here has _1_1_1 in all the biomet variables
+ ## write.table(description.ltar, file="FluxData_jerbajada_METADATA_20190813.csv",sep=",", dec=".", row.names=FALSE)
+ 
+ 
+ 
