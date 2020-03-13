@@ -1,8 +1,11 @@
 #############################################
 #  This code gets data output by Eddy Pro   #
 #           written by: M. Mauritz          #
-#                  May 2019                 #
+#                  Jan 2020                 #
 #############################################
+
+# Jan 2020: rewrite code to use same files at Jornada_EddyPro_Output_Fluxnet_2010_2019.R
+# Feb 2020: update with 2010 data processed in batches of files with 14 and 15 data rows (see Jornada_EC_2010_diagnosing.R)
 
 # load libraries
 library(ggplot2) # library for making figures in ggplot package
@@ -16,69 +19,55 @@ library(viridis)
 #############
 # IMPORT DATA
 #############
-# Full Eddy Covariance output:
-setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Test_20190626")
-
-# 2010-2012 data
+# get header and unit info from the first rows of data files
 # file info
-fileinfo1 <- scan("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2015/20190806/eddypro_2010_2012_full_output_2019-07-02T063739_exp.csv",
+fileinfo <- scan("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/eddypro_JER_2010_full_output_2019-08-08T131210_adv.csv",
                   what='',sep=",",nlines=1)
-fileinfo1 <- data.table(t(fileinfo1))
+fileinfo <- data.table(t(fileinfo))
 # read only the first row to get the units
-flux.units1 <- (fread("eddypro_2010_2012_full_output_2019-07-02T063739_exp.csv",header=TRUE,skip=1))[1,]
+flux.units <- (fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/eddypro_JER_2010_full_output_2019-08-08T131210_adv.csv",header=TRUE,skip=1))[1,]
+
 # read the data, skippping the units row
-flux1 <- fread("eddypro_2010_2012_full_output_2019-07-02T063739_exp.csv", sep=",",skip=3,
-               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units1))
+flux1a <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/length14/eddypro_JER_2010_length14_full_output_2020-02-04T105358_adv.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
 
-# 2013 - 2014 data
-# file info
-fileinfo2 <- scan("eddypro_2013_2014_full_output_2019-07-03T164639_exp.csv",
-                  what='',sep=",",nlines=1)
-fileinfo2 <- data.table(t(fileinfo2))
-# read only the first row to get the units
-flux.units2 <- (fread("eddypro_2013_2014_full_output_2019-07-03T164639_exp.csv",header=TRUE,skip=1))[1,]
-# read the data, skippping the units row
-flux2 <- fread("eddypro_2013_2014_full_output_2019-07-03T164639_exp.csv", sep=",",skip=3,
-               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units2))
+flux1b <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/length14_2/eddypro_JER_2010_length14_2_full_output_2020-02-04T183325_adv.csv", sep=",",skip=3,
+                header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
+
+flux1c <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/length15/eddypro_JER_2010_length15_full_output_2020-02-04T160313_adv.csv", sep=",",skip=3,
+                header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
 
 
-# 2015 - 2018 data
-# file info
-fileinfo3 <- scan("eddypro_2015_2018_full_output_2019-06-28T144511_adv.csv",
-                  what='',sep=",",nlines=1)
-fileinfo3 <- data.table(t(fileinfo3))
-# read only the first row to get the units
-flux.units3 <- (fread("eddypro_2015_2018_full_output_2019-06-28T144511_adv.csv",header=TRUE,skip=1))[1,]
-# read the data, skippping the units row
-# use file names from flux.units4 (EddyPro7 output -> identical order only AGC_mean was changed to agc_mean)
-flux3 <- fread("eddypro_2015_2018_full_output_2019-06-28T144511_adv.csv", sep=",",skip=3,
-             header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units4))
+flux2 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2011/eddypro_JER_2011_full_output_2019-08-08T131507_adv.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
 
-# 2019 data
-# file info
-fileinfo4 <- scan("eddypro_2019_full_output_2019-07-03T075822_exp.csv",
-                  what='',sep=",",nlines=1)
-fileinfo4 <- data.table(t(fileinfo4))
-# read only the first row to get the units
-flux.units4 <- (fread("eddypro_2019_full_output_2019-07-03T075822_exp.csv",header=TRUE,skip=1))[1,]
-# read the data, skippping the units row
-flux4 <- fread("eddypro_2019_full_output_2019-07-03T075822_exp.csv", sep=",",skip=3,
-               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units4))
+flux3 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2012/eddypro_JER_2012_full_output_2019-08-08T131951_adv.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
 
+flux4 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2013/eddypro_JER_2013_full_output_2019-08-08T105511_adv.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
 
-# file info
-fileinfo5 <- scan("eddypro_2019_Apr_May_full_output_2019-07-09T173159_exp.csv",
-                  what='',sep=",",nlines=1)
-fileinfo5 <- data.table(t(fileinfo4))
-# read only the first row to get the units
-flux.units5 <- (fread("eddypro_2019_Apr_May_full_output_2019-07-09T173159_exp.csv",header=TRUE,skip=1))[1,]
-# read the data, skippping the units row
-flux5 <- fread("eddypro_2019_Apr_May_full_output_2019-07-09T173159_exp.csv", sep=",",skip=3,
-               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units5))
+flux5 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2014/eddypro_JER_2014_full_output_2019-08-07T231114_adv.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
+
+flux6 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2015/20190806/eddypro_JER_2015_full_output_2019-08-07T131630_adv.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
+
+flux7 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2016/20190806/eddypro_JER_2016_full_output_2019-08-07T131944_adv.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
+
+flux8 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2017/20190806/eddypro_JER_2017_full_output_2019-08-07T114629_adv.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
+
+flux9a <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2019/eddypro_JER_2019_full_output_2019-12-24T011346_adv.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
+
+flux9b <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2019/eddypro_JER_2019_2_full_output_2020-01-27T215912_adv.csv", sep=",",skip=3,
+                header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
 
 
 # combine all individual years of flux runs
-flux <- rbind(flux1, flux2, flux3, flux4,flux5)
+flux <- rbind(flux1a, flux1b, flux1c, flux2, flux3, flux4, flux5, flux6, flux7, flux8, flux9a, flux9b)
 
 # format date
 flux[,date_time := paste(date,time,sep=" ")]

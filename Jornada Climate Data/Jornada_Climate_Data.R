@@ -41,8 +41,8 @@ library(lattice)
 # lws_2 (leaf wetness): mV  THIS IS 'leaf' wetness at 5m; lws_1 is in the Flux_Table data and measures in a shrub
 # NetRs (net solar radiation): W/m2
 # NetRI (net radiation): W/m2
-# UpTot (total upwelling): W/m2
-# DnTot (total downwelling): W/m2
+# UpTot (total downwelling; upward facing sensor): W/m2
+# DnTot (total upwelling; downward facing sensor): W/m2
 # CO2_raw: mmol/m3
 # H2O_raw: mmol/m3
 
@@ -253,9 +253,9 @@ met30_long[date_time %in% up_tot_na & variable %in% c("albedo","net_rs"),
            value := NA]
 
 # check filtered data
-ggplot(met30_long[year==2019,], aes(date_time, value))+geom_point()+facet_grid(variable~.,scales="free_y")
+ggplot(met30_long[year==2020,], aes(date_time, value))+geom_point()+facet_grid(variable~.,scales="free_y")
 
-ggplot(met30_long[variable=="airtemp"], aes(date_time, value))+geom_point()
+tailggplot(met30_long[variable=="airtemp"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="rh"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="e"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="atm_press"], aes(date_time, value))+geom_point()
@@ -398,6 +398,16 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Anthony_soilCO2_fluxes")
 # file='SEL_JER_MetData_20181201_20190331_20190508.csv',
 #           row.names=FALSE)
 
+
+# # save 2020 data for Dominic Fawcett (Exeter Radiation Model, Drivers of C Project)
+# setwd("~/Desktop/TweedieLab/Projects/Jornada/Drivers_Dryland_C_Exeter")
+# write.csv(met30_use[year(date_time)==2020,.(date_time,airtemp,rh,e,atm_press,wnd_spd,wnd_dir,
+#                                             par,lws_5m,net_rs,net_ri,up_tot,dn_tot,precip.tot)],
+#           file='SEL_JER_MetData_202001010000_202005030930.csv',
+#           row.names=FALSE)
+
+
+
 # save 30min filtered data
 # save half hour means
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/Compiled")
@@ -406,6 +416,8 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/Compiled")
 # write.table(met30_long, file="TowerMet_L1_2010_2019_30min_20190627.csv", sep=",", row.names = FALSE)
 # save up to May 2019
 # write.table(met30_long, file="TowerMet_L1_2010_20190531_30min.csv", sep=",", row.names = FALSE)
+# save up to Jan 12 2020
+# write.table(met30_long, file="TowerMet_L1_2010_20200112_30min.csv", sep=",", row.names = FALSE)
 
 
 # calculate daily precip

@@ -15,6 +15,12 @@
 #          April 2019                     #
 ###########################################
 
+# 30 Jan 2020: added information to biomet preparation (create biomet2) that retains more sensor info. Merge this to the post-EppyPro data
+# https://ameriflux.lbl.gov/data/aboutdata/data-variables/ 
+
+# biomet gets used for EddyPro processing and is a reduced and averaged variable list
+# biomet2 will be merged to the EddyPro output for ameriflux after SD and precip event filtering!!
+
 # TO DO: 
 # fixed tower precip for SN to be sum of 5 min data (on 2019-05-08)
 # depths for ECTM?! And cover type -> probably will have to dig up probes.
@@ -106,7 +112,7 @@ library(data.table) # library for data table which is more efficient with large 
 #############
 # Sensor network data:
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Combined")
-SN_30min <- fread("SensorNetwork_L1_2010_201907091130_30min.csv", sep=",", header=TRUE)
+SN_30min <- fread("SensorNetwork_L1_2010_20200213_30min.csv", sep=",", header=TRUE)
 # format date and add column to deginate the data stream
 SN_30min[, ':=' (date_time = ymd_hms(date_time), datastream = "SN", location = "SN")]
 setnames(SN_30min, 'sensor', 'variable')
@@ -126,7 +132,7 @@ SN_30min[variable=="atm_press", mean.val := mean.val/10]
 
 # Tower Met Data
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/Compiled")
-met_30min <- fread("TowerMet_L1_2010_20190531_30min.csv", sep=",", header=TRUE)
+met_30min <- fread("TowerMet_L1_2010_20200112_30min.csv", sep=",", header=TRUE)
 # format date and add column to deginate the data stream
 met_30min[, ':=' (date_time = ymd_hms(date_time), datastream = "climate",location = "tower")]
 setnames(met_30min, 'value', 'mean.val')
@@ -155,7 +161,7 @@ flux_30min[variable == "Rl_upwell_Avg", variable := "Rl_up"]
 
 # Tower soil temperature and moisture data (ECTM)
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SoilSensor_ECTM/Combined")
-soil_30min <- fread("Soil_Temp_VWC_ECTM_L1_2010_20190531_30min.csv", sep=",", header=TRUE)
+soil_30min <- fread("Soil_Temp_VWC_ECTM_L1_2010_20200112_30min.csv", sep=",", header=TRUE)
 # format date and add column to deginate the data stream, get rid or uneccessary columns
 setnames(soil_30min, c('value','variable'), c('mean.val', 'probe_id'))
 soil_30min[measurement == "t", variable := "soiltemp"]
@@ -217,7 +223,7 @@ precip[tower==0 & (SN2!=0 | SN6!=0), tower := NA]
 # now join the fixed precip data back to the env_30min
 precip <- melt(precip,measure.vars=c("tower","SN2","SN6"), variable.name="SN",value.name="mean.val")
 
-ggplot(precip, aes(date_time, mean.val, colour=SN))+geom_line()
+# ggplot(precip, aes(date_time, mean.val, colour=SN))+geom_line()
 
 precip_extra <- copy(env_30min[variable=="precip.tot"&veg=="BARE"&!is.na(date_time),
                                .(variable,datastream,location,probe_id,veg,height,depth,
@@ -240,7 +246,7 @@ env_30min <- rbind(env_30min, precip)
 
 # look at soil moisture and temperature
 ggplot(env_30min[variable %in% c("soilmoisture","soiltemp"),],
-       aes(date_time, mean.val,colour=veg, shape=height))+
+       aes(date_time, mean.val,colour=veg, linetype=height))+
   geom_line()+
   facet_grid(paste(variable,location,sep="_")~., scales="free_y")
 
@@ -296,13 +302,39 @@ ggplot(biomet_mean_precip[year(date_time)==2015,],aes(date_time,P_rain_1_1_1))+g
 
 # soilmoisture & soiltemp: average from tower and SN regardless of depth or veg
 # soil moisture = soil water content
-biomet_mean_soilM <- env_30min[variable %in% c("soilmoisture"),
-                           list(SWC_1_1_1 = mean(mean.val, na.rm=TRUE)),
+
+biomet_mean_soilM <- copy(env_30min[variable %in% c("soilmoisture"),])
+
+# for biomet soil moisture averaging reemove the periods with baseline shift
+ggplot(biomet_mean_soilM[year>2017], aes(date_time,mean.val, colour=factor(depth)))+
+  geom_line()+
+  facet_grid(paste(location,veg)~.)
+
+
+# LATR 10cm: had a baseline shift 14 Feb 2019.
+biomet_mean_soilM[veg=="LATR"&depth==10&
+           (date_time>=as.Date("2019-02-14")), mean.val := NA]
+
+# LATR 20cm: had baseline shift after 3 March 2019 and does a few seept until reaching new baseline 3rd Apr 2019 
+biomet_mean_soilM[veg=="LATR"&depth==20&
+           date_time >= as.Date("2019-03-03"), mean.val := NA]
+
+
+# MUPO 20cm: in October 2018 there was a baseline shift! After this i believe the dynamics but not the values.
+biomet_mean_soilM[veg=="MUPO"&depth==20&
+           (date_time>=as.Date("2018-10-26")), mean.val := NA]
+
+
+biomet_mean_soilM <- biomet_mean_soilM[,list(SWC_1_1_1 = mean(mean.val, na.rm=TRUE)),
             by="date_time"]
+
+
+
 # soil temperature = Ts
 biomet_mean_soilT <- env_30min[variable %in% c("soiltemp"),
                            list(Ts_1_1_1 = mean(mean.val, na.rm=TRUE)),
                            by="date_time"]
+
 
 # soil heat flux plates: soil heat flux, average across depths, separate by veg types
 biomet_mean_hfp <- env_30min[variable %in% c("hfp"),veg_depth:= paste(veg,height,sep="_")][
@@ -364,6 +396,9 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP")
 ## fixed mean precip when it rained but one rain guage was broken (results in underestimate of mean precip across guages):
 # save(biomet, file="Biomet_EddyPro_2010_2019_20190906.Rdata")
 
+# save biomet data up to 12 Jan 2020
+# save(biomet, file="Biomet_EddyPro_2010_2020_20200112.Rdata")
+
 
 # load("Biomet_EddyPro_2010_2019_20190709.Rdata")
 
@@ -380,6 +415,303 @@ source("~/Desktop/R/R_programs/Functions/SaveFiles_Biomet_EddyPro.R")
 
 # save each year
 # savebiomet(biomet,2010,2019)
+
+# save 2019
+# savebiomet(biomet,2019,2019)
+
+##################################################
+# BIOMET: Expanded format for Ameriflux submission
+# call it biomet2
+# 2020-02-14: for biomet2 to merge after EddyPro processing (and data filtering, no u*)
+#             report all individual sensorns for Ameriflux 
+
+biomet2 <- copy(env_30min)
+
+# PAR UP from tower and SN = PPFD
+# tower == 1, SN == 2
+# tower: PPFD_1_1_1, SN: PPFD_2_1_1
+biomet2[variable %in% c("par") & veg=="UP" & location=="tower",
+        ameriflux.id := "PPFD_IN_1_1_1"]
+
+biomet2[variable %in% c("par") & veg=="UP" & location=="SN",
+        ameriflux.id := "PPFD_IN_2_1_1"]
+
+# PAR reflecteed from SN = reflected PPFD (PPFD_OUT)
+# SN1 PRGL: rPPFD_1_1_1,
+# SN2 LATR: 2_1_1
+# SN2 PRGL: 3_1_1
+# SN3 DAPU: 4_1_1
+# SN4 Bare: 5_1_1
+# Sn5 LATR: 6_1_1
+# SN6 DAPU: 7_1_1
+# SN6 LATR: 8_1_1
+# SN6 MUPO: 9_1_1
+# SN7 MUPO: 10_1_1
+# SN8 MUPO: 11_1_1
+# SN8 PRGL: 12_1_1
+
+
+ggplot(biomet2[variable %in% c("par") & veg %in% c("LATR","PRGL","DAPU","MUPO","BARE")&year==2012],
+               aes(date_time, mean.val))+geom_line()+facet_grid(SN+veg~.)
+
+
+biomet2[variable %in% c("par") & SN=="SN1" & veg %in% c("PRGL") ,
+                              ameriflux.id := "PPFD_OUT_1_1_1"]
+
+biomet2[variable %in% c("par") & SN=="SN2" & veg %in% c("LATR") ,
+        ameriflux.id := "PPFD_OUT_2_1_1"]
+
+biomet2[variable %in% c("par") & SN=="SN2" & veg %in% c("PRGL") ,
+        ameriflux.id := "PPFD_OUT_3_1_1"]
+
+biomet2[variable %in% c("par") & SN=="SN3" & veg %in% c("DAPU") ,
+        ameriflux.id := "PPFD_OUT_4_1_1"]
+
+biomet2[variable %in% c("par") & SN=="SN4" & veg %in% c("BARE") ,
+        ameriflux.id := "PPFD_OUT_5_1_1"]
+
+biomet2[variable %in% c("par") & SN=="SN5" & veg %in% c("LATR") ,
+        ameriflux.id := "PPFD_OUT_6_1_1"]
+
+biomet2[variable %in% c("par") & SN=="SN6" & veg %in% c("DAPU") ,
+        ameriflux.id := "PPFD_OUT_7_1_1"]
+
+biomet2[variable %in% c("par") & SN=="SN6" & veg %in% c("LATR") ,
+        ameriflux.id := "PPFD_OUT_8_1_1"]
+
+biomet2[variable %in% c("par") & SN=="SN6" & veg %in% c("MUPO") ,
+        ameriflux.id := "PPFD_OUT_9_1_1"]
+
+biomet2[variable %in% c("par") & SN=="SN7" & veg %in% c("MUPO") ,
+        ameriflux.id := "PPFD_OUT_10_1_1"]
+
+biomet2[variable %in% c("par") & SN=="SN8" & veg %in% c("MUPO") ,
+        ameriflux.id := "PPFD_OUT_11_1_1"]
+
+biomet2[variable %in% c("par") & SN=="SN8" & veg %in% c("PRGL") ,
+        ameriflux.id := "PPFD_OUT_12_1_1"]
+
+# precip: BARE from tower and SN = P_rain
+# tower == 1, SN == 2
+# tower: P_rain_1_1_1, SN: P_rain_2_1_1
+ggplot(env_30min[variable %in% c("precip.tot") & veg=="BARE" & year==2011], aes(date_time, mean.val))+
+  geom_line()+
+  facet_grid(location+veg~.)
+                                
+
+biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="tower",
+        ameriflux.id := "P_RAIN_1_1_1"]
+
+biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN",
+        ameriflux.id := "P_RAIN_2_1_1"]
+
+
+# report SWC seperately for each depth and veg type
+# only from SN because I do not know depth of tower sensors
+ggplot(biomet2[variable %in% c("soilmoisture") & veg %in% c("LATR","PRGL","MUPO","SHRUB", "BARE") & location=="SN" &
+                year==2011,],
+       aes(date_time, mean.val))+
+  geom_line()+
+  facet_grid(veg+height~.)
+
+# BARE: 1
+# LATR: 2
+# MUPO: 3
+# PRGL: 4
+
+ # Bare: 1
+biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="SN" & height=="-5"),
+        ameriflux.id := "SWC_1_1_1"]
+
+biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="SN" & height=="-10"),
+        ameriflux.id := "SWC_1_2_1"]
+
+biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="SN" & height=="-20"),
+        ameriflux.id := "SWC_1_3_1"]
+
+biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="SN" & height=="-30"),
+        ameriflux.id := "SWC_1_4_1"]
+
+# Latr: 2
+biomet2[variable %in% c("soilmoisture") & (veg == "LATR" & location =="SN" & height=="-5"),
+        ameriflux.id := "SWC_2_1_1"]
+
+biomet2[variable %in% c("soilmoisture") & (veg == "LATR" & location =="SN" & height=="-10"),
+        ameriflux.id := "SWC_2_2_1"]
+
+biomet2[variable %in% c("soilmoisture") & (veg == "LATR" & location =="SN" & height=="-20"),
+        ameriflux.id := "SWC_2_3_1"]
+
+biomet2[variable %in% c("soilmoisture") & (veg == "LATR" & location =="SN" & height=="-30"),
+        ameriflux.id := "SWC_2_4_1"]
+
+# Mupo: 3
+biomet2[variable %in% c("soilmoisture") & (veg == "MUPO" & location =="SN" & height=="-5"),
+        ameriflux.id := "SWC_3_1_1"]
+
+biomet2[variable %in% c("soilmoisture") & (veg == "MUPO" & location =="SN" & height=="-10"),
+        ameriflux.id := "SWC_3_2_1"]
+
+biomet2[variable %in% c("soilmoisture") & (veg == "MUPO" & location =="SN" & height=="-20"),
+        ameriflux.id := "SWC_3_3_1"]
+
+biomet2[variable %in% c("soilmoisture") & (veg == "MUPO" & location =="SN" & height=="-30"),
+        ameriflux.id := "SWC_3_4_1"]
+
+# Prgl: 4
+biomet2[variable %in% c("soilmoisture") & (veg == "PRGL" & location =="SN" & height=="-5"),
+        ameriflux.id := "SWC_4_1_1"]
+
+biomet2[variable %in% c("soilmoisture") & (veg == "PRGL" & location =="SN" & height=="-10"),
+        ameriflux.id := "SWC_4_2_1"]
+
+biomet2[variable %in% c("soilmoisture") & (veg == "PRGL" & location =="SN" & height=="-20"),
+        ameriflux.id := "SWC_4_3_1"]
+
+biomet2[variable %in% c("soilmoisture") & (veg == "PRGL" & location =="SN" & height=="-30"),
+        ameriflux.id := "SWC_4_4_1"]
+
+
+# soil temperature = Ts
+# calculate average 'surface': 5-15cm Ts_1
+#           average 'deep': 20cm Ts_2
+# then merge the wide format biomet2 with the Ts_1 and Ts_2 dataframes
+ggplot(biomet2[variable %in% c("soiltemp") &
+                 year==2011,],
+       aes(date_time, mean.val))+
+  geom_line()+
+  facet_grid(veg+height~.)
+
+
+biomet2_ts1 <- biomet2[!is.na(mean.val) & variable %in% c("soiltemp") & height %in% c("-5","-10","-15"),
+        list(TS_1 = mean(mean.val),
+             TS_1_SD = sd(mean.val),
+             TS_1_N = length(mean.val)),
+        by="date_time"]
+
+biomet2_ts2 <- biomet2[!is.na(mean.val) & variable %in% c("soiltemp") & height %in% c("-20"),
+                       list(TS_2 = mean(mean.val),
+                            TS_2_SD = sd(mean.val),
+                            TS_2_N = length(mean.val)),
+                       by="date_time"]
+
+# soil heat flux plates: separate by depth and veg types
+# shrub = 1 10cm SHF_1_1_1
+# shrub = 1 15cm SHF_1_2_1
+# bare = 2 10cm SHF_2_1_1
+# bare = 2 15cm SHF_2_2_1
+
+ggplot(biomet2[variable %in% c("hfp")&year==2011], aes(date_time, mean.val))+geom_line()+
+  facet_grid(veg~height)
+
+biomet2[variable %in% c("hfp") & (veg == "SHRUB" & height=="-10"),
+        ameriflux.id := "G_1_1_1"]
+
+biomet2[variable %in% c("hfp") & (veg == "SHRUB" & height=="-15"),
+        ameriflux.id := "G_1_2_1"]
+
+
+biomet2[variable %in% c("hfp") & (veg == "BARE" & height=="-10"),
+        ameriflux.id := "G_2_1_1"]
+
+biomet2[variable %in% c("hfp") & (veg == "BARE" & height=="-15"),
+        ameriflux.id := "G_2_2_1"]
+
+
+# pressure: SN and tower
+# tower == 1, SN == 2
+# tower: Pa_1_1_1, SN: Pa_2_1_1
+ggplot(biomet2[variable %in% c("atm_press")&year==2011], aes(date_time, mean.val))+geom_line()+
+  facet_grid(location~.)
+
+
+biomet2[variable %in% c("atm_press") & location=="tower",
+        ameriflux.id := "PA_1_1_1"]
+
+biomet2[variable %in% c("atm_press") & location=="SN",
+        ameriflux.id := "PA_2_1_1"]
+
+# leaf wetness (leave out tower lws: not filtered.)
+ggplot(biomet2[variable %in% c("lws","lws_5m")&year==2011], aes(date_time, mean.val,colour=veg))+geom_line()+
+  facet_grid(SN~.)
+
+# SN1 LATR (LEAF_WET_1_1_1)
+# SN2 PRGL (LEAF_WET_2_1_1)
+# SN4 BARE (LEAF_WET_3_1_1)
+# SN6 LATR (LEAF_WET_4_1_1)
+# SN7 MUPO (LEAF_WET_5_1_1)
+# SN7 FLCE (LEAF_WET_6_1_1)
+# SN8 PRGL (LEAF_WET_7_1_1)
+
+biomet2[variable %in% c("lws") & SN=="SN1" & (veg == "LATR"),
+        ameriflux.id := "LEAF_WET_1_1_1"]
+
+biomet2[variable %in% c("lws") & SN=="SN2" & (veg == "PRGL"),
+        ameriflux.id := "LEAF_WET_2_1_1"]
+
+biomet2[variable %in% c("lws") & SN=="SN4" & (veg == "BARE"),
+        ameriflux.id := "LEAF_WET_3_1_1"]
+
+biomet2[variable %in% c("lws") & SN=="SN6" & (veg == "LATR"),
+        ameriflux.id := "LEAF_WET_4_1_1"]
+
+biomet2[variable %in% c("lws") & SN=="SN7" & (veg == "MUPO"),
+        ameriflux.id := "LEAF_WET_5_1_1"]
+
+biomet2[variable %in% c("lws") & SN=="SN7" & (veg == "FLCE"),
+        ameriflux.id := "LEAF_WET_6_1_1"]
+
+biomet2[variable %in% c("lws") & SN=="SN8" & (veg == "PRGL"),
+        ameriflux.id := "LEAF_WET_7_1_1"]
+
+
+# #################
+# # get the other variables that don't need averaging:
+# # change names to Eddy Pro names and put data into column format
+# biomet_other <- copy(env_30min[variable %in% c("airtemp","rh","wnd_spd","wnd_dir",
+#                                                "Rn_nr_Avg","Rl_down","Rl_up","Rs_down","Rs_up"),
+#                                .(date_time,variable,mean.val)])
+# 
+# biomet_other1 <- dcast(biomet_other,date_time~variable, value.var="mean.val")
+# 
+# # change the name of SWin to Rg for global radiation because they are
+# # _down is downward facing sensor = out
+# # _up is upward facing sensor = in
+# setnames(biomet_other1,c("Rl_down","Rl_up","Rn_nr_Avg","Rs_down","Rs_up","airtemp","rh","wnd_dir","wnd_spd"),
+#          c("LW_OUT_1_1_1","LW_IN_1_1_1","NETRAD_1_1_1","SW_OUT_1_1_1","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","WD_1_1_1","WS_1_1_1"))
+# ##################
+
+# graph
+ggplot(biomet2[!is.na(ameriflux.id) & year==2011,], aes(date_time, mean.val))+
+  geom_line()+
+  facet_wrap(ameriflux.id~.)
+
+# make biomet2 wide:
+# remove variable %in% c("soiltemp","airtemp","rh","wnd_spd","wnd_dir",
+#                       "Rn_nr_Avg","Rl_down","Rl_up","Rs_down","Rs_up")
+biomet2 <- biomet2[!(variable %in% c("soiltemp","airtemp","rh","wnd_spd","wnd_dir",
+                                 "Rn_nr_Avg","Rl_down","Rl_up","Rs_down","Rs_up")) &
+                     !is.na(ameriflux.id) & !is.na(date_time),.(date_time, ameriflux.id, mean.val)]
+
+# dcast biomet2 
+biomet2_wide <- dcast(biomet2[!is.na(ameriflux.id) & !is.na(date_time),],
+                      date_time ~ ameriflux.id, value.var = "mean.val", fun=mean)
+
+# merge wide biomet2 with biomet_other1 and biomet2_ts1, biomet2_ts2
+biomet2_wide <- merge(biomet_other1, biomet2_wide, by="date_time")
+biomet2_wide <- merge(biomet2_wide, biomet2_ts1, by="date_time")
+biomet2_wide <- merge(biomet2_wide, biomet2_ts2, by="date_time")
+
+biomet2_wide[biomet2_wide=="NaN"] <- NA
+
+# save biomet2 to combine with all flux data
+setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP")
+
+# write.table(biomet2_wide, file="Biomet_USJo1_wide_2010_2019_20200214.csv", sep=",", dec=".", row.names=FALSE)
+
+############
+
+
 
 # save daily biomet data for Anthony and Isa Nutrient paper
 biomet_anthony <- copy(biomet[date_time>=as.POSIXct("2015-05-01",tz="UTC") &
@@ -408,6 +740,54 @@ ggplot(biomet_a_daily, aes(date,SWC_1_1_1))+geom_line()
 #setwd("~/Desktop/TweedieLab/Projects/Jornada/Anthony_nutrients_fluxes/")
 #write.table(biomet_a_daily, "JER_Biomet_daily_MayJuneJuly_2015_20190906.csv", row.names=FALSE, sep=",", dec=".")
 #write.table(biomet_anthony, "JER_Biomet_30min_MayJuneJuly_2015_20190906.csv", row.names=FALSE, sep=",", dec=".")
+
+
+# save data for Hayden
+# moisture-related data:
+# precip (mean of bare areas), soil moisture (individual probes)
+
+hadn_sm_long <- copy(env_30min[date_time >= as.Date("2018-01-01") &
+                                  variable %in% c("soilmoisture") & location=="SN",
+                                .(date_time,variable,veg,depth,mean.val)])
+
+hadn_mean_precip <- env_30min[date_time >= as.Date("2018-01-01") &
+                                variable %in% c("precip.tot") & veg=="BARE",
+                                  list(variable = unique(variable),
+                                       veg = "BARE",
+                                       depth = "NA",
+                                       mean.val = mean(mean.val, na.rm=TRUE)),
+                                  by="date_time"]
+
+hadn_long <- rbind(hadn_sm_long,hadn_mean_precip)
+
+ggplot(hadn_long, aes(date_time, mean.val, colour=factor(depth)))+
+  geom_line()+
+  facet_grid(paste(variable,veg)~., scales="free_y")
+
+# subset for wide format
+hadn_wide <- copy(env_30min[date_time >= as.Date("2018-01-01") &
+                                  variable %in% c("soilmoisture") & location=="SN",
+                                .(date_time,veg,depth,mean.val)][,sensorID := paste("VWC",veg,depth,sep="_")])
+
+# cast data into wide format
+hadn_wide <- dcast(hadn_wide, date_time ~ sensorID, value.var = "mean.val")
+# add precip data as a column
+hadn_wide <- merge(hadn_wide, hadn_mean_precip[,.(date_time,mean.val)], by="date_time")
+
+setnames(hadn_wide,"mean.val","P_rain")
+
+ggplot(hadn_wide, aes(date_time,P_rain))+geom_line()
+ggplot(hadn_wide, aes(date_time,VWC_LATR_20))+geom_line()
+
+# save
+# write.table(hadn_long,
+# file="~/Desktop/TweedieLab/People/Hayden/Precip_SoilMoisture_USJo1_2018_2019_long.csv",
+# row.names=FALSE, sep=",", dec=".")
+# 
+# write.table(hadn_wide,
+#             file="~/Desktop/TweedieLab/People/Hayden/Precip_SoilMoisture_USJo1_2018_2019_wide.csv",
+#             row.names=FALSE, sep=",", dec=".")
+
 
 # figures of biomet data for JER Short course Poster
 # time series of rain and temperature
