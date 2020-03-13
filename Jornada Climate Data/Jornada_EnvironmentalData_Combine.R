@@ -139,7 +139,7 @@ met_30min[variable=="precip.tot", veg := "BARE"]
 
 # Data from FluxTable: Rs, Rl, HFP, LWS_1 (in shrub)
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining")
-flux_30min <- fread("FluxTable_L1_2010_20190531_30min.csv", sep=",", header=TRUE)
+flux_30min <- fread("FluxTable_L1_2010_20200112_30min.csv", sep=",", header=TRUE)
 flux_30min[, ':=' (date_time = ymd_hms(date_time), year=year(date_time),datastream = "flux", location = "tower")]
 setnames(flux_30min, 'value', 'mean.val')
 
