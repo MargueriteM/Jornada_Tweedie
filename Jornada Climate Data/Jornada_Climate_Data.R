@@ -121,7 +121,7 @@ met_all_30min <- met_all[, as.list(unlist(lapply(.SD,
 precip_tot_30min <- met_all[,list(precip.tot = sum(precip)), 
                          by=ceiling_date(date_time,"30 min")][,date_time := (ymd_hms(ceiling_date))][,ceiling_date := NULL]
 
-# data to rest effect of removing or including NA
+# data to test effect of removing or including NA
 met30 <- merge(met_all_30min, met_30min_rmna, by="date_time")
 met30 <- merge(met30, precip_tot_30min, by="date_time")
 # data to use
