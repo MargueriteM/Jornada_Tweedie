@@ -102,6 +102,15 @@
 # Rl_downwell_Avg	W/m^2
 # Rl_upwell_Avg	W/m^2
 
+######## NRCS Solar Radiation Data
+# import hourly data from NRCS for gapfilling SW In (Rg in EddyPro) for 2010 and 2011
+# recored in MST (no daylight savings)
+# https://wcc.sc.egov.usda.gov/nwcc/site
+# Solar Radiation 400 to 1100 nm range in W/m2
+
+###### Potential incoming Short Wave Radiation
+# data provided by Ameriflux, calculated SW potential incoming for the site
+
 # load libraries
 library(ggplot2) # library for making figures in ggplot package
 library(lubridate) # library for easier date manipulation 
@@ -141,8 +150,8 @@ met_30min[variable=="par", veg := "UP"]
 # lws in met is at 5m
 met_30min[variable %in% c("lws","airtemp"), ':=' (veg = "BARE", height = "500")]
 met_30min[variable=="precip.tot", veg := "BARE"]
-
-
+ 
+ 
 # Data from FluxTable: Rs, Rl, HFP, LWS_1 (in shrub)
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining")
 flux_30min <- fread("FluxTable_L1_2010_20200112_30min.csv", sep=",", header=TRUE)
@@ -182,8 +191,61 @@ soil_30min[rep %in% c(2,5,6,8), veg := "SHRUB"]
 soil_30min[, ':=' (date_time = ymd_hms(date_time), datastream = "ectm",location = "tower",
                    diff=NULL, diff2=NULL, date=NULL, rep=NULL, measurement=NULL)]
 
-# combine all three data streams
-env_30min <- rbind(SN_30min,met_30min,flux_30min,soil_30min, fill=TRUE)
+
+# import hourly data from NRCS for gapfilling SW In (Rg in EddyPro) for 2010 and 2011
+# https://wcc.sc.egov.usda.gov/nwcc/site
+# Solar Radiation 400 to 1100 nm range in W/m2
+nrcs.2010 <- fread("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/External_GapfillData/NRCS_JER_Site2168_SolarRad_2010.csv",
+                   sep=",", header=TRUE, col.names=c("siteID","Date","Time","mean.val"), na.strings=c(-99.9,"NA"))
+nrcs.2011 <- fread("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/External_GapfillData/NRCS_JER_Site2168_SolarRad_2011.csv",
+                   sep=",", header=TRUE, col.names=c("siteID","Date","Time","mean.val"),na.strings=c(-99.9,"NA"))
+
+nrcs.2012 <- fread("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/External_GapfillData/NRCS_JER_Site2168_SolarRad_2012.csv",
+                   sep=",", header=TRUE, col.names=c("siteID","Date","Time","mean.val"), na.strings=c(-99.9,"NA"))
+nrcs.2013 <- fread("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/External_GapfillData/NRCS_JER_Site2168_SolarRad_2013.csv",
+                   sep=",", header=TRUE, col.names=c("siteID","Date","Time","mean.val"),na.strings=c(-99.9,"NA"))
+nrcs.2014 <- fread("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/External_GapfillData/NRCS_JER_Site2168_SolarRad_2014.csv",
+                   sep=",", header=TRUE, col.names=c("siteID","Date","Time","mean.val"), na.strings=c(-99.9,"NA"))
+nrcs.2015 <- fread("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/External_GapfillData/NRCS_JER_Site2168_SolarRad_2015.csv",
+                   sep=",", header=TRUE, col.names=c("siteID","Date","Time","mean.val"),na.strings=c(-99.9,"NA"))
+nrcs.2016 <- fread("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/External_GapfillData/NRCS_JER_Site2168_SolarRad_2016.csv",
+                   sep=",", header=TRUE, col.names=c("siteID","Date","Time","mean.val"), na.strings=c(-99.9,"NA"))
+nrcs.2017 <- fread("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/External_GapfillData/NRCS_JER_Site2168_SolarRad_2017.csv",
+                   sep=",", header=TRUE, col.names=c("siteID","Date","Time","mean.val"),na.strings=c(-99.9,"NA"))
+nrcs.2018 <- fread("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/External_GapfillData/NRCS_JER_Site2168_SolarRad_2018.csv",
+                   sep=",", header=TRUE, col.names=c("siteID","Date","Time","mean.val"), na.strings=c(-99.9,"NA"))
+nrcs.2019 <- fread("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/External_GapfillData/NRCS_JER_Site2168_SolarRad_2019.csv",
+                   sep=",", header=TRUE, col.names=c("siteID","Date","Time","mean.val"),na.strings=c(-99.9,"NA"))
+
+
+nrcs <- rbind(nrcs.2010, nrcs.2011,nrcs.2012,nrcs.2013,nrcs.2014,nrcs.2015,nrcs.2016,nrcs.2017,nrcs.2018,nrcs.2019)
+rm(nrcs.2010, nrcs.2011,nrcs.2012,nrcs.2013,nrcs.2014,nrcs.2015,nrcs.2016,nrcs.2017,nrcs.2018,nrcs.2019)
+
+# format date & time
+nrcs[,date_time := ymd_hm(paste(as.Date(Date, format="%m/%d/%y"), Time, sep=" "))]
+
+# format to match env_30min
+nrcs[,':=' (year = year(date_time),
+            month = month(date_time),
+            doy = yday(date_time),
+            veg = "UP",
+            variable = "solar",
+            location = "nrcs",
+            datastream = "nrcs",
+            siteID = NULL,
+            Date = NULL, 
+            Time= NULL)]
+
+# # look at nrcs data in 2 month intervals. Looks OK
+# ggplot(nrcs[date_time>=as.Date("2011-11-01") & date_time<=as.Date("2011-12-31")], aes(date_time, mean.val,colour=location))+
+#   geom_line()+
+#   facet_grid(datastream~.)
+
+# combine all three SEL data streams and 2010, 2011 NRCS data
+env_30min <- rbind(SN_30min,met_30min,flux_30min,soil_30min, nrcs, fill=TRUE)
+
+# some datastreams don't have all the time stamp columns. Create
+env_30min[,doy:=yday(date_time)]
 
 # check levels of variable column
 levels(factor(env_30min$variable))
@@ -196,6 +258,9 @@ env_30min[,height := factor(height,levels=c("-30","-20","-15","-10","-5","-2","5
 # create a variable to show data coverage =1 with data 
 env_30min[!is.na(mean.val), coverage := 1]
 
+
+
+
 # Precip: The rain buckets record 0 even if they are broken and not picking up rain
 #         As a result, averaging across all sensors will underestimate rain if one bucket is not working
 # If there's rain recorded in any bucket and another is 0, make it NA instead of 0
@@ -206,14 +271,14 @@ precip[is.na(SN), SN := "tower"]
 
 precip <- dcast(precip,date_time~SN)
 
-# check
-ggplot(precip,aes(date_time,tower))+geom_line()
-ggplot(precip,aes(date_time,SN2))+geom_line()
-ggplot(precip,aes(date_time,SN6))+geom_line()
+## check
+#ggplot(precip,aes(date_time,tower))+geom_line()
+#ggplot(precip,aes(date_time,SN2))+geom_line()
+#ggplot(precip,aes(date_time,SN6))+geom_line()
 
-ggplot(precip,aes(tower,SN2))+geom_point()
-ggplot(precip,aes(tower,SN6))+geom_point()
-ggplot(precip,aes(SN2,SN6))+geom_point()
+#ggplot(precip,aes(tower,SN2))+geom_point()
+#ggplot(precip,aes(tower,SN6))+geom_point()
+#ggplot(precip,aes(SN2,SN6))+geom_point()
 
 # if any row has 0 in one column and >0 in another, make the 0 = NA
 precip[SN2==0 & (SN6!=0 | tower!=0), SN2 := NA]
@@ -276,6 +341,168 @@ ggplot(env_30min[variable == "hfp",], aes(date_time, mean.val,colour=veg))+
 ggplot(env_30min[variable == "atm_press",], aes(date_time, mean.val,colour=location))+
       geom_line()+
       facet_grid(paste(variable,location,sep="_")~., scales="free_y")
+
+
+
+
+# look at PAR from tower and SN
+ggplot(env_30min[(yday(date_time)>=303 & yday(date_time)<=313) &
+                   ((variable %in% c("par") & veg=="UP")),],
+       aes(hour(date_time), mean.val, colour=paste(variable,location)))+
+  geom_line()+
+  geom_vline(xintercept=c(6.5,17.0))+
+  facet_grid(year~doy)
+
+# find mismatch by looking through all data (no tower Rs data until 2011 doy 194: 13 July)
+# 2014 no SN solar data
+# 2017 doy 69-233 no tower Rs data
+# 2017 doy 185 NRCS data ends
+# 2017 doy 335 to 2018 doy 93 no tower Rs data
+# 2018 doy 70 to doy 250 no SN solar data
+# 2018 doy 325 - 2019 doy 137 no SN solar data
+# 1 - 55
+# 56 - 110
+# 111 - 166
+# 167 - 222
+# 223 - 278
+# 279 - 334
+# 335 - 366  & location!="nrcs"
+ggplot(env_30min[year==2011 & (yday(date_time)>=279 & yday(date_time)<=334) &
+                   ((variable %in% c("solar") & veg=="UP" )| variable %in% c("Rs_up")),],
+       aes(hour(date_time), mean.val, colour=paste(variable,location)))+
+  geom_line()+
+  geom_point(size=0.5)+
+  geom_vline(xintercept=c(6.5,17.0))+
+  facet_wrap(doy~.)
+
+
+View(env_30min[year==2013 & (yday(date_time)==214) &
+                 (variable %in% c("Rs_up"))])
+
+
+# look at solar radition from SN and NRCS, with Rs_up
+# graph all the intervals where a timestamp mismatch and rejoin happens
+
+# assume that NRCS time is always correct (Standard Time) and mark sunrise/sunset
+env_30min[location=="nrcs"&mean.val<=5,nrcs_day:=-5]
+env_30min[location=="nrcs"&mean.val>5,nrcs_day:=1000]
+
+
+# prior to Jul 2011 look at PAR becaus there's no Rs for the tower 
+# 2010 all match
+
+# off: 80 15:00-15:30 2011 (tower: +1)
+ ggplot(env_30min[year==2011 & yday(date_time)>=75 & yday(date_time)<=85&
+                             ((variable %in% c("par") & veg=="UP") | variable %in% c("solar") & location=="nrcs"),],
+             aes(hour(date_time), mean.val, colour=location))+
+     geom_line()+
+     facet_grid(year~doy)
+
+# off: 194 18:30 2011 (tower: +1) 
+# together: 316 2011 11:30-12:00 (tower to +0)
+ggplot(env_30min[year==2011 & (yday(date_time)>=190 & yday(date_time)<=196 | yday(date_time)>=315 & yday(date_time)<=317) &
+                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),],
+       aes(hour(date_time), mean.val, colour=location))+
+  geom_line()+
+  facet_grid(year~doy)
+
+ggplot(env_30min[year==2011 & (yday(date_time)==194) &
+                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),],
+       aes(hour(date_time), mean.val, colour=location))+
+  geom_line()+
+  facet_grid(year~doy)
+
+# off: 138 16:00-16:30 2012 (tower: +1) 
+# together: 11 2013 12:30-13:00 (tower to +0)
+ggplot(env_30min[((year==2012 & yday(date_time)>=137 & yday(date_time)<=139) |
+                    (year==2013 & yday(date_time)>=9 & yday(date_time)<=13)) &
+                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),],
+       aes(hour(date_time), mean.val, colour=location))+
+  geom_line()+
+  facet_grid(year~doy)
+
+
+ggplot(env_30min[((year==2012 & yday(date_time)==138)) &
+                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),],
+       aes(hour(date_time), mean.val, colour=location))+
+  geom_line()+
+  facet_grid(year~doy)
+
+# off: 95 2013 6:00 (SN: +1) 
+# together: 214 2013 12:30-13:30 (tower + 1)
+ggplot(env_30min[((year==2013 & yday(date_time)>=92 & yday(date_time)<=97) |
+                    (year==2013 & yday(date_time)>=212 & yday(date_time)<=218)) &
+                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),],
+       aes(hour(date_time), mean.val, colour=location))+
+  geom_line()+
+  geom_line(aes(hour(date_time),nrcs_day, colour=location))+
+  facet_grid(year~doy)
+
+ggplot(env_30min[((year==2013 & yday(date_time)==95)) &
+                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),],
+       aes(hour(date_time), mean.val, colour=location))+
+  geom_line()+
+  geom_line(aes(hour(date_time),nrcs_day, colour=location))+
+  facet_grid(year~doy)
+
+# off: 335 2013 7:00 (tower: +1) 
+# together: 91 2015 6:00 (SN: + 1)
+ggplot(env_30min[((year==2013 & yday(date_time)>=332 & yday(date_time)<=337) |
+                    (year==2015 & yday(date_time)>=87 & yday(date_time)<=93)) &
+                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),])+
+  geom_line(aes(hour(date_time), mean.val, colour=location))+
+  geom_line(aes(hour(date_time),nrcs_day, colour=location))+
+  facet_grid(year~doy)
+
+# 310 2015 (SN: +0)
+# 311 2015 (tower: +0)
+
+# off: 75 2016 at or before 7am (SN: +1) 
+# together: 313 2013 at or before 7am (SN: +0) 
+ggplot(env_30min[((year==2016 & yday(date_time)>=73 & yday(date_time)<=77) |
+                    (year==2016 & yday(date_time)>=310 & yday(date_time)<=316)) &
+                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),])+
+  geom_line(aes(hour(date_time), mean.val, colour=location))+
+  geom_line(aes(hour(date_time),nrcs_day, colour=location))+
+  facet_grid(year~doy)
+
+
+# create a subset with data in columnns to compare
+solar.comp.sn <- copy(env_30min[((variable %in% c("solar") & veg=="UP") & location=="SN"),
+                                .(date_time,mean.val)])
+setnames(solar.comp.sn, c("mean.val"),c("solar.sn"))
+
+solar.comp.tower <- copy(env_30min[variable %in% c("Rs_up"),
+                                   .(date_time,mean.val)])
+setnames(solar.comp.tower, c("mean.val"),c("solar.tower"))
+
+solar.comp.nrcs <- copy(env_30min[((variable %in% c("solar") & veg=="UP") & location=="nrcs"),
+                                  .(date_time,mean.val)])
+setnames(solar.comp.nrcs, c("mean.val"),c("solar.nrcs"))
+
+
+solar.comp <- merge(solar.comp.sn,solar.comp.tower,by=c("date_time"))
+solar.comp <- merge(solar.comp,solar.comp.nrcs,by=c("date_time"))
+
+# calculate differences 
+solar.comp[,':=' (year=year(date_time),
+                  doy=yday(date_time),
+                  hour=hour(date_time),
+                  tower.sn = solar.tower-solar.sn,
+                  tower.nrcs = solar.tower-solar.nrcs,
+                  sn.nrcs = solar.sn - solar.nrcs)]
+
+ggplot(solar.comp[year==2013 & yday(date_time)>=91 & yday(date_time)<=100], aes(hour))+
+  geom_line(aes(y=tower.sn),colour="blue")+
+  geom_line(aes(y=tower.nrcs),colour="green")+
+  geom_line(aes(y=sn.nrcs),colour="red")+
+  geom_hline(yintercept=0)+
+  facet_grid(year~doy)
+
+# try to fix timestamps
+
+  
+
 # average the data measured at both tower and SN: soilmoisture, soiltemperature, par, precip
 # at the moment (2019-05-28) average without accounting for sensor outage or different veg cover % (eg:PAR)
 # average all soil moisture and temperature at all locations; add detail when I know the depths and locations
@@ -707,7 +934,7 @@ biomet2_wide[biomet2_wide=="NaN"] <- NA
 # save biomet2 to combine with all flux data
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP")
 
-# write.table(biomet2_wide, file="Biomet_USJo1_wide_2010_2019_20200214.csv", sep=",", dec=".", row.names=FALSE)
+# write.table(biomet2_wide, file="Biomet_USJo1_wide_2010_2019_20200218.csv", sep=",", dec=".", row.names=FALSE)
 
 ############
 
