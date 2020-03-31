@@ -2,15 +2,22 @@
 title: "Jornada Ecological Range Carbon Flux Dynamics"
 output: 
   flexdashboard::flex_dashboard:
+    css: styles.css
     orientation: columns
     vertical_layout: fill
 ---
 
 ```{r setup, include=FALSE}
-library(flexdashboard)
+# Online resources: 
+# https://rmarkdown.rstudio.com/flexdashboard/using.html#multiple_pages
+# https://bookdown.org/yihui/rmarkdown/dashboard-components.html#text-annotations
+# https://rmarkdown.rstudio.com/lesson-12.html
+# Customise fonts/display using CSS
+# https://medium.com/@HadrienD/how-to-customize-font-size-in-r-markdown-documents-f5adff36e2cc 
+
 
 # load libraries
-library(REddyProc)
+library(flexdashboard)
 library(data.table)
 library(lubridate)
 library(gridExtra)
@@ -97,15 +104,110 @@ flux.ep <- rbind(edata2010,flux.ep, fill=TRUE)
 
 
 # The Site
-```{r pressure, out.width='50%', out.height='50%'}
+## Col 1
+
+###EddyCovariance Tower
+```{r site pic, out.width='50%', out.height='50%'}
 knitr::include_graphics("images/DSC00859.jpg")
 ```
 
+## Col 2
+###Systems Ecology Lab
+* Located in Jornada Ecological Range LTER
+* Eddy Covariance Tower installed November 2009
+* Monitoring dryland C flux and vegetation dynamics with proximal remote sensing & observations
+
 # Drylands Overview {data-navmenu="Background"}
+## Col 1 
+###Drylands {data-height=100}
+Are not wastelands!!
+
+###Vulnerability {data-height=230}
+* Exist on the brink of tipping points
+* Vulnerable to droughts and extremes
+* Particularly vulnerable when management is based on equilibrium dynamics
+
+## Col 2
+###Very diverse
+Hoover et al 2020 Global Drylands Map
+```{r Dryland Map, out.width='50%', out.height='50%'}
+knitr::include_graphics("images/Hoover_etal_2020_DrylandMap.png")
+```
+
+###Vulnerability, Resilience, Resistance
+Hoover et al 2020
+```{r Ball & Cup Model, out.width='50%', out.height='50%'}
+knitr::include_graphics("images/Hoover_etal_2020_BallCupModel.png")
+```
+
+
 
 # C-cycling in Drylands {data-navmenu="Background"}
 
+## Col 1
+
+###The Dryland C cycle {data-height=250}
+* Important driver of global interannual C cycle fluctuation
+* Large global C sink in 2011 attributed to high productivity in Australia during ENSO cycle 
+* C dynamics can also be used to understand dryland ecology, independent of global significance
+
+## Col 2
+###Factors that determine dryland C dynamics {data-height=200}
+* Precipitation variability (External Driver)
+* Vegetation responsivenes to moisture (Intrinsic Driver)
+
+###Biophysical drivers of Net-Ecosystem-Exchange {data-height=400}
+* Annual precipitation is a weak predictor
+* Duration of favorable photosynthesis conditions
+* ET is more highly correlated with C uptake than precipitation
+* Importance of winter preciptation is uncertain
+
+###Citations {data-height=200}
+Ponce-Campos et al 2013, Ahlstrom et al 2014, Poulter et al 2014, Fatichi and Ivanov 2014, Biederman et al 2016, DeKauwe et al 2017, Biederman et al 2018, Paschalis et al 2020
+
+# The Chihuahuan Desert {data-navmenu="Background"}
+## Col 1
+
+###Largest in N. America (Petrie et al 2019)
+```{r Chihuhahuan Desert, out.width='50%', out.height='50%'}
+knitr::include_graphics("images/Petrie_etal_2019_ChihuahuanDesert.png")
+```
+
+###What we know about Jornada rainfall since the 1900's (Petrie et al 2019)
+```{r Jornada Rain Future, out.width='50%', out.height='50%'}
+knitr::include_graphics("images/Petrie_etal_2019_JRN_PPT_record_futureVar.png")
+```
+
+## Col 2
+###Projected increase in Aridity {data-height=200}
+* Models agree: warmer temperatures will increase ET demand
+* Role of altered precipitation not entirely clear
+* For the Rio Grande snow pack is critical -> different for the land!
+
+###40-50% of annual precipitation falls during summer monsoon {data-height=200}
+* Important rainfall charactristics: timing, event size, event distribution
+* Small rain events are ~65% of all rain events
+* Monsoon totals are driven by large rain event. These are rare
+
+###What we know about regional rainfall since the 1900's {data-height=300}
+* High regional variability: can't assume that regional means capture local means
+* The length of wet and dry periods havee both increased
+* Event size has decreased
+* There has been no trend in total rain amount
+
+###Citations {data-height=100}
+Wohlfahrt et al 2008, Petrie et al 2014, Petrie et al 2019
+
 # Questions {data-navmenu="Questions and Methods"}
+
+###
+
+###Questions
+* When is peak CO2 updake?
+* How much does peak CO2 uptake vary from year to year?
+* What is the inter-annual variation of CO2 budgets at JER?
+
+###
 
 # Methods {data-navmenu="Questions and Methods"}
 
