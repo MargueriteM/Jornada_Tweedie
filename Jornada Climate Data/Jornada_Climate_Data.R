@@ -10,6 +10,10 @@
 #                13 March, 2019                 #
 #################################################
 
+# 6 Apr 2020 update: update to March 24 and add timestamp correction due to daylight savings changes
+# JER_Tower_SN_TimestampMismatches.xlsx
+# make the timestamp adjustments at the end, after filtering data. 
+
 # load libraries
 library(data.table)
 library(ggplot2)
@@ -252,10 +256,59 @@ met30_long[date_time %in% dn_tot_na & variable %in% c("albedo","net_rs"),
 met30_long[date_time %in% up_tot_na & variable %in% c("albedo","net_rs"),
            value := NA]
 
+
+
+# correct the timestamps
+# keep the original timestamp and fix date_time column to make all times MST
+# (use tz=UTC to prevent convervsion of data)
+met30_long[,date_time_orig := date_time][,date_time:=NULL]
+
+# do nothing before 2011-03-21
+met30_long[date_time_orig<as.POSIXct("2011-03-21 16:00:00",tz="UTC"),
+           date_time := date_time_orig]
+
+# minus 1 hour
+met30_long[(date_time_orig>=as.POSIXct("2011-03-21 17:00:00",tz="UTC") & 
+                            date_time_orig<=as.POSIXct("2011-11-12 12:00:00",tz="UTC")),
+           date_time := date_time_orig - hours(1)]
+
+# do nothing
+met30_long[date_time_orig>=as.POSIXct("2011-11-12 12:30:00",tz="UTC") & 
+             date_time_orig<as.POSIXct("2012-05-17 16:00:00",tz="UTC"),
+           date_time := date_time_orig]
+
+# minus 1 hour
+met30_long[date_time_orig>=as.POSIXct("2012-05-17 17:00:00",tz="UTC") & 
+             date_time_orig<=as.POSIXct("2013-01-11 13:00:00",tz="UTC"),
+           date_time := date_time_orig - hours(1)]
+
+# do nothing
+met30_long[date_time_orig>=as.POSIXct("2013-01-11 13:30:00",tz="UTC") & 
+             date_time_orig<as.POSIXct("2013-08-02 12:00:00",tz="UTC"),
+           date_time := date_time_orig]
+
+# minus 1 hour
+met30_long[date_time_orig>=as.POSIXct("2013-08-02 13:00:00",tz="UTC") & 
+             date_time_orig<=as.POSIXct("2015-10-19 12:00:00",tz="UTC"),
+           date_time := date_time_orig-hours(1)]
+
+
+# do nothing
+met30_long[date_time_orig>=as.POSIXct("2015-10-19 12:30:00",tz="UTC"),
+           date_time := date_time_orig]
+
+
+# remake year, month, doy
+met30_long[,':=' (year=year(date_time),
+                  month=month(date_time),
+                  doy=yday(date_time))]
+
+
+
 # check filtered data
 ggplot(met30_long[year==2020,], aes(date_time, value))+geom_point()+facet_grid(variable~.,scales="free_y")
 
-tailggplot(met30_long[variable=="airtemp"], aes(date_time, value))+geom_point()
+ggplot(met30_long[variable=="airtemp"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="rh"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="e"], aes(date_time, value))+geom_point()
 ggplot(met30_long[variable=="atm_press"], aes(date_time, value))+geom_point()
@@ -419,6 +472,44 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/Compiled")
 # save up to Jan 12 2020
 # write.table(met30_long, file="TowerMet_L1_2010_20200112_30min.csv", sep=",", row.names = FALSE)
 
+
+# 6 Apr 2020 update: 
+# adjusted timestamps!!!! 
+# save in long format. CHANGE NAME TO L2!!!!
+ write.table(met30_long, file="TowerMet_L2_2010_20200324_30min.csv", sep=",", row.names = FALSE)
+
+# AND save in wide format
+# save by year
+
+met30_wide_save <- data.table:: dcast(met30_long[!is.na(date_time),.(date_time, date_time_orig, variable,value)],
+                         date_time+date_time_orig~variable,
+                          value.var="value")
+
+setnames(met30_wide_save,c("date_time","date_time_orig","airtemp","rh","e",
+"atm_press","wnd_spd","wnd_dir","par","albedo","lws_5m","net_rs","net_ri","up_tot","dn_tot","precip.tot"),
+c("timestamp","timestamp_orig","t_hmp","rh_hmp","e_hmp","atm_press","hor_wnd_spd","hor_wnd_dir","par",
+"albedo","lws_2","NetRs","Net_RI","UpTot","DnTot","precip_tot"))
+
+ggplot(met30_wide_save, aes(x=timestamp))+
+  geom_line(aes(y=t_hmp)) # with NA
+
+# save by year!
+setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/Yearly_QAQC_timestamp")
+
+saveyears <- function(data,startyear,endyear) {
+  data[is.na(data)] <- NA
+  
+  for (i in startyear:endyear) {
+    data_save <- data[year(timestamp)==i,]
+    
+    write.table (data_save[,.(timestamp,timestamp_orig,t_hmp,rh_hmp,e_hmp,atm_press,hor_wnd_spd,hor_wnd_dir,
+                              precip_tot,par,albedo,lws_2,NetRs,Net_RI,UpTot,DnTot)],
+                 file=paste("dataL2_met",i, ".csv",sep="_"),
+                 sep =',', dec='.', row.names=FALSE,quote=FALSE)
+  }}
+
+
+saveyears(met30_wide_save,2010,2020)
 
 # calculate daily precip
 met_daily1 <- met_all[,list(precip_daily_mean = mean(precip),
