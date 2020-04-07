@@ -476,7 +476,7 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/Compiled")
 # 6 Apr 2020 update: 
 # adjusted timestamps!!!! 
 # save in long format. CHANGE NAME TO L2!!!!
- write.table(met30_long, file="TowerMet_L2_2010_20200324_30min.csv", sep=",", row.names = FALSE)
+# write.table(met30_long, file="TowerMet_L2_2010_20200324_30min.csv", sep=",", row.names = FALSE)
 
 # AND save in wide format
 # save by year
@@ -509,7 +509,7 @@ saveyears <- function(data,startyear,endyear) {
   }}
 
 
-saveyears(met30_wide_save,2010,2020)
+#saveyears(met30_wide_save,2010,2020)
 
 # calculate daily precip
 met_daily1 <- met_all[,list(precip_daily_mean = mean(precip),
