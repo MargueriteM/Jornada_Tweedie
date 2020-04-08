@@ -5,6 +5,11 @@
 # modified April 2019 to add 2010-2019   #
 ##########################################
 
+# 8 Apr 2020 update: update to March 24 and add timestamp correction due to daylight savings changes
+# JER_Tower_SN_TimestampMismatches.xlsx
+# make the timestamp adjustments at the end, after filtering data. 
+
+
 # Jornada Precip Data: import and explore
 
 library(data.table)
@@ -163,16 +168,16 @@ sink()
 # SN_2018[, date_time := as.POSIXct(Date, format=c("%m/%d/%y %H:%M", tz="America/Denver"))][, Date:=date_time][, date_time:=NULL]
 # SN_2019[, date_time := as.POSIXct(Date, format=c("%m/%d/%y %H:%M", tz="America/Denver"))][, Date:=date_time][, date_time:=NULL]
 
-
-SN_2010_2014[, date_time := ymd_hms(Date)][, Date:=date_time][, date_time:=NULL]
-SN_2015[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
-SN_2016[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
-SN_2017[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
-SN_2018[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
-SN_20190101000000[, date_time := mdy_hm(Date)][, Date:=date_time][, date_time:=NULL]
-SN_20190401000000[, date_time := ymd_hms(Date)][, Date:=date_time][, date_time:=NULL]
-SN_20190513130000[, date_time := ymd_hms(Date)][, Date:=date_time][, date_time:=NULL]
-SN_20200130125500[, date_time := ymd_hms(Date)][, Date:=date_time][, date_time:=NULL]
+SN_2010_2014[, date_time := parse_date_time(Date, c("Ymd HMS","mdy HM"),tz="UTC")][, Date:=date_time][, date_time:=NULL]
+SN_2015[, date_time := mdy_hm(Date,tz="UTC")][, Date:=date_time][, date_time:=NULL]
+SN_2016[, date_time := mdy_hm(Date,tz="UTC")][, Date:=date_time][, date_time:=NULL]
+SN_2017[, date_time := mdy_hm(Date,tz="UTC")][, Date:=date_time][, date_time:=NULL]
+SN_2018[, date_time := mdy_hm(Date,tz="UTC")][, Date:=date_time][, date_time:=NULL]
+SN_20190101000000[, date_time := mdy_hm(Date,tz="UTC")][, Date:=date_time][, date_time:=NULL]
+SN_20190401000000[, date_time := ymd_hms(Date,tz="UTC")][, Date:=date_time][, date_time:=NULL]
+SN_20190513130000[, date_time := ymd_hms(Date,tz="UTC")][, Date:=date_time][, date_time:=NULL]
+SN_20200130125500[, date_time := ymd_hms(Date,tz="UTC")][, Date:=date_time][, date_time:=NULL]
+SN_20200210081500[, date_time := ymd_hms(Date,tz="UTC")][, Date:=date_time][, date_time:=NULL]
 
 
 # fix character and logical columns in each data set so that they can be melted
@@ -240,20 +245,32 @@ colcheck_2019_1 <- fix_2019_1[[2]]
 SN_2019_1_fx[,c(colcheck_2019_1) := NULL]
 
 
-fix_2019_2 <- fix_columns(SN_20190513130000,colnames2019)
+fix_2019_2 <- fix_columns(SN_20190401000000,colnames2019)
 SN_2019_2_fx <- fix_2019_2[[1]]
 colcheck_2019_2 <- fix_2019_2[[2]]
 SN_2019_2_fx[,c(colcheck_2019_2) := NULL]
 
-fix_2020 <- fix_columns(SN_20200130125500,colnames2019)
-SN_2020_fx <- fix_2020[[1]]
-colcheck_2020 <- fix_2020[[2]]
-SN_2020_fx[,c(colcheck_2020) := NULL]
+fix_2019_3 <- fix_columns(SN_20190513130000,colnames2019)
+SN_2019_3_fx <- fix_2019_3[[1]]
+colcheck_2019_3 <- fix_2019_3[[2]]
+SN_2019_3_fx[,c(colcheck_2019_3) := NULL]
 
 
-# combine 2015-2020 (except 20190401000000 which is in long format)
+fix_2020_1 <- fix_columns(SN_20200130125500,colnames2019)
+SN_2020_1_fx <- fix_2020_1[[1]]
+colcheck_2020_1 <- fix_2020_1[[2]]
+SN_2020_1_fx[,c(colcheck_2020_1) := NULL]
+
+
+fix_2020_2 <- fix_columns(SN_20200210081500,colnames2019)
+SN_2020_2_fx <- fix_2020_2[[1]]
+colcheck_2020_2 <- fix_2020_2[[2]]
+SN_2020_2_fx[,c(colcheck_2020_2) := NULL]
+
+
+# combine 2015-2020 
 SN_2015_2020_fx <- rbind(SN_2015_fx,SN_2016_fx,SN_2017_fx,SN_2018_fx, SN_2019_1_fx, SN_2019_2_fx,
-                         SN_2020_fx, fill=TRUE)
+                         SN_2019_3_fx, SN_2020_1_fx, SN_2020_2_fx, fill=TRUE)
 
 
 # change the format of the data from wide to long so it's easier to work with
@@ -364,7 +381,7 @@ SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&date_time>=as.Date("2018-05-22
 
 # LATR 20cm: had baseline shift after 3 March 2019 and does a few seept until reaching new baseline 3rd Apr 2019 
 SN_30min[sensor=="moisture"&veg=="LATR"&depth==20&
-              date_time >= as.Date("2019-03-03") date_time <= as.Date("2019-04-03"), mean.val := NA]
+              date_time >= as.Date("2019-03-03") & date_time <= as.Date("2019-04-03"), mean.val := NA]
 
 
 # BARE 5cm 2019 June 20-30 remove all
