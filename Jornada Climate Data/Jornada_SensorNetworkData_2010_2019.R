@@ -127,6 +127,7 @@ colnames2010[, ':=' (sensor = sapply(strsplit(as.character(R_column_names),"_"),
 
 # 2019 is is a complete list of all columns that SHOULD be in the data and is an update on colnames2015
 # use that to screen and remove extra columns
+# 2019 also contains the names after moisture sensors were moved in June 2019 for full profiles in BARE and LATR
 colnames2019 <- fread(file="~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/MetaData/JER_SensorNetwork_ColumnNames_2019.csv",
                       sep=",",
                       header=TRUE) 
@@ -284,11 +285,8 @@ SN_2015_2020_long <- melt.data.table(SN_2015_2020_fx,c("Date"))
 SN_2010_2014_long <- merge(SN_2010_2014_long, colnames2010, by="variable")
 SN_2015_2020_long <- merge(SN_2015_2020_long, colnames2019, by="variable")
 
-# combine data from all years
-# 20190401000000 is already fixed from the automatic transfer and format stage. 
-# it just needs value converted to numeric and then appended
-SN_20190401fx <- SN_20190401000000[, value := as.numeric(value)]
-SN_2010_2020 <- rbind(SN_2010_2014_long, SN_2015_2020_long,SN_20190401fx)
+# # combine data from all years
+ SN_2010_2020 <- rbind(SN_2010_2014_long, SN_2015_2020_long)
 
 # remove duplicates from SN_2010_2020
 SN_2010_2020 <- SN_2010_2020[!duplicated(SN_2010_2020),]
@@ -334,7 +332,8 @@ SN_30min1 <- copy(SN_30min)
 SN_30min[sensor=="lws" & mean.val<0, mean.val := NA]
 
 ##### moisture: 
-# MUPO 30cm: July 2013 it looks like MUPO 30cm had a baseline shift? Or really high recharge precip??
+# MUPO 30cm: July 2013 it looks like MUPO 30cm had a baseline shift. And then measures until early 2015
+#            data after the baseline shoft doesn't match patterns in any other sensors anymore.
 SN_30min[sensor=="moisture"&veg=="MUPO"&depth==30&date_time>=as.Date("2013-07-01"),
          mean.val := NA]
 # MUPO 20cm: 4 Sep to 23 Oct 2017; April 2018; from October 27 2018 to end of Feb 2018
@@ -359,7 +358,7 @@ SN_30min[sensor=="moisture"&veg=="PRGL"&date_time>=as.Date("2018-02-20")&
            date_time<=as.Date("2018-02-22")&mean.val<0.05,
          mean.val := NA]
 
-# PRGL remove all after January 2019 (sensors got moved on ~19 June...have to update metadata)
+# PRGL remove all after January 2019 (sensors got moved on ~19 June)
 SN_30min[sensor=="moisture"&veg=="PRGL"&date_time>=as.Date("2019-01-01"),
          mean.val := NA]
 
@@ -418,7 +417,7 @@ ggplot(SN_30min[sensor=="moisture"&date_time>=as.Date("2018-10-01") & date_time<
   labs(title="Soil Moisture") +
   facet_grid(veg~., scales="free_y")
 
-ggplot(SN_30min[sensor%in%c("moisture","rain","lws")&year>=2018&mean.val<100,], aes(date_time, mean.val, colour=factor(depth)))+
+ggplot(SN_30min[sensor%in%c("moisture","rain","lws")&year>=2018,], aes(date_time, mean.val, colour=factor(depth)))+
   geom_point(size=0.1)+
   labs(title="Soil Moisture") +
   facet_grid(sensor+veg~., scales="free_y")+
@@ -571,6 +570,113 @@ ggplot(SN_30min[sensor=="solar" & year==2018,],
   facet_grid(SN~., scales="free_y")
 
 
+# correct the timestamps
+# keep the original timestamp and fix date_time column to make all times MST
+# (use tz=UTC to prevent convervsion of data)
+SN_long_corrected <- copy(SN_30min)
+
+SN_30min[,date_time_orig:=date_time][,date_time:=NULL]
+
+# do nothing
+SN_30min <- SN_30min[date_time_orig<as.POSIXct("2013-04-04 23:30:00",tz="UTC"),
+                                   date_time := date_time_orig]
+
+# minus 30 mins
+SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2013-04-05 00:00:00",tz="UTC") & 
+                                         date_time_orig<=as.POSIXct("2013-12-01 02:00:00",tz="UTC")),
+                         date_time := date_time_orig - minutes(30)]
+
+# do nothing
+SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2013-12-01 02:30:00",tz="UTC") & 
+                                         date_time_orig<as.POSIXct("2015-03-31 23:30:00",tz="UTC")),
+                         date_time := date_time_orig]
+
+# minus 1 hour
+SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2015-04-01 00:30:00",tz="UTC") & 
+                                         date_time_orig<=as.POSIXct("2015-11-06 02:00:00",tz="UTC")),
+                         date_time := date_time_orig - hours(1)]
+
+# do nothing
+SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2015-11-06 02:30:00",tz="UTC") & 
+                                         date_time_orig<as.POSIXct("2016-03-14 22:00:00",tz="UTC")),
+                     date_time := date_time_orig]
+
+# minus 1 hour
+SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2016-03-14 23:00:00",tz="UTC") & 
+                                         date_time_orig<=as.POSIXct("2016-11-08 02:00:00",tz="UTC")),
+                         date_time := date_time_orig - hours(1)]
+
+# do nothing
+SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2016-11-08 02:30:00",tz="UTC") & 
+                                         date_time_orig<as.POSIXct("2017-03-14 22:30:00",tz="UTC")),
+                         date_time := date_time_orig]
+
+# minus 30 mins
+SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2017-03-14 23:00:00",tz="UTC") & 
+                                         date_time_orig<=as.POSIXct("2017-11-08 02:00:00",tz="UTC")),
+                         date_time := date_time_orig - minutes(30)]
+
+
+# do nothing
+SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2017-11-08 02:30:00",tz="UTC") & 
+                                         date_time_orig<as.POSIXct("2018-09-07 9:30:00",tz="UTC")),
+                         date_time := date_time_orig]
+
+# minus 1 hour
+SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2018-09-07 10:30:00",tz="UTC") & 
+                                         date_time_orig<=as.POSIXct("2018-11-08 02:00:00",tz="UTC")),
+                          date_time := date_time_orig - hours(1)]
+
+# do nothing
+SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2018-11-08 02:30:00",tz="UTC") & 
+                                         date_time_orig<as.POSIXct("2019-03-11 02:00:00",tz="UTC")),
+                          date_time := date_time_orig]
+
+# minus 1 hour
+SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2019-03-11 03:00:00",tz="UTC") & 
+                                         date_time_orig<=as.POSIXct("2019-11-03 02:00:00",tz="UTC")),
+                          date_time := date_time_orig - hours(1)]
+
+# do nothing
+SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2019-11-03 02:30:00",tz="UTC")),
+                                      date_time := date_time_orig]
+
+
+
+
+
+# import SW potential to compare with adjusted timestamp
+sw.pot <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Ameriflux/QA_QC_Report_Ameriflux/US-Jo1_HH_2010_2019_SW_IN_pot.csv",
+                sep=",",header=TRUE, na.strings=c("-9999"))
+
+sw.pot[,date_time := parse_date_time(TIMESTAMP_END, "YmdHM",tz="UTC")]
+
+sw.pot[,':=' (sensor="sw_pot",
+              mean.val=SW_IN_POT,
+              date_time_orig=date_time,
+              year=year(date_time),
+              month=month(date_time),
+              doy=yday(date_time))][,SW_IN_POT:=NULL]
+
+
+SN_long_comp <- rbind(SN_30min, sw.pot, fill=TRUE)
+
+# look at adjusment
+# non adjusted, original
+daycheck <- as.Date("2019-11-01")
+
+
+ggplot(SN_long_comp[sensor%in% c("solar", "sw_pot")& (veg=="BARE" | is.na(veg)) & 
+                        as.Date(date_time)==daycheck])+
+  geom_line(aes(date_time_orig,mean.val, colour=sensor))
+
+# adjusted timesstamp
+ggplot(SN_long_comp[sensor%in% c("solar", "sw_pot")& (veg=="BARE" | is.na(veg)) & 
+                      as.Date(date_time)==daycheck])+
+  geom_line(aes(date_time,mean.val, colour=sensor))
+
+
+
 # save half hour means
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Combined")
 ## write.table(SN_30min, file="SensorNetwork_L1_2010_2019_30min.csv", sep=",", row.names = FALSE)
@@ -582,6 +688,48 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Combined")
 # write.table(SN_30min, file="SensorNetwork_L1_2010_20200210_30min.csv", sep=",", row.names = FALSE)
 # 2020-02-13 updated to retain LATR 10cm and 20cm, MUPO 20cm. These probes had baseling shifts but otherwise useful dynamics
 # write.table(SN_30min, file="SensorNetwork_L1_2010_20200213_30min.csv", sep=",", row.names = FALSE)
+
+# 8 Apr 2020 update: 
+# adjusted timestamps!!!! 
+# save in long format. CHANGE NAME TO L2!!!!
+# write.table(SN_30min, file="SensorNetwork_L2_2010_20200324_30min.csv", sep=",", row.names = FALSE)
+
+
+# AND save in wide format
+# save by year
+SN_30min[!is.na(veg)&!is.na(depth),sensorID:= paste(SN,sensor,veg,depth,sep="_")]
+SN_30min[!is.na(veg)&is.na(depth),sensorID:= paste(SN,sensor,veg,sep="_")]
+SN_30min[is.na(veg)&is.na(depth),sensorID:= paste(SN,sensor,sep="_")]
+
+
+SN30_wide_save <- data.table:: dcast(SN_30min[!is.na(date_time),
+                                              .(date_time, date_time_orig, sensorID,mean.val)],
+                                      date_time+date_time_orig~sensorID,
+                                      value.var="mean.val")
+
+setnames(SN30_wide_save,c("date_time","date_time_orig"),
+         c("timestamp","timestamp_orig"))
+
+ggplot(SN30_wide_save, aes(x=timestamp))+
+  geom_line(aes(y=SN7_moisture_MUPO_5)) # with NA
+
+# save by year!
+setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Yearly_QAQC_timestamp")
+
+saveyears <- function(data,startyear,endyear) {
+  data[is.na(data)] <- NA
+  
+  for (i in startyear:endyear) {
+    data_save <- data[year(timestamp)==i,]
+    
+    write.table (data_save,
+                 file=paste("dataL2_SensorNetwork",i, ".csv",sep="_"),
+                 sep =',', dec='.', row.names=FALSE,quote=FALSE)
+  }}
+
+
+saveyears(SN30_wide_save,2010,2020)
+
 
 
 # FOR ANTHONY: save December 2018 to March 2019 soil moisture nad precip for Bare
