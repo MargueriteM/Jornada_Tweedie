@@ -21,6 +21,11 @@
 #                8 May, 2019                      #
 ###################################################
 
+# 6 Apr 2020 update: update to March 24 and add timestamp correction due to daylight savings changes
+# JER_Tower_SN_TimestampMismatches.xlsx
+# make the timestamp adjustments at the end, after filtering data. 
+
+
 # load libraries
 library(data.table)
 library(ggplot2)
@@ -523,6 +528,84 @@ ggplot(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Av
   facet_grid(variable~., scales="free_y")
 
 
+# correct the timestamps
+# keep the original timestamp and fix date_time column to make all times MST
+# (use tz=UTC to prevent convervsion of data)
+flux_long_corrected <- copy(flux_long)
+
+flux_long[,date_time_orig := date_time][,date_time:=NULL]
+
+# do nothing before 2011-03-21
+flux_long[date_time_orig<as.POSIXct("2011-03-21 16:00:00",tz="UTC"),
+                date_time := date_time_orig]
+
+# minus 1 hour
+flux_long[(date_time_orig>=as.POSIXct("2011-03-21 17:00:00",tz="UTC") & 
+                   date_time_orig<=as.POSIXct("2011-11-12 12:00:00",tz="UTC")),
+                date_time := date_time_orig - hours(1)]
+
+# do nothing
+flux_long[date_time_orig>=as.POSIXct("2011-11-12 12:30:00",tz="UTC") & 
+                  date_time_orig<as.POSIXct("2012-05-17 16:00:00",tz="UTC"),
+                date_time := date_time_orig]
+
+# minus 1 hour
+flux_long[date_time_orig>=as.POSIXct("2012-05-17 17:00:00",tz="UTC") & 
+                  date_time_orig<=as.POSIXct("2013-01-11 13:00:00",tz="UTC"),
+                date_time := date_time_orig - hours(1)]
+
+# do nothing
+flux_long[date_time_orig>=as.POSIXct("2013-01-11 13:30:00",tz="UTC") & 
+                  date_time_orig<as.POSIXct("2013-08-02 12:00:00",tz="UTC"),
+                date_time := date_time_orig]
+
+# minus 1 hour
+flux_long[date_time_orig>=as.POSIXct("2013-08-02 13:00:00",tz="UTC") & 
+                  date_time_orig<=as.POSIXct("2015-10-19 12:00:00",tz="UTC"),
+                date_time := date_time_orig-hours(1)]
+
+
+# do nothing
+flux_long[date_time_orig>=as.POSIXct("2015-10-19 12:30:00",tz="UTC"),
+                date_time := date_time_orig]
+
+
+# remake year, month, doy
+flux_long[,':=' (year=year(date_time),
+                       month=month(date_time),
+                       doy=yday(date_time))]
+
+# import SW potential to compare with adjusted timestamp
+sw.pot <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Ameriflux/QA_QC_Report_Ameriflux/US-Jo1_HH_2010_2019_SW_IN_pot.csv",
+                sep=",",header=TRUE, na.strings=c("-9999"))
+
+sw.pot[,date_time := parse_date_time(TIMESTAMP_END, "YmdHM",tz="UTC")]
+
+sw.pot[,':=' (location="potential",
+              variable="sw_pot",
+              value=SW_IN_POT,
+              date_time_orig=date_time,
+              year=year(date_time),
+              month=month(date_time),
+              doy=yday(date_time))][,SW_IN_POT:=NULL]
+
+
+flux_long_comp <- rbind(flux_long, sw.pot, fill=TRUE)
+
+# look at adjusment
+# non adjusted, original
+daycheck <- as.Date("2013-01-10")
+
+ggplot(flux_long_comp[variable%in% c("Rs_upwell_Avg", "sw_pot")&
+                        as.Date(date_time)==daycheck])+
+  geom_line(aes(date_time_orig,value, colour=variable))
+
+# adjusted timesstamp
+ggplot(flux_long_comp[variable%in% c("Rs_upwell_Avg", "sw_pot")&
+                        as.Date(date_time)==daycheck])+
+  geom_line(aes(date_time,value, colour=variable))
+
+
 # save 30min filtered HFP, Rs, Rl, Rn, LWS from flux table 
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining")
 # write.table(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
@@ -539,7 +622,55 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining
 # "Rn_nr_Avg", "lws_1_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg","gapfill_id"),.(date_time,variable,value)],
 # file="FluxTable_L1_2010_20200112_30min.csv", sep=",", row.names = FALSE)
 
+# save updated to 24 March 2020 and with timestamps corrected
+# CHANGE NAME TO L2!!!!
+ # write.table(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
+ #  "Rn_nr_Avg", "lws_1_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg"),.(date_time,date_time_orig,variable,gapfill_id,value)],
+ #  file="FluxTable_L2_2010_2020324_30min.csv", sep=",", row.names = FALSE)
 
+# # AND save in wide format
+# save by year
+
+flux_wide_save_vars <- data.table:: dcast(flux_long[!is.na(date_time)&variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg",
+                                                                                 "Rl_upwell_Avg","Rl_downwell_Avg",
+                                                  "Rn_nr_Avg", "lws_1_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg",
+                                                  "hfp01_4_Avg"),
+                                               .(date_time, date_time_orig, variable,value)],
+                                      date_time+date_time_orig~variable,
+                                      value.var="value")
+
+flux_wide_save_gapID <- data.table:: dcast(flux_long[!is.na(date_time)&variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg",
+                                                                                 "Rl_upwell_Avg","Rl_downwell_Avg",
+                                                                                 "Rn_nr_Avg", "lws_1_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg",
+                                                                                 "hfp01_4_Avg"),
+                                               .(date_time, variable,gapfill_id)],
+                                     date_time~paste(variable,"gapfillID",sep="_"),
+                                     value.var="gapfill_id")
+
+flux_wide_save <- merge(flux_wide_save_vars,flux_wide_save_gapID,by="date_time")
+
+
+setnames(flux_wide_save,c("date_time","date_time_orig"),
+         c("timestamp","timestamp_orig"))
+
+ggplot(flux_wide_save, aes(x=timestamp))+
+  geom_line(aes(y=Rl_upwell_Avg)) # with NA
+
+# save by year!
+setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Yearly_QAQC_timestamp")
+
+saveyears <- function(data,startyear,endyear) {
+  data[is.na(data)] <- NA
+  
+  for (i in startyear:endyear) {
+    data_save <- data[year(timestamp)==i,]
+    
+    write.table (data_save,
+                 file=paste("dataL2_flux",i, ".csv",sep="_"),
+                 sep =',', dec='.', row.names=FALSE,quote=FALSE)
+  }}
+
+saveyears(flux_wide_save,2010,2020)
 
 # look at fluxes:
 ggplot(flux_long[variable == "Fc_wpl",])+
