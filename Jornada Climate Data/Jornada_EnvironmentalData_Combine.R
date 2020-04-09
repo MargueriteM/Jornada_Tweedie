@@ -15,6 +15,12 @@
 #          April 2019                     #
 ###########################################
 
+
+# 8 Apr 2020 update: update to March 24 and add data timestamp correction due to daylight savings changes
+# JER_Tower_SN_TimestampMismatches.xlsx
+# all QA/QC data with timestamp corrected is L2
+# in all data, date_time is the corrected column and date_time_orig was originally logged with the data.
+
 # 30 Jan 2020: added information to biomet preparation (create biomet2) that retains more sensor info. Merge this to the post-EppyPro data
 # https://ameriflux.lbl.gov/data/aboutdata/data-variables/ 
 
@@ -121,7 +127,7 @@ library(data.table) # library for data table which is more efficient with large 
 #############
 # Sensor network data:
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Combined")
-SN_30min <- fread("SensorNetwork_L1_2010_20200213_30min.csv", sep=",", header=TRUE)
+SN_30min <- fread("SensorNetwork_L2_2010_20200324_30min.csv", sep=",", header=TRUE)
 # format date and add column to deginate the data stream
 SN_30min[, ':=' (date_time = ymd_hms(date_time), datastream = "SN", location = "SN")]
 setnames(SN_30min, 'sensor', 'variable')
@@ -241,8 +247,23 @@ nrcs[,':=' (year = year(date_time),
 #   geom_line()+
 #   facet_grid(datastream~.)
 
-# combine all three SEL data streams and 2010, 2011 NRCS data
-env_30min <- rbind(SN_30min,met_30min,flux_30min,soil_30min, nrcs, fill=TRUE)
+# import potential short wave Incoming radiation shared by Ameriflux
+sw.pot <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Ameriflux/QA_QC_Report_Ameriflux/US-Jo1_HH_2010_2019_SW_IN_pot.csv",
+                sep=",",header=TRUE, na.strings=c("-9999"))
+
+sw.pot[,date_time := parse_date_time(TIMESTAMP_END, "YmdHM",tz="UTC")]
+
+sw.pot[,':=' (location="potential",
+              variable="sw_pot",
+              mean.val=SW_IN_POT,
+              year=year(date_time),
+              month=month(date_time),
+              doy=yday(date_time),
+              TIMESTAMP_START=NULL,
+              TIMESTAMP_END=NULL)][,SW_IN_POT:=NULL]
+
+# combine all three SEL data streams and 2010, 2011 NRCS data, SW potential
+env_30min <- rbind(SN_30min,met_30min,flux_30min,soil_30min, nrcs,sw.pot, fill=TRUE)
 
 # some datastreams don't have all the time stamp columns. Create
 env_30min[,doy:=yday(date_time)]
