@@ -256,9 +256,69 @@ met30_long[date_time %in% dn_tot_na & variable %in% c("albedo","net_rs"),
 met30_long[date_time %in% up_tot_na & variable %in% c("albedo","net_rs"),
            value := NA]
 
+# # use cross-correlation between PAR and potential short-wave IN to define where lags are
+# # import SW potential to compare with adjusted timestamp
+# sw.pot <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Ameriflux/QA_QC_Report_Ameriflux/US-Jo1_HH_2010_2019_SW_IN_pot.csv",
+#                 sep=",",header=TRUE, na.strings=c("-9999"))
+# 
+# sw.pot[,date_time := parse_date_time(TIMESTAMP_END, "YmdHM",tz="UTC")]
+# 
+
+# # merge sw.pot with par
+# dat.ccf <- merge(sw.pot,met30_long[variable=="par",], by="date_time")
+# dat.ccf[,date:=as.Date(date_time)]
+# # look at cross correlation
+# ggplot(dat.ccf[as.Date(date_time)==as.Date("2015-11-26")])+
+#   geom_line(aes(date_time, SW_IN_POT),colour="black")+
+#   geom_line(aes(date_time, value),colour="red")
+#   
+# ggplot(dat.ccf[as.Date(date_time)==as.Date("2015-11-26")],
+#        aes(SW_IN_POT,value))+
+#   geom_point()
+# 
+# dat.test <- dat.ccf[as.Date(date_time)==as.Date("2015-11-26")& !is.na(SW_IN_POT) & !is.na(value),
+#                                                                .(SW_IN_POT,value)]
+# 
+# test.ccf <- ccf(dat.test[,.(SW_IN_POT)],
+#                 dat.test[,.(value)],pl=TRUE)
+# 
+# test.ccf.out <- data.table(lag=test.ccf$lag[1:length(test.ccf$lag)],
+#                            acf=test.ccf$acf[1:length(test.ccf$acf)])
+# 
+# ccf.function <- function(dat.in) {
+#   dat <- dat.in[!is.na(SW_IN_POT) & !is.na(value),
+#                  .(SW_IN_POT,value)]
+#   test.ccf <- ccf(dat[,.(SW_IN_POT)],
+#                   dat[,.(value)],pl=FALSE)
+#   out.ccf <- data.table(lag=test.ccf$lag[1:length(test.ccf$lag)],
+#                     acf=test.ccf$acf[1:length(test.ccf$acf)])
+#      return(out.ccf)
+# }
+# 
+# ccf.all <- dat.ccf[year==2013&!is.na(value),ccf.function(.SD),
+#                         by="date"]
+# 
+# ggplot(data=ccf.all[month(date)==8])+
+#  geom_bar(aes(lag,acf),stat="identity")+
+#   facet_wrap(.~date)
+# 
+# ggplot(dat.ccf[year==2013&month==8])+
+#   geom_line(aes(hour(date_time), SW_IN_POT),colour="black")+
+#   geom_line(aes(hour(date_time), value),colour="red")+
+#   facet_wrap(.~date)
+# 
+# 
+# # extract the maximum lags
+# max.ccf <- ccf.all[,list(acf=max(acf)),by="date"]
+# max.lag <- merge(max.ccf,ccf.all,by=c("date","acf"),all.x=TRUE)
+#   
+# # plot the lags
+# ggplot(max.lag[month(date)==8], aes(date,lag))+geom_line()+geom_point()
+
 
 
 # correct the timestamps
+met30_long_orig <- copy(met30_long)
 # keep the original timestamp and fix date_time column to make all times MST
 # (use tz=UTC to prevent convervsion of data)
 met30_long[,date_time_orig := date_time][,date_time:=NULL]
@@ -303,6 +363,40 @@ met30_long[,':=' (year=year(date_time),
                   month=month(date_time),
                   doy=yday(date_time))]
 
+
+# compare to sw.pot
+sw.pot[,':=' (variable="sw_pot",
+              value=SW_IN_POT,
+             # date_time_orig=date_time,
+              year=year(date_time),
+              month=month(date_time),
+              doy=yday(date_time))][,SW_IN_POT:=NULL]
+
+
+met30_long_comp <- rbind(met30_long, sw.pot, fill=TRUE)
+
+# look at adjusment
+# non adjusted, original
+daycheck <- as.Date("2011-03-21")
+
+
+ggplot(met30_long_comp[variable%in% c("par", "sw_pot") & 
+                      as.Date(date_time_orig)==daycheck])+
+  geom_line(aes(date_time_orig,value, colour=variable))
+
+ggplot(met30_long_comp[variable%in% c("par", "sw_pot") & 
+                         year==2012&month==5])+
+  geom_line(aes(date_time_orig,value, colour=variable))
+
+
+# adjusted timesstamp
+ggplot(met30_long_comp[variable%in% c("par", "sw_pot") & 
+                         as.Date(date_time)==daycheck])+
+  geom_line(aes(date_time,value, colour=variable))
+
+ggplot(met30_long_comp[variable%in% c("par", "sw_pot") & 
+                         year==2012&month==5])+
+  geom_line(aes(date_time,value, colour=variable))
 
 
 # check filtered data
