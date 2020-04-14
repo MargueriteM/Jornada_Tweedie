@@ -396,8 +396,12 @@ flux_long[variable=="lws_1_Avg"&date_time<as.Date("2011-04-10"), value := NA]
 flux_long[variable=="lws_1_Avg"&
             (date_time<as.Date("2012-08-24") | date_time>as.Date("2015-03-31")), value := NA]
 
+# lws_2 remove the really low values in Apr 2015
+flux_long[variable=="lws_2_Avg"&value<225, value := NA]
+
+
 # graph lws data
-ggplot(flux_long[variable %in% c("lws_1_Avg", "lws_2_Avg"),],
+ggplot(flux_long[variable %in% c("lws_1_Avg", "lws_2_Avg")&year==2015,],
        aes(date_time, value))+geom_line()+
   facet_grid(variable~.,scales="free_y")
 
@@ -532,6 +536,9 @@ ggplot(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Av
 # keep the original timestamp and fix date_time column to make all times MST
 # (use tz=UTC to prevent convervsion of data)
 flux_long_corrected <- copy(flux_long)
+##rm(flux_long)
+##flux_long <- copy(flux_long_corrected)
+
 
 flux_long[,date_time_orig := date_time][,date_time:=NULL]
 
@@ -592,9 +599,12 @@ sw.pot[,':=' (location="potential",
 
 flux_long_comp <- rbind(flux_long, sw.pot, fill=TRUE)
 
+# get rid of the NA timestamps from date_time
+flux_long_comp <- flux_long_comp[!is.na(date_time),]
+
 # look at adjusment
 # non adjusted, original
-daycheck <- as.Date("2013-01-10")
+daycheck <- as.Date("2015-10-19")
 
 ggplot(flux_long_comp[variable%in% c("Rs_upwell_Avg", "sw_pot")&
                         as.Date(date_time)==daycheck])+
@@ -604,6 +614,7 @@ ggplot(flux_long_comp[variable%in% c("Rs_upwell_Avg", "sw_pot")&
 ggplot(flux_long_comp[variable%in% c("Rs_upwell_Avg", "sw_pot")&
                         as.Date(date_time)==daycheck])+
   geom_line(aes(date_time,value, colour=variable))
+
 
 
 # save 30min filtered HFP, Rs, Rl, Rn, LWS from flux table 
@@ -624,9 +635,10 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining
 
 # save updated to 24 March 2020 and with timestamps corrected
 # CHANGE NAME TO L2!!!!
- # write.table(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
- #  "Rn_nr_Avg", "lws_1_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg"),.(date_time,date_time_orig,variable,gapfill_id,value)],
- #  file="FluxTable_L2_2010_2020324_30min.csv", sep=",", row.names = FALSE)
+# save flux_long_comp instead just flux_long because for some reason that fixes the timestamp 'reversion'!!! 
+# write.table(flux_long_comp[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
+#  "Rn_nr_Avg", "lws_1_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg"),.(date_time,date_time_orig,variable,gapfill_id,value)],
+#  file="FluxTable_L2_2010_2020324_30min.csv", sep=",", dec=".", row.names = FALSE)
 
 # # AND save in wide format
 # save by year
@@ -670,7 +682,7 @@ saveyears <- function(data,startyear,endyear) {
                  sep =',', dec='.', row.names=FALSE,quote=FALSE)
   }}
 
-saveyears(flux_wide_save,2010,2020)
+# saveyears(flux_wide_save,2010,2020)
 
 # look at fluxes:
 ggplot(flux_long[variable == "Fc_wpl",])+

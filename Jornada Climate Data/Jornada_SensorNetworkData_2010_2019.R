@@ -574,6 +574,8 @@ ggplot(SN_30min[sensor=="solar" & year==2018,],
 # keep the original timestamp and fix date_time column to make all times MST
 # (use tz=UTC to prevent convervsion of data)
 SN_long_corrected <- copy(SN_30min)
+## rm(SN_30min)
+## SN_30min <- copy(SN_long_corrected)
 
 SN_30min[,date_time_orig:=date_time][,date_time:=NULL]
 
@@ -658,14 +660,15 @@ sw.pot[,':=' (sensor="sw_pot",
               month=month(date_time),
               doy=yday(date_time))][,SW_IN_POT:=NULL]
 
-
+# combine 
 SN_long_comp <- rbind(SN_30min, sw.pot, fill=TRUE)
+[!is.na(date_time),]
 
 # look at adjusment
 # non adjusted, original
-daycheck <- as.Date("2019-11-01")
+daycheck <- as.Date("2016-03-17")
 
-
+# original timestamps (uncorrected)
 ggplot(SN_long_comp[sensor%in% c("solar", "sw_pot")& (veg=="BARE" | is.na(veg)) & 
                         as.Date(date_time)==daycheck])+
   geom_line(aes(date_time_orig,mean.val, colour=sensor))
@@ -675,6 +678,21 @@ ggplot(SN_long_comp[sensor%in% c("solar", "sw_pot")& (veg=="BARE" | is.na(veg)) 
                       as.Date(date_time)==daycheck])+
   geom_line(aes(date_time,mean.val, colour=sensor))
 
+# compar PAR
+ggplot(SN_long_comp[sensor%in% c("par", "sw_pot")& (veg=="BARE" | is.na(veg)) & 
+                      as.Date(date_time)==daycheck])+
+  geom_line(aes(date_time_orig,mean.val, colour=sensor))
+
+
+ggplot(SN_long_comp[sensor%in% c("par", "sw_pot")& (veg=="BARE" | is.na(veg)) & 
+                      as.Date(date_time)==daycheck])+
+  geom_line(aes(date_time,mean.val, colour=sensor))
+
+# check the same data on two date columns in SN_30min
+ggplot(SN_30min[sensor%in% c("par")& (veg=="BARE" | is.na(veg)) & 
+                  as.Date(date_time)==daycheck])+
+  geom_line(aes(date_time, mean.val), colour="red")+
+  geom_line(aes(date_time_orig, mean.val), colour="black")
 
 
 # save half hour means
@@ -692,17 +710,19 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Combined")
 # 8 Apr 2020 update: 
 # adjusted timestamps!!!! 
 # save in long format. CHANGE NAME TO L2!!!!
-# write.table(SN_30min, file="SensorNetwork_L2_2010_20200324_30min.csv", sep=",", row.names = FALSE)
+# save SN_long_comp to try and solve the timestamp reverting issue.
+# write.table(SN_long_comp[!(sensor %in% c("sw.pot")),], file="SensorNetwork_L2_2010_20200324_30min.csv", sep=",", dec='.', row.names = FALSE)
 
 
 # AND save in wide format
+# use SN_long_comp
 # save by year
-SN_30min[!is.na(veg)&!is.na(depth),sensorID:= paste(SN,sensor,veg,depth,sep="_")]
-SN_30min[!is.na(veg)&is.na(depth),sensorID:= paste(SN,sensor,veg,sep="_")]
-SN_30min[is.na(veg)&is.na(depth),sensorID:= paste(SN,sensor,sep="_")]
+SN_long_comp[!is.na(veg)&!is.na(depth),sensorID:= paste(SN,sensor,veg,depth,sep="_")]
+SN_long_comp[!is.na(veg)&is.na(depth),sensorID:= paste(SN,sensor,veg,sep="_")]
+SN_long_comp[is.na(veg)&is.na(depth),sensorID:= paste(SN,sensor,sep="_")]
 
 
-SN30_wide_save <- data.table:: dcast(SN_30min[!is.na(date_time),
+SN30_wide_save <- data.table:: dcast(SN_long_comp[!is.na(date_time) & !(sensor %in% c("sw_pot")),
                                               .(date_time, date_time_orig, sensorID,mean.val)],
                                       date_time+date_time_orig~sensorID,
                                       value.var="mean.val")
@@ -728,7 +748,7 @@ saveyears <- function(data,startyear,endyear) {
   }}
 
 
-saveyears(SN30_wide_save,2010,2020)
+# saveyears(SN30_wide_save,2010,2020)
 
 
 
