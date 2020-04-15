@@ -580,7 +580,7 @@ SN_long_corrected <- copy(SN_30min)
 SN_30min[,date_time_orig:=date_time][,date_time:=NULL]
 
 # do nothing
-SN_30min <- SN_30min[date_time_orig<as.POSIXct("2013-04-04 23:30:00",tz="UTC"),
+SN_30min <- SN_30min[date_time_orig<as.POSIXct("2013-04-04 23:00:00",tz="UTC"),
                                    date_time := date_time_orig]
 
 # minus 30 mins
@@ -610,7 +610,7 @@ SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2016-03-14 23:00:00",tz="UTC")
 
 # do nothing
 SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2016-11-08 02:30:00",tz="UTC") & 
-                                         date_time_orig<as.POSIXct("2017-03-14 22:30:00",tz="UTC")),
+                                         date_time_orig<as.POSIXct("2017-03-14 22:00:00",tz="UTC")),
                          date_time := date_time_orig]
 
 # minus 30 mins
@@ -661,8 +661,8 @@ sw.pot[,':=' (sensor="sw_pot",
               doy=yday(date_time))][,SW_IN_POT:=NULL]
 
 # combine 
-SN_long_comp <- rbind(SN_30min, sw.pot, fill=TRUE)
-[!is.na(date_time),]
+SN_long_comp <- rbind(SN_30min[!is.na(date_time),], sw.pot, fill=TRUE)
+
 
 # look at adjusment
 # non adjusted, original
