@@ -586,7 +586,7 @@ SN_30min <- SN_30min[date_time_orig<as.POSIXct("2013-04-04 23:30:00",tz="UTC"),
 # minus 30 mins
 SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2013-04-05 00:00:00",tz="UTC") & 
                                          date_time_orig<=as.POSIXct("2013-12-01 02:00:00",tz="UTC")),
-                         date_time := date_time_orig - minutes(30)]
+                         date_time := date_time_orig - hours(1)]
 
 # do nothing
 SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2013-12-01 02:30:00",tz="UTC") & 
@@ -616,7 +616,7 @@ SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2016-11-08 02:30:00",tz="UTC")
 # minus 30 mins
 SN_30min <- SN_30min[(date_time_orig>=as.POSIXct("2017-03-14 23:00:00",tz="UTC") & 
                                          date_time_orig<=as.POSIXct("2017-11-08 02:00:00",tz="UTC")),
-                         date_time := date_time_orig - minutes(30)]
+                         date_time := date_time_orig - hours(1)]
 
 
 # do nothing
@@ -666,7 +666,7 @@ SN_long_comp <- rbind(SN_30min, sw.pot, fill=TRUE)
 
 # look at adjusment
 # non adjusted, original
-daycheck <- as.Date("2016-03-17")
+daycheck <- as.Date("2013-04-05", tz="UTC")
 
 # original timestamps (uncorrected)
 ggplot(SN_long_comp[sensor%in% c("solar", "sw_pot")& (veg=="BARE" | is.na(veg)) & 
