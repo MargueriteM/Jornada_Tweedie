@@ -23,27 +23,50 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filt
 # 29 Jan 2020
 # import data that was filtered by 3SD filter
 # load("JER_flux_2010_2019_EddyPro_Output_filtered_SD_20200128.Rdata")
-load("JER_flux_2010_2019_EddyPro_Output_filtered_SD_20200212.Rdata")
+# load("JER_flux_2010_2019_EddyPro_Output_filtered_SD_20200212.Rdata")
 
+
+# 27 Apr 2020
+# import data that's timestamp corrected
+load("JER_flux_2010_2019_EddyPro_Output_filtered_SD_TIMEcorr_20200427.Rdata")
 
 # convert date to POSIXct and get a year, day, hour column
 # if this step doesn't work, make sure bit64 library is loaded otherwise the timestamps importa in a non-sensical format
-flux_filter_sd[,':=' (date_time = parse_date_time(TIMESTAMP_START,"YmdHM",tz="UTC"),
-            date_time_end = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
-  ,':='(Year_end = year(date_time_end),Year=year(date_time),DoY=yday(date_time),
+flux_filter_sd[,':=' (date_time = parse_date_time(TIMESTAMP_END_correct,"YmdHM",tz="UTC"),
+            date_time_start = parse_date_time(TIMESTAMP_START_correct,"YmdHM",tz="UTC"))][
+  ,':='(Year=year(date_time),DoY=yday(date_time),
         hours = hour(date_time), mins = minute(date_time))]
 
 # there's duplicated data in 2012 DOY 138
-flux_filter <- (flux_filter_sd[!(duplicated(flux_filter_sd, by=c("TIMESTAMP_START")))])
+flux_filter <- (flux_filter_sd[!(duplicated(flux_filter_sd, by=c("TIMESTAMP_START_correct")))])
 
+# exclude FC, LE, H data where FC_SSITC_TEST==1 because that data should only be used for budgets, not gap-filling
+
+ggplot(flux_filter, aes(date_time,FC,colour=factor(FC_SSITC_TEST)))+
+  geom_point()
+
+
+ggplot(flux_filter, aes(date_time,LE,colour=factor(LE_SSITC_TEST)))+
+  geom_point()
+
+ggplot(flux_filter, aes(date_time,H,colour=factor(H_SSITC_TEST)))+
+  geom_point()
+
+
+# remove 1s
+edata <- copy(flux_filter)
+
+edata[FC_SSITC_TEST==1, FC := NA]
+edata[LE_SSITC_TEST==1, LE := NA]
+edata[H_SSITC_TEST==1, H := NA]
 
 # format data columns for ReddyProc
 # Year	DoY	Hour	NEE	LE	H	Rg	Tair	Tsoil	rH	VPD	Ustar 
 
-flux_filter[mins==0, Hour := hours+0.0]
-flux_filter[mins==30, Hour := hours+0.5]
+edata[mins==0, Hour := hours+0.0]
+edata[mins==30, Hour := hours+0.5]
 
-edata <- flux_filter[,.(Year,
+edata <- edata[,.(Year,
                  DoY,
                  Hour,
                  FC,
@@ -81,20 +104,42 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
   # and remove the 00:00 first time point in 2010. It's all NA and Reddyproc is getting upset
  # edata <- edata[!(Year==2010 & DoY == 1 & Hour == 0.0)]
  
+ 
+ # online tool says hours must be between 0.5 and 24.0 
+ # therefore add 0.5 to each hour
+ edata[,Hour := Hour+0.5]
+ 
+  # check that all days have 48 points
+ daylength <- edata[,list(daylength=length(Hour)),by="Year,DoY"]
+ 
  # convert edata to data frame for ReddyProc
  edata <- as.data.frame(edata)
- 
  
 # calculate VPD from rH and Tair in hPa (mbar), at > 10 hPa the light response curve parameters change
 edata$VPD <- fCalcVPDfromRHandTair(edata$rH, edata$Tair)
 
+# remove the first 8 days of 2010 which have NA data
+edata2010 <- subset(edata,Year==2010&DoY>=9)
+edata2011 <- subset(edata, Year>=2011)
+
+edata1 <- rbind(edata2010,edata2011)
+# online tool says missing values must be -9999, convert all NA to -9999
+edata[is.na(edata)]=-9999
+
 # export data for online tool of ReddyProc,
+# with timesstamp corrected
+# write.table(edata, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200427/JER_ReddyProc_Input_2011_2019_20200427.txt", sep=" ", dec=".",row.names=FALSE)
+
+
 #write.table(edata, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20203001/JER_ReddyProc_Input_2011_2019_20200131.txt", sep=" ", dec=".",row.names=FALSE)
-#write.table(edata, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200212/JER_ReddyProc_Input_2010_2019_20200212.txt", sep=" ", dec=".",row.names=FALSE)
+#write.table(edata2011, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200212/JER_ReddyProc_Input_2011_2019_20200212.txt", sep=" ", dec=".",row.names=FALSE)
+
+# Process with all the SSITC_TEST==1 removed
+#write.table(edata2011, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200220/JER_ReddyProc_Input_2011_2019_20200220.txt", sep=" ", dec=".",row.names=FALSE)
 
 # Run ReddyProc
 
-EddyDataWithPosix <- edata %>% 
+EddyDataWithPosix <- subset(edata,Year==2010&DoY>=9) %>% 
   fConvertTimeToPosix('YDH', Year = 'Year', Day = 'DoY', Hour = 'Hour')
 
 EddyDataWithPosix$sDateTime <- EddyDataWithPosix$DateTime
