@@ -211,9 +211,9 @@ flux[H_SSITC_TEST>1 | CUSTOM_AGC_MEAN>50, filter_H := 1L]
 # remove H < -120 and > 560, these are not typical values.
 flux[H < (-120) | H > 560, filter_H := 1L]
 # in 2015 March there's one H > 400 that's an outlier
-flux[year==2015 & month==3 & H>400, filter_H := 1L]
+flux[year_orig==2015 & month_orig==3 & H>400, filter_H := 1L]
 # in 2018 Jan there's one H>400 that's an outlier
-flux[year==2018 & month==1 & H>400, filter_H := 1L]
+flux[year_orig==2018 & month_orig==1 & H>400, filter_H := 1L]
 
 
 # look at all filtered H
@@ -266,7 +266,7 @@ flux[P_RAIN_1_1_1>0, ':=' (filter_fc = 1L, filter_LE = 1L, filter_H = 1L)]
 # (use tz=UTC to prevent convervsion of data)
 flux_corrected <- copy(flux)
 ##rm(flux_long)
-##flux_long <- copy(flux_long_corrected)
+##flux<- copy(flux_corrected)
 
 # do nothing before 2011-03-21
 flux[date_time_orig<as.POSIXct("2011-03-21 16:00:00",tz="UTC"),
@@ -316,6 +316,24 @@ time_all[, ':=' (TIMESTAMP_START_correct = as.character(date_time_start, format=
 
 # merge full date_time with flux
 flux <- merge(flux,time_all[,.(date_time,TIMESTAMP_START_correct,TIMESTAMP_END_correct)], by="date_time", all.y=TRUE)
+
+# as SW pot from Ameriflux and check
+sw.pot <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Ameriflux/QA_QC_Report_Ameriflux/US-Jo1_HH_2010_2019_SW_IN_pot.csv",
+                sep=",",header=TRUE, na.strings=c("-9999"))
+
+sw.pot[,date_time := parse_date_time(TIMESTAMP_END, "YmdHM",tz="UTC")]
+
+setnames(sw.pot,("SW_IN_POT"),("SW_IN_POT_AF"))
+
+# merge
+flux <- merge(flux,sw.pot[,.(date_time,SW_IN_POT_AF)], by="date_time")
+
+# check adjustment
+daycheck <- as.Date("2013-08-30")
+
+ggplot(flux[as.Date(date_time)==daycheck])+
+  geom_line(aes(date_time, SW_IN_POT_AF),colour="black")+
+  geom_line(aes(date_time,SW_IN_1_1_1),colour="red")
 
 
 # APPLY ROLLING MEANS APPROACH TO FILTER Fc, LE, H
@@ -532,7 +550,7 @@ ggplot()+
  setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
 
 # 20200212: added all of 2019 (reran Jan - June)
- save(flux,file="JER_flux_2010_2019_EddyPro_Output_filterID_SD_20200212.Rdata")
+# save(flux,file="JER_flux_2010_2019_EddyPro_Output_filterID_SD_20200212.Rdata")
 
 
 # 
@@ -544,15 +562,15 @@ ggplot()+
 # 
 
 
- flux_filter_sd <- copy(flux[,!(c("date_time_orig","TIMESTAMP_START","TIMESTAMP_END","DOY_START","DOY_END","time_diff")),with=FALSE])
+ flux_filter_sd <- copy(flux[,!(c("date_time_orig","TIMESTAMP_START","TIMESTAMP_END","DOY_START","DOY_END","time_diff","SW_IN_POT_AF")),with=FALSE])
  flux_filter_sd[filter_fc_roll_daynight!=0, FC := NA]
  flux_filter_sd[filter_h_roll_daynight!=0, H := NA]
  flux_filter_sd[filter_le_roll_daynight!=0, LE := NA]
 
  
  # 20200427: corrected timestamps!
-  save(flux_filter_sd,
- file="JER_flux_2010_2019_EddyPro_Output_filtered_SD_TIMEcorr_20200427.Rdata")
+# save(flux_filter_sd,
+# file="JER_flux_2010_2019_EddyPro_Output_filtered_SD_TIMEcorr_20200427.Rdata")
  
  
  # 20200212: added all of 2019 (reran Jan - June)
