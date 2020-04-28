@@ -61,7 +61,7 @@ flux.biomet <- merge(flux,biomet_all, by="date_time", all.x=TRUE)
 
 # save to upload to ameriflux: 
 # <SITE_ID>_<RESOLUTION>_<TS-START>_<TS-END>_<OPTIONAL>.csv
-setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Ameriflux")
+setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Ameriflux/20200427")
 
 write.table(flux.biomet[,!c("date_time"),with=FALSE], paste("USJo1_HH",min(flux.biomet$TIMESTAMP_END),max(flux.biomet$TIMESTAMP_END),
                                "20200427submit.csv",sep="_"), sep=',', dec='.', row.names=FALSE)
