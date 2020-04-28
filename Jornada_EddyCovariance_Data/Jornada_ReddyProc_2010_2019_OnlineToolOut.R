@@ -11,13 +11,15 @@ library(gtable)
 library(grid)
 library(zoo)
 library(bit64)
+library(viridis)
 
 # import filtered flux data file from Eddy Pro as data table
+# update with timestamp corrected data
 # filtered in: Jornada_EddyPro_Output_Fluxnext_2010_2019.R
-ep.units <- (fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200212/REddyResults_US-Jo1_20200213_725822790/output.txt",
+ep.units <- (fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200427/REddyResults_Us-Jo1_20200428_586625386/output.txt",
                    header=TRUE))[1,]
 
-flux.ep <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200212/REddyResults_US-Jo1_20200213_725822790/output.txt",
+flux.ep <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200427/REddyResults_Us-Jo1_20200428_586625386/output.txt",
                       header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
                  col.names = colnames(ep.units))
 
@@ -28,17 +30,17 @@ flux.ep[flux.ep == -9999] <- NA
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
 
 # import data that was filtered by 3SD filter
-load("JER_flux_2010_2019_EddyPro_Output_filtered_SD_20200212.Rdata")
+load("JER_flux_2010_2019_EddyPro_Output_filtered_SD_TIMEcorr_20200427.Rdata")
 
 # convert date to POSIXct and get a year, day, hour column
 # if this step doesn't work, make sure bit64 library is loaded otherwise the timestamps importa in a non-sensical format
-flux_filter_sd[,':=' (date_time = parse_date_time(TIMESTAMP_START,"YmdHM",tz="UTC"),
-                      date_time_end = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
-                        ,':='(Year_end = year(date_time_end),Year=year(date_time),DoY=yday(date_time),
+flux_filter_sd[,':=' (date_time = parse_date_time(TIMESTAMP_END_correct,"YmdHM",tz="UTC"),
+                      date_time_start = parse_date_time(TIMESTAMP_START_correct,"YmdHM",tz="UTC"))][
+                        ,':='(Year=year(date_time),DoY=yday(date_time),
                               hours = hour(date_time), mins = minute(date_time))]
 
 # there's duplicated data in 2012 DOY 138
-flux_filter <- (flux_filter_sd[!(duplicated(flux_filter_sd, by=c("TIMESTAMP_START")))])
+flux_filter <- (flux_filter_sd[!(duplicated(flux_filter_sd, by=c("TIMESTAMP_END_correct")))])
 
 # format data columns for ReddyProc
 # Year	DoY	Hour	NEE	LE	H	Rg	Tair	Tsoil	rH	VPD	Ustar 
@@ -86,6 +88,9 @@ edata$VPD <- fCalcVPDfromRHandTair(edata$rH, edata$Tair)
 edata2010 <- as.data.table(subset(edata,Year==2010))
 
 flux.ep <- rbind(edata2010,flux.ep, fill=TRUE)
+
+# substract 0.5 from the hour again to match TIMESTAMP_END
+flux.ep[,Hour := Hour-0.5]
 
 # plot with no U* filter or gapfill
 ggplot(flux.ep[Year==2019,], aes(DoY,NEE_orig))+
@@ -178,6 +183,24 @@ ggplot(flux.ep,
     panel.grid=element_blank(),
     panel.background=element_rect(fill="white"))
 
+
+# save the ReddyProc output data by year
+
+
+setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200427/")
+
+# # save by years
+# for (i in 2010:2019){
+#   # subset each year
+#   dat.save <- flux.ep[Year==i,]
+#   dat.save[,date_time := ymd_hm(paste(as.Date(DoY-1, origin = ymd(paste(i,"-01-01")),tz="UTC"),
+#                                 trunc(Hour), (Hour-trunc(Hour))*60), tz = "UTC")]
+#    write.table (dat.save,
+#                 file= paste("USJo1_partitioned",min(as.character(dat.save$date_time,format= "%Y%m%d%H%M")),
+#                             max(as.character(dat.save$date_time,format= "%Y%m%d%H%M")),
+#                             "20200427.csv",sep="_"),
+#                 sep =',', dec='.', row.names=FALSE, na="-9999", quote=FALSE)
+# }
 
 
 
