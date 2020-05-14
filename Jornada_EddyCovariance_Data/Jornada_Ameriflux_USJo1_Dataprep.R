@@ -59,12 +59,21 @@ flux <- flux[,!c(exclude_cols),with=FALSE]
 
 flux.biomet <- merge(flux,biomet_all, by="date_time", all.x=TRUE)
 
+
+# format all columns to be in the same order: 
+names_all <- colnames(flux.biomet[,!c("TIMESTAMP_START","TIMESTAMP_END"),with=FALSE])
+names_output <- c("TIMESTAMP_START","TIMESTAMP_END",names_all)
+
+setcolorder(flux.biomet,names_output)
+
 # save to upload to ameriflux: 
 # <SITE_ID>_<RESOLUTION>_<TS-START>_<TS-END>_<OPTIONAL>.csv
-setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Ameriflux/20200427")
+setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Ameriflux/20200514")
 
-write.table(flux.biomet[,!c("date_time"),with=FALSE], paste("USJo1_HH",min(flux.biomet$TIMESTAMP_END),max(flux.biomet$TIMESTAMP_END),
-                               "20200427submit.csv",sep="_"), sep=',', dec='.', row.names=FALSE)
+# Don't save this version. Just takes up space.
+#write.table(flux.biomet[,!c("date_time"),with=FALSE], paste("USJo1_HH",min(flux.biomet$TIMESTAMP_END),max(flux.biomet$TIMESTAMP_END),
+#                               "20200514submit.csv",sep="_"), sep=',', dec='.', row.names=FALSE)
+
 
 # save by years
 for (i in 2010:2019){
@@ -72,8 +81,8 @@ for (i in 2010:2019){
   dat.save <- flux.biomet[year(date_time)==i,]
   
   write.table (dat.save[,!c("date_time"),with=FALSE],
-             file= paste("USJo1_HH",min(dat.save$TIMESTAMP_END),max(dat.save$TIMESTAMP_END),
-                         "20200427submit.csv",sep="_"),
+             file= paste("US-Jo1_HH",min(dat.save$TIMESTAMP_END),max(dat.save$TIMESTAMP_END),
+                         "20200514submit.csv",sep="_"),
              sep =',', dec='.', row.names=FALSE, na="-9999", quote=FALSE)
 }
 
