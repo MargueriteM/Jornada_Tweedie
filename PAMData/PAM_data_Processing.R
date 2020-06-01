@@ -40,4 +40,9 @@ str(dat.2014)
 
 
 
+The following untracked working tree files would be overwritten by merge:
+  Jornada_Tweedie.Rproj
+Please move or remove them before you merge.
+Aborting
+
 
