@@ -347,6 +347,7 @@ env_30min1 <- copy(env_30min)
 rm(env_30min)
 env_30min <- copy(env_30min1[!(variable=="precip.tot"&veg=="BARE"),])
 
+# STOP HERE. last step to create final version of env_30min
 env_30min <- rbind(env_30min, precip)
 
 
@@ -398,155 +399,6 @@ ggplot(env_30min[(yday(date_time)>=303 & yday(date_time)<=313) &
   #geom_vline(xintercept=c(6.5,17.0))+
   facet_grid(year~doy)
 
-# find mismatch by looking through all data (no tower Rs data until 2011 doy 194: 13 July)
-# 2014 no SN solar data
-# 2017 doy 69-233 no tower Rs data
-# 2017 doy 185 NRCS data ends
-# 2017 doy 335 to 2018 doy 93 no tower Rs data
-# 2018 doy 70 to doy 250 no SN solar data
-# 2018 doy 325 - 2019 doy 137 no SN solar data
-# 1 - 55
-# 56 - 110
-# 111 - 166
-# 167 - 222
-# 223 - 278
-# 279 - 334
-# 335 - 366  & location!="nrcs"
-ggplot(env_30min[year==2015 & (yday(date_time)>=111 & yday(date_time)<=166) &
-                   ((variable %in% c("solar") & veg=="UP" )| variable %in% c("Rs_up","sw_pot")),],
-       aes(hour(date_time_orig), mean.val, colour=paste(variable,location)))+
-  geom_line()+
-  geom_point(size=0.5)+
-  #geom_vline(xintercept=c(6.5,17.0))+
-  facet_wrap(doy~.)
-
-
-View(env_30min[year==2013 & (yday(date_time)==214) &
-                 (variable %in% c("Rs_up"))])
-
-
-# look at solar radition from SN and NRCS, with Rs_up
-# graph all the intervals where a timestamp mismatch and rejoin happens
-
-# assume that NRCS time is always correct (Standard Time) and mark sunrise/sunset
-env_30min[location=="nrcs"&mean.val<=5,nrcs_day:=-5]
-env_30min[location=="nrcs"&mean.val>5,nrcs_day:=1000]
-
-
-# prior to Jul 2011 look at PAR becaus there's no Rs for the tower 
-# 2010 all match
-
-# off: 80 15:00-15:30 2011 (tower: +1)
- ggplot(env_30min[year==2011 & yday(date_time)>=75 & yday(date_time)<=85&
-                             ((variable %in% c("par") & veg=="UP") |
-                                (variable %in% c("solar") & location=="nrcs")|
-                                variable %in% c("sw_pot")),],
-             aes(hour(date_time_orig), mean.val, colour=location))+
-     geom_line()+
-     facet_grid(year~doy)
-
-# off: 194 18:30 2011 (tower: +1) 
-# together: 316 2011 11:30-12:00 (tower to +0)
-ggplot(env_30min[year==2011 & (yday(date_time)>=190 & yday(date_time)<=196 | yday(date_time)>=315 & yday(date_time)<=317) &
-                   ((variable %in% c("solar") & veg=="UP") | (variable %in% c("par") & location=="tower")|
-                      variable %in% c("sw_pot")),],
-       aes(hour(date_time_orig), mean.val, colour=location))+
-  geom_line()+
-  facet_grid(year~doy)
-
-ggplot(env_30min[year==2011 & (yday(date_time)==194) &
-                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),],
-       aes(hour(date_time), mean.val, colour=location))+
-  geom_line()+
-  facet_grid(year~doy)
-
-# off: 138 16:00-16:30 2012 (tower: +1) 
-# together: 11 2013 12:30-13:00 (tower to +0)
-ggplot(env_30min[((year==2012 & yday(date_time)>=137 & yday(date_time)<=139) |
-                    (year==2013 & yday(date_time)>=9 & yday(date_time)<=13)) &
-                   ((variable %in% c("solar") & veg=="UP" & location == "SN") | variable %in% c("Rs_up") |
-                      variable %in% c("sw_pot")),],
-       aes(hour(date_time_orig), mean.val, colour=location))+
-  geom_line()+
-  facet_grid(year~doy)
-
-
-ggplot(env_30min[((year==2012 & yday(date_time)==138)) &
-                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),],
-       aes(hour(date_time), mean.val, colour=location))+
-  geom_line()+
-  facet_grid(year~doy)
-
-# off: 95 2013 6:00 (SN: +1) 
-# together: 214 2013 12:30-13:30 (tower + 1)
-ggplot(env_30min[((year==2013 & yday(date_time)>=92 & yday(date_time)<=97) |
-                    (year==2013 & yday(date_time)>=212 & yday(date_time)<=218)) &
-                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),],
-       aes(hour(date_time), mean.val, colour=location))+
-  geom_line()+
-  geom_line(aes(hour(date_time),nrcs_day, colour=location))+
-  facet_grid(year~doy)
-
-ggplot(env_30min[((year==2013 & yday(date_time)==95)) &
-                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),],
-       aes(hour(date_time), mean.val, colour=location))+
-  geom_line()+
-  geom_line(aes(hour(date_time),nrcs_day, colour=location))+
-  facet_grid(year~doy)
-
-# off: 335 2013 7:00 (tower: +1) 
-# together: 91 2015 6:00 (SN: + 1)
-ggplot(env_30min[((year==2013 & yday(date_time)>=332 & yday(date_time)<=337) |
-                    (year==2015 & yday(date_time)>=87 & yday(date_time)<=93)) &
-                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),])+
-  geom_line(aes(hour(date_time), mean.val, colour=location))+
-  geom_line(aes(hour(date_time),nrcs_day, colour=location))+
-  facet_grid(year~doy)
-
-# 310 2015 (SN: +0)
-# 311 2015 (tower: +0)
-
-# off: 75 2016 at or before 7am (SN: +1) 
-# together: 313 2013 at or before 7am (SN: +0) 
-ggplot(env_30min[((year==2016 & yday(date_time)>=73 & yday(date_time)<=77) |
-                    (year==2016 & yday(date_time)>=310 & yday(date_time)<=316)) &
-                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),])+
-  geom_line(aes(hour(date_time), mean.val, colour=location))+
-  geom_line(aes(hour(date_time),nrcs_day, colour=location))+
-  facet_grid(year~doy)
-
-
-# create a subset with data in columnns to compare
-solar.comp.sn <- copy(env_30min[((variable %in% c("solar") & veg=="UP") & location=="SN"),
-                                .(date_time_orig,mean.val)])
-setnames(solar.comp.sn, c("mean.val"),c("solar.sn"))
-
-solar.comp.tower <- copy(env_30min[variable %in% c("Rs_up"),
-                                   .(date_time_orig,mean.val)])
-setnames(solar.comp.tower, c("mean.val"),c("solar.tower"))
-
-solar.comp.nrcs <- copy(env_30min[((variable %in% c("solar") & veg=="UP") & location=="nrcs"),
-                                  .(date_time_orig,mean.val)])
-setnames(solar.comp.nrcs, c("mean.val"),c("solar.nrcs"))
-
-
-solar.comp <- merge(solar.comp.sn,solar.comp.tower,by=c("date_time_orig"))
-solar.comp <- merge(solar.comp,solar.comp.nrcs,by=c("date_time_orig"))
-
-# calculate differences 
-solar.comp[,':=' (year=year(date_time_orig),
-                  doy=yday(date_time_orig),
-                  hour=hour(date_time_orig),
-                  tower.sn = solar.tower-solar.sn,
-                  tower.nrcs = solar.tower-solar.nrcs,
-                  sn.nrcs = solar.sn - solar.nrcs)]
-
-ggplot(solar.comp[year==2013 & yday(date_time_orig)>=91 & yday(date_time_orig)<=100], aes(hour))+
-  geom_line(aes(y=tower.sn),colour="blue")+
-  geom_line(aes(y=tower.nrcs),colour="green")+
-  geom_line(aes(y=sn.nrcs),colour="red")+
-  geom_hline(yintercept=0)+
-  facet_grid(year~doy)
 
 
 # 2020-04-14: FOR BIOMET 1 use date_time_orig since that matches the ts data!!! 
@@ -777,7 +629,7 @@ ggplot(env_30min[variable %in% c("precip.tot") & veg=="BARE" & year==2015], aes(
 biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="tower",
         ameriflux.id := "P_RAIN_1_1_1"]
 
-biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN" & SN=="2N2",
+biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN" & SN=="SN2",
         ameriflux.id := "P_RAIN_2_1_1"]
 
 biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN" & SN=="SN6",
@@ -959,7 +811,7 @@ biomet2[variable %in% c("lws") & SN=="SN8" & (veg == "PRGL"),
 #  biomet_other <- copy(env_30min[variable %in% c("airtemp","rh","wnd_spd","wnd_dir",
 #                                                 "Rn_nr_Avg","Rl_down","Rl_up","Rs_down","Rs_up"),
 #                                 .(date_time,variable,mean.val)])
-#  
+# 
 #  biomet_other1 <- dcast(biomet_other[!is.na(date_time)],date_time~variable, value.var="mean.val")
 # 
 # # change the name of SWin to Rg for global radiation because they are
@@ -1019,14 +871,169 @@ saveyears <- function(data,startyear,endyear) {
 
 # saveyears(biomet2_wide,2010,2020)
 
+### GAPFILL ENV Data for internal use #### 
+
+# find mismatch by looking through all data (no tower Rs data until 2011 doy 194: 13 July)
+# 2014 no SN solar data
+# 2017 doy 69-233 no tower Rs data
+# 2017 doy 185 NRCS data ends
+# 2017 doy 335 to 2018 doy 93 no tower Rs data
+# 2018 doy 70 to doy 250 no SN solar data
+# 2018 doy 325 - 2019 doy 137 no SN solar data
+# 1 - 55
+# 56 - 110
+# 111 - 166
+# 167 - 222
+# 223 - 278
+# 279 - 334
+# 335 - 366  & location!="nrcs"
+ggplot(env_30min[year==2015 & (yday(date_time)>=111 & yday(date_time)<=166) &
+                   ((variable %in% c("solar") & veg=="UP" )| variable %in% c("Rs_up","sw_pot")),],
+       aes(hour(date_time_orig), mean.val, colour=paste(variable,location)))+
+  geom_line()+
+  geom_point(size=0.5)+
+  #geom_vline(xintercept=c(6.5,17.0))+
+  facet_wrap(doy~.)
+
+
+View(env_30min[year==2013 & (yday(date_time)==214) &
+                 (variable %in% c("Rs_up"))])
+
+
+# look at solar radition from SN and NRCS, with Rs_up
+# graph all the intervals where a timestamp mismatch and rejoin happens
+
+# assume that NRCS time is always correct (Standard Time) and mark sunrise/sunset
+env_30min[location=="nrcs"&mean.val<=5,nrcs_day:=-5]
+env_30min[location=="nrcs"&mean.val>5,nrcs_day:=1000]
+
+
+# prior to Jul 2011 look at PAR becaus there's no Rs for the tower 
+# 2010 all match
+
+# off: 80 15:00-15:30 2011 (tower: +1)
+ggplot(env_30min[year==2011 & yday(date_time)>=75 & yday(date_time)<=85&
+                   ((variable %in% c("par") & veg=="UP") |
+                      (variable %in% c("solar") & location=="nrcs")|
+                      variable %in% c("sw_pot")),],
+       aes(hour(date_time_orig), mean.val, colour=location))+
+  geom_line()+
+  facet_grid(year~doy)
+
+# off: 194 18:30 2011 (tower: +1) 
+# together: 316 2011 11:30-12:00 (tower to +0)
+ggplot(env_30min[year==2011 & (yday(date_time)>=190 & yday(date_time)<=196 | yday(date_time)>=315 & yday(date_time)<=317) &
+                   ((variable %in% c("solar") & veg=="UP") | (variable %in% c("par") & location=="tower")|
+                      variable %in% c("sw_pot")),],
+       aes(hour(date_time_orig), mean.val, colour=location))+
+  geom_line()+
+  facet_grid(year~doy)
+
+ggplot(env_30min[year==2011 & (yday(date_time)==194) &
+                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),],
+       aes(hour(date_time), mean.val, colour=location))+
+  geom_line()+
+  facet_grid(year~doy)
+
+# off: 138 16:00-16:30 2012 (tower: +1) 
+# together: 11 2013 12:30-13:00 (tower to +0)
+ggplot(env_30min[((year==2012 & yday(date_time)>=137 & yday(date_time)<=139) |
+                    (year==2013 & yday(date_time)>=9 & yday(date_time)<=13)) &
+                   ((variable %in% c("solar") & veg=="UP" & location == "SN") | variable %in% c("Rs_up") |
+                      variable %in% c("sw_pot")),],
+       aes(hour(date_time_orig), mean.val, colour=location))+
+  geom_line()+
+  facet_grid(year~doy)
+
+
+ggplot(env_30min[((year==2012 & yday(date_time)==138)) &
+                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),],
+       aes(hour(date_time), mean.val, colour=location))+
+  geom_line()+
+  facet_grid(year~doy)
+
+# off: 95 2013 6:00 (SN: +1) 
+# together: 214 2013 12:30-13:30 (tower + 1)
+ggplot(env_30min[((year==2013 & yday(date_time)>=92 & yday(date_time)<=97) |
+                    (year==2013 & yday(date_time)>=212 & yday(date_time)<=218)) &
+                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),],
+       aes(hour(date_time), mean.val, colour=location))+
+  geom_line()+
+  geom_line(aes(hour(date_time),nrcs_day, colour=location))+
+  facet_grid(year~doy)
+
+ggplot(env_30min[((year==2013 & yday(date_time)==95)) &
+                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),],
+       aes(hour(date_time), mean.val, colour=location))+
+  geom_line()+
+  geom_line(aes(hour(date_time),nrcs_day, colour=location))+
+  facet_grid(year~doy)
+
+# off: 335 2013 7:00 (tower: +1) 
+# together: 91 2015 6:00 (SN: + 1)
+ggplot(env_30min[((year==2013 & yday(date_time)>=332 & yday(date_time)<=337) |
+                    (year==2015 & yday(date_time)>=87 & yday(date_time)<=93)) &
+                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),])+
+  geom_line(aes(hour(date_time), mean.val, colour=location))+
+  geom_line(aes(hour(date_time),nrcs_day, colour=location))+
+  facet_grid(year~doy)
+
+# 310 2015 (SN: +0)
+# 311 2015 (tower: +0)
+
+# off: 75 2016 at or before 7am (SN: +1) 
+# together: 313 2013 at or before 7am (SN: +0) 
+ggplot(env_30min[((year==2016 & yday(date_time)>=73 & yday(date_time)<=77) |
+                    (year==2016 & yday(date_time)>=310 & yday(date_time)<=316)) &
+                   ((variable %in% c("solar") & veg=="UP") | variable %in% c("Rs_up")),])+
+  geom_line(aes(hour(date_time), mean.val, colour=location))+
+  geom_line(aes(hour(date_time),nrcs_day, colour=location))+
+  facet_grid(year~doy)
+
+
+# create a subset with data in columnns to compare
+solar.comp.sn <- copy(env_30min[((variable %in% c("solar") & veg=="UP") & location=="SN"),
+                                .(date_time_orig,mean.val)])
+setnames(solar.comp.sn, c("mean.val"),c("solar.sn"))
+
+solar.comp.tower <- copy(env_30min[variable %in% c("Rs_up"),
+                                   .(date_time_orig,mean.val)])
+setnames(solar.comp.tower, c("mean.val"),c("solar.tower"))
+
+solar.comp.nrcs <- copy(env_30min[((variable %in% c("solar") & veg=="UP") & location=="nrcs"),
+                                  .(date_time_orig,mean.val)])
+setnames(solar.comp.nrcs, c("mean.val"),c("solar.nrcs"))
+
+
+solar.comp <- merge(solar.comp.sn,solar.comp.tower,by=c("date_time_orig"))
+solar.comp <- merge(solar.comp,solar.comp.nrcs,by=c("date_time_orig"))
+
+# calculate differences 
+solar.comp[,':=' (year=year(date_time_orig),
+                  doy=yday(date_time_orig),
+                  hour=hour(date_time_orig),
+                  tower.sn = solar.tower-solar.sn,
+                  tower.nrcs = solar.tower-solar.nrcs,
+                  sn.nrcs = solar.sn - solar.nrcs)]
+
+ggplot(solar.comp[year==2013 & yday(date_time_orig)>=91 & yday(date_time_orig)<=100], aes(hour))+
+  geom_line(aes(y=tower.sn),colour="blue")+
+  geom_line(aes(y=tower.nrcs),colour="green")+
+  geom_line(aes(y=sn.nrcs),colour="red")+
+  geom_hline(yintercept=0)+
+  facet_grid(year~doy)
+
+
+# look at potential SW
+
 test.sw <- merge(biomet2_wide, sw.pot, by="date_time", all=TRUE)
 
-ggplot(test.sw[as.Date(date_time)>=as.Date("2015-03-15") & as.Date(date_time)<=as.Date("2015-04-15")],
+ggplot(test.sw[as.Date(date_time)>=as.Date("2020-01-01") & as.Date(date_time)<=as.Date("2020-01-31")],
        aes(hour(date_time)))+
   geom_line(aes(y=SW_IN_1_1_1),colour="blue")+
   geom_line(aes(y=PPFD_IN_1_1_1),colour="purple")+
   geom_line(aes(y=PPFD_IN_2_1_1),colour="red")+
-  geom_line(aes(y=mean.val),colour="black")+
+  #geom_line(aes(y=mean.val),colour="black")+
   #geom_hline(yintercept=0)+
   facet_wrap(doy~.)
 
