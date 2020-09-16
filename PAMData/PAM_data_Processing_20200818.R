@@ -10,7 +10,7 @@
 # 2. plot and fit light response curves for each individual
 # 3. extract useful parameters from light response curves
 # 4. explore patterns between species and time (Ie: seasons, years)
-
+ 
 # Load libraries
 library(tidyverse) 
 library(lubridate) # this one is for working with dates
