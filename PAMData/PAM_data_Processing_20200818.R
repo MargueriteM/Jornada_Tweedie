@@ -685,15 +685,41 @@ test.multi.all <- dat.filter5 %>%
 
 
 # look at the fits
-params <- test.multi.all %>%
-  mutate(params = map(fit, tidy)) %>%
-  unnest(params)
+summary(test.multi.all$fit[[2]])
 
-preds <- test.multi.all %>%
-  mutate(pred =map(fit, augment)) %>%
-  unnest(pred)
+select(test.multi.all, LcNo,data,fit)
+
+params <- test.multi.all %>% 
+  mutate(coef=map(fit,~broom::tidy(.x))) %>%
+  unnest(coef)
+
+params.long <- params %>%
+  select(LcNo,term,estimate)%>%
+  pivot_wider(id_cols=LcNo,names_from=term,values_from = estimate)
+
+# get the LcNo from datfilter 5
+lcno.filter5 <- dat.filter5 %>% 
+  distinct(LcNo, .keep_all=TRUE)%>%
+  select(LcNo,Date,Spp,Posn,Age,PlantID)
 
 
+# combine parameter estimates with LcNo metadata
+params.long <- params.long %>%
+  left_join(lcno.filter5,"LcNo")
+
+# plot the parameters
+params.long %>%
+  filter(ETRmax.start<1000&year(Date)<=2015) %>%
+  ggplot(., aes(yday(Date), ETRmax.start, colour=Spp))+
+  #geom_point()+
+  geom_line()+
+  facet_grid(.~year(Date))
+
+params.long %>%
+  filter(ETRmax.start<1000) %>%
+  ggplot(., aes(yday(Date), Eopt.start))+
+  geom_point()+
+  facet_grid(Spp~year(Date))
 
 # run the model by month, for MUPO
 
