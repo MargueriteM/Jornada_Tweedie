@@ -637,23 +637,6 @@ figure4
 
 library(nls.multstart)
 
-# write the model to be flexible with start parameters
-# etrmax.start and eopt.start can be included in the dplyr command
-modelLR <- function(df, etrmax.start, eopt.start) {
-  nlsLM(ETR~((ETRmax*PAR)/Eopt) *exp((1-(PAR/Eopt))), df,
-  start= list(ETRmax =etrmax.start,Eopt=eopt.start))}
-
-dat.filter5 <- dat.filter5 %>% mutate(month=month(Date))
-
-# try running the model for a larger number of groups at a time. 
-LR.spp.month <-dlply(dat.filter5, .(Spp,month), modelLR, etrmax.start=200, eopt.start=1500)
-LR.spp.month.coefs <-ldply(LR.spp.month, function(x) coef(x)[1:2])
-
-lcno.spp.month <- dat.filter5 %>% 
-  distinct(LcNo, Spp, month) 
-
-LR.spp.month.coefs <- merge(lcno.spp.month,LR.spp.month.coefs, by=c("Spp","month"), all.x=TRUE)
-
 # create a flexible LR function that will take the monthly start values and fit by LcNo
 
 library(minpack.lm)
@@ -684,21 +667,9 @@ fit2 <- nls_multstart(ETR ~ modelLR.multstart2(PAR=PAR, ETR=ETR,ETRmax.start,Eop
 
 fit2
 
-test.multi <- dat.test %>%
-  group_by(., LcNo) %>%
-  nest() %>%
-  mutate(fit = purrr::map(data, ~nls.multstart::nls_multstart(ETR ~ modelLR.multstart2(PAR=PAR, ETR=ETR,ETRmax.start,Eopt.start),
-                                                              data = .x,
-                                                              iter = 200,
-                                                              start_lower = c(ETRmax.start= 250, Eopt.start= 1500),
-                                                              start_upper = c(ETRmax.start= 350, Eopt.start= 3000),
-                                                              #supp_errors = 'Y',
-                                                              na.action = na.omit,
-                                                              lower = c(ETRmax= 0, Eopt= 0))))
 
 
-# try nls_multstart with a year of data
-summary(LR.spp.month.coefs)
+# try nls_multstart with all filtered data
 
 test.multi.all <- dat.filter5 %>%
   group_by(., LcNo) %>%
