@@ -487,8 +487,12 @@ dat.filter5 %>%
   theme(legend.position="none")
 
 
-#
+# save dat.filter5 as an R object
+# save(dat.filter5,file="PAM_dat_filter5.R")
 
+# to load:
+# setwd("~/Desktop/OneDrive - University of Texas at El Paso/MiniPAM")
+# load("PAM_dat_filter5.R")
 
                             #AUGUST#
 # #########################################
@@ -720,6 +724,16 @@ params.long %>%
   ggplot(., aes(yday(Date), Eopt.start))+
   geom_point()+
   facet_grid(Spp~year(Date))
+
+
+# save nls.mult output and parameter extraction
+# save(test.multi.all,file="PAM_dat_filter5_modelfit.R")
+# save(params.long,file="PAM_dat_filter5_coefficients.R")
+
+# to load:
+# setwd("~/Desktop/OneDrive - University of Texas at El Paso/MiniPAM")
+# load("PAM_dat_filter5_modelfit.R")
+# load("PAM_dat_filter5_coefficients.R")
 
 # run the model by month, for MUPO
 
