@@ -8,6 +8,7 @@
 # 20200128: add SD based filters (3 day running mean/SD seperately for day/night and remove Fc, H, LE more than 3SD out of range from running mean)
 # 20200205: update with 2010 data processed in batches of files with 14 and 15 data rows (see Jornada_EC_2010_diagnosing.R)
 # 20200212: update with full year of 2019 data and simplify filter to only include SD filter steps.
+# 20200427: correct tower timestamps
 
 # load libraries
 library(ggplot2) # library for making figures in ggplot package
@@ -90,8 +91,8 @@ flux <- (flux[!(duplicated(flux, by=c("TIMESTAMP_START")))])
 flux <- flux[order(TIMESTAMP_START),]
 
 # format date
-flux[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
-  ,':='(date=as.Date.POSIXct(date_time),month=month(date_time),year=year(date_time))]
+flux[,':=' (date_time_orig = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
+  ,':='(date_orig=as.Date.POSIXct(date_time_orig),month_orig=month(date_time_orig),year_orig=year(date_time_orig))]
 
 ########################
 # # figure out the missing 2010 data
@@ -140,15 +141,15 @@ flux[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
 
 # make some plots
 # graph precipitation
-ggplot(flux,aes(date_time,P_RAIN_1_1_1))+geom_line()
+ggplot(flux,aes(date_time_orig,P_RAIN_1_1_1))+geom_line()
 # graph soil moisture
-ggplot(flux,aes(date_time,SWC_1_1_1))+geom_line()
+ggplot(flux,aes(date_time_orig,SWC_1_1_1))+geom_line()
 
 # graph air temp
-ggplot(flux,aes(date_time,TA_1_1_1))+geom_line()
+ggplot(flux,aes(date_time_orig,TA_1_1_1))+geom_line()
 
 # graph PAR
-ggplot(flux,aes(date_time,PPFD_IN_1_1_1))+geom_line()
+ggplot(flux,aes(date_time_orig,PPFD_IN_1_1_1))+geom_line()
 
 # QA/QC process: 
 # flag points to remove in 'flag' column
@@ -171,7 +172,7 @@ ggplot(flux,aes(date_time,PPFD_IN_1_1_1))+geom_line()
 # will use EddyRe for more systematic approach and to estimate uncertainty related to U* threshold
 
 # AGC, signal strength = INST_LI7500_AGC_OR_RSSI or CUSTOM_AGC_MEAN (they have flipped signs)
-ggplot(flux[FC_SSITC_TEST<2,], aes(date_time,FC,colour=(CUSTOM_AGC_MEAN)))+
+ggplot(flux[FC_SSITC_TEST<2,], aes(date_time_orig,FC,colour=(CUSTOM_AGC_MEAN)))+
   geom_point()+
   ylim(c(-10,30))
 
@@ -210,9 +211,9 @@ flux[H_SSITC_TEST>1 | CUSTOM_AGC_MEAN>50, filter_H := 1L]
 # remove H < -120 and > 560, these are not typical values.
 flux[H < (-120) | H > 560, filter_H := 1L]
 # in 2015 March there's one H > 400 that's an outlier
-flux[year==2015 & month==3 & H>400, filter_H := 1L]
+flux[year_orig==2015 & month_orig==3 & H>400, filter_H := 1L]
 # in 2018 Jan there's one H>400 that's an outlier
-flux[year==2018 & month==1 & H>400, filter_H := 1L]
+flux[year_orig==2018 & month_orig==1 & H>400, filter_H := 1L]
 
 
 # look at all filtered H
@@ -220,7 +221,7 @@ ggplot(flux[filter_H!=1,],
        aes(DOY_START,H))+
   geom_line()+
   #ylim(c(-30,30))+
-  facet_grid(year~.,scales="free_y")
+  facet_grid(year_orig~.,scales="free_y")
 
 
 ##### LE ####
@@ -245,7 +246,7 @@ flux[LE >1000, filter_LE := 1L]
 
 
 # look at LE  by month for each year
-ggplot(flux[filter_LE!=1&month==1&hour(date_time)>0,],
+ggplot(flux[filter_LE!=1&month==1&hour(date_time_orig)>0,],
        aes(DOY_START,LE,colour=factor(LE_SSITC_TEST)))+
   geom_point()+
   geom_hline(yintercept=c(-50,200))+
@@ -258,6 +259,82 @@ ggplot()+
   facet_grid(year~.)
   
 flux[P_RAIN_1_1_1>0, ':=' (filter_fc = 1L, filter_LE = 1L, filter_H = 1L)]
+
+
+# Do timestamp correction  prior to rolling mean filtering
+# keep the original timestamp and fix date_time column to make all times MST
+# (use tz=UTC to prevent convervsion of data)
+flux_corrected <- copy(flux)
+##rm(flux_long)
+##flux<- copy(flux_corrected)
+
+# do nothing before 2011-03-21
+flux[date_time_orig<as.POSIXct("2011-03-21 16:00:00",tz="UTC"),
+          date_time := date_time_orig]
+
+# minus 1 hour
+flux[(date_time_orig>=as.POSIXct("2011-03-21 17:00:00",tz="UTC") & 
+             date_time_orig<=as.POSIXct("2011-11-12 12:00:00",tz="UTC")),
+          date_time := date_time_orig - hours(1)]
+
+# do nothing
+flux[date_time_orig>=as.POSIXct("2011-11-12 12:30:00",tz="UTC") & 
+            date_time_orig<as.POSIXct("2012-05-17 16:00:00",tz="UTC"),
+          date_time := date_time_orig]
+
+# minus 1 hour
+flux[date_time_orig>=as.POSIXct("2012-05-17 17:00:00",tz="UTC") & 
+            date_time_orig<=as.POSIXct("2013-01-11 13:00:00",tz="UTC"),
+          date_time := date_time_orig - hours(1)]
+
+# do nothing
+flux[date_time_orig>=as.POSIXct("2013-01-11 13:30:00",tz="UTC") & 
+            date_time_orig<as.POSIXct("2013-08-02 12:00:00",tz="UTC"),
+          date_time := date_time_orig]
+
+# minus 1 hour
+flux[date_time_orig>=as.POSIXct("2013-08-02 13:00:00",tz="UTC") & 
+            date_time_orig<=as.POSIXct("2015-10-19 12:00:00",tz="UTC"),
+          date_time := date_time_orig-hours(1)]
+
+
+# do nothing
+flux[date_time_orig>=as.POSIXct("2015-10-19 12:30:00",tz="UTC"),
+          date_time := date_time_orig]
+
+
+flux[,time_diff := date_time-date_time_orig]
+
+# create a new datatable that has all the timestamps needed and merge to date_time
+# this will result in NA for all timesstamps that got lost in adjustment
+time_all <- data.table(date_time = seq(ymd_hm("2010-01-01 00:30",tz="UTC"),ymd_hm("2020-01-01 00:00",tz="UTC"),by="30 min"),
+                       date_time_start = seq(ymd_hm("2010-01-01 00:00",tz="UTC"),ymd_hm("2019-12-31 23:30",tz="UTC"),by="30 min"))
+
+time_all[, ':=' (TIMESTAMP_START_correct = as.character(date_time_start, format= "%Y%m%d%H%M"),
+                 TIMESTAMP_END_correct = as.character(date_time, format= "%Y%m%d%H%M"))]
+
+
+# merge full date_time with flux
+flux <- merge(flux,time_all[,.(date_time,TIMESTAMP_START_correct,TIMESTAMP_END_correct)], by="date_time", all.y=TRUE)
+
+# as SW pot from Ameriflux and check
+sw.pot <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Ameriflux/QA_QC_Report_Ameriflux/US-Jo1_HH_2010_2019_SW_IN_pot.csv",
+                sep=",",header=TRUE, na.strings=c("-9999"))
+
+sw.pot[,date_time := parse_date_time(TIMESTAMP_END, "YmdHM",tz="UTC")]
+
+setnames(sw.pot,("SW_IN_POT"),("SW_IN_POT_AF"))
+
+# merge
+flux <- merge(flux,sw.pot[,.(date_time,SW_IN_POT_AF)], by="date_time")
+
+# check adjustment
+daycheck <- as.Date("2013-08-30")
+
+ggplot(flux[as.Date(date_time)==daycheck])+
+  geom_line(aes(date_time, SW_IN_POT_AF),colour="black")+
+  geom_line(aes(date_time,SW_IN_1_1_1),colour="red")
+
 
 # APPLY ROLLING MEANS APPROACH TO FILTER Fc, LE, H
 # use rollmeanr from zoo
@@ -285,7 +362,7 @@ ggplot(flux[filter_fc!=1,])+
   geom_ribbon(aes(x=DOY_START, ymin=FC_rollmean3-threshold*FC_rollsd3, ymax=FC_rollmean3+threshold*FC_rollsd3), alpha=0.5)+
   geom_ribbon(aes(x=DOY_START, ymin=FC_rollmean7-threshold*FC_rollsd7, ymax=FC_rollmean7+threshold*FC_rollsd7), colour="blue",alpha=0.3)+
   
-  facet_grid(year~.)
+  facet_grid(year_orig~.)
 
 # graph the 3 day SD ribbons around measured flux by day/night
 ggplot(flux[filter_fc!=1&year==2010,])+
@@ -310,17 +387,17 @@ flux[FC>FC_rollmean3_daynight+threshold*FC_rollsd3_daynight|
 # view the marked fluxes in ~25 day chunks
 ggplot(flux[filter_fc_roll!=1&DOY_START>=1&DOY_START<=30,], aes(DOY_START, FC, colour=factor(filter_fc_roll)))+
   geom_point()+
-  facet_grid(year~.)
+  facet_grid(year_orig~.)
 
 # view the marked fluxes in ~25 day chunks for day/night
 ggplot(flux[filter_fc_roll_daynight!=1&DOY_START>=301&DOY_START<=365,], aes(DOY_START, FC, colour=factor(filter_fc_roll_daynight)))+
   geom_point()+
-  facet_grid(year~.)
+  facet_grid(year_orig~.)
 
 # graph with the fluxes from the 3SD 3day day/night filter removed
 ggplot(flux[filter_fc_roll_daynight==0,], aes(DOY_START, FC))+
   geom_line()+
-  facet_grid(year~.)
+  facet_grid(year_orig~.)
 
 
 # SD filter for LE
@@ -350,7 +427,7 @@ ggplot(flux[filter_LE!=1&year==2015,])+
   geom_ribbon(aes(x=DOY_START, ymin=LE_rollmean3-threshold*LE_rollsd3, ymax=LE_rollmean3+threshold*LE_rollsd3), alpha=0.5)+
   geom_ribbon(aes(x=DOY_START, ymin=LE_rollmean7-threshold*LE_rollsd7, ymax=LE_rollmean7+threshold*LE_rollsd7), colour="blue",alpha=0.3)+
   
-  facet_grid(year~.)
+  facet_grid(year_orig~.)
 
 # graph the 3 day SD ribbons around measured flux by day/night
 ggplot(flux[filter_LE!=1&year==2015,])+
@@ -375,23 +452,23 @@ flux[LE>LE_rollmean3_daynight+threshold*LE_rollsd3_daynight|
 # view the marked fluxes in ~25 day chunks
 ggplot(flux[filter_le_roll!=1&DOY_START>=25&DOY_START<=50,], aes(DOY_START, LE, colour=factor(filter_le_roll)))+
   geom_point()+
-  facet_grid(year~.)
+  facet_grid(year_orig~.)
 
 # view the marked fluxes in ~25 day chunks for day/night
 ggplot(flux[filter_le_roll_daynight!=1&DOY_START>=51&DOY_START<=100,], aes(DOY_START, LE, colour=factor(filter_le_roll_daynight)))+
   geom_point()+
-  facet_grid(year~.)
+  facet_grid(year_orig~.)
 
 # graph with the fluxes from the 3SD 3day day/night filter removed
 ggplot(flux[filter_le_roll_daynight==0,], aes(DOY_START, LE))+
   geom_line()+
-  facet_grid(year~.)
+  facet_grid(year_orig~.)
 
 # graph fluxes with the 3SD 3day day/night filter removed and with my manual filter
 ggplot()+
   geom_line(data=flux[filter_LE==0], aes(DOY_START, LE, colour="manual"), colour="blue")+
   geom_line(data=flux[filter_le_roll_daynight==0], aes(DOY_START, LE, colour="SD day/night"), colour="green")+
-  facet_grid(year~.)
+  facet_grid(year_orig~.)
 
 
 # SD filter for H
@@ -421,7 +498,7 @@ ggplot(flux[filter_H!=1&year==2015,])+
   geom_ribbon(aes(x=DOY_START, ymin=H_rollmean3-threshold*H_rollsd3, ymax=H_rollmean3+threshold*H_rollsd3), alpha=0.5)+
   geom_ribbon(aes(x=DOY_START, ymin=H_rollmean7-threshold*H_rollsd7, ymax=H_rollmean7+threshold*H_rollsd7), colour="blue",alpha=0.3)+
   
-  facet_grid(year~.)
+  facet_grid(year_orig~.)
 
 # graph the 3 day SD ribbons around measured flux by day/night
 ggplot(flux[filter_H!=1&year==2015,])+
@@ -446,17 +523,17 @@ flux[H>H_rollmean3_daynight+threshold*H_rollsd3_daynight|
 # view the marked fluxes in ~25 day chunks
 ggplot(flux[filter_h_roll!=1&DOY_START>=25&DOY_START<=50,], aes(DOY_START, H, colour=factor(filter_h_roll)))+
   geom_point()+
-  facet_grid(year~.)
+  facet_grid(year_orig~.)
 
 # view the marked fluxes in ~25 day chunks for day/night
 ggplot(flux[filter_h_roll_daynight!=1&DOY_START>=51&DOY_START<=100,], aes(DOY_START, H, colour=factor(filter_h_roll_daynight)))+
   geom_point()+
-  facet_grid(year~.)
+  facet_grid(year_orig~.)
 
 # graph with the fluxes from the 3SD 3day day/night filter removed
 ggplot(flux[filter_h_roll_daynight==0,], aes(DOY_START, H))+
   geom_line()+
-  facet_grid(year~.)
+  facet_grid(year_orig~.)
 
 # graph fluxes with the 3SD 3day day/night filter removed and with my manual filter
 ggplot()+
@@ -473,7 +550,7 @@ ggplot()+
  setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
 
 # 20200212: added all of 2019 (reran Jan - June)
- save(flux,file="JER_flux_2010_2019_EddyPro_Output_filterID_SD_20200212.Rdata")
+# save(flux,file="JER_flux_2010_2019_EddyPro_Output_filterID_SD_20200212.Rdata")
 
 
 # 
@@ -485,11 +562,17 @@ ggplot()+
 # 
 
 
- flux_filter_sd <- copy(flux)
+ flux_filter_sd <- copy(flux[,!(c("date_time_orig","TIMESTAMP_START","TIMESTAMP_END","DOY_START","DOY_END","time_diff","SW_IN_POT_AF")),with=FALSE])
  flux_filter_sd[filter_fc_roll_daynight!=0, FC := NA]
  flux_filter_sd[filter_h_roll_daynight!=0, H := NA]
  flux_filter_sd[filter_le_roll_daynight!=0, LE := NA]
 
+ 
+ # 20200427: corrected timestamps!
+# save(flux_filter_sd,
+# file="JER_flux_2010_2019_EddyPro_Output_filtered_SD_TIMEcorr_20200427.Rdata")
+ 
+ 
  # 20200212: added all of 2019 (reran Jan - June)
 #  save(flux_filter_sd,file="JER_flux_2010_2019_EddyPro_Output_filtered_SD_20200212.Rdata")
  
@@ -502,7 +585,7 @@ ggplot()+
 #      file="JER_flux_2010_2019_EddyPro_Output_filtered_SD_20200128.Rdata")
 
  ### save data for Dawn's LTAR synthesis
- 
+ # 20200427: LTAR data is not timestamp corrected... but using daily data so that really won't matter!
  # select 2014-2018 and use the SD filtered data. 
  # the data contains only filtered data, all flagged data in Fc, H, LE removed
  flux.ltar <- copy(flux_filter_sd[year %in% c(2014,2015,2016,2017,2018),])
@@ -534,7 +617,7 @@ ggplot()+
  flux.ltar.long <- melt.data.table(flux.ltar1[,.(TIMESTAMP_END,FC,H,LE,USTAR)],
                                    c("TIMESTAMP_END"))
  
- ggplot(flux.ltar.long,aes(parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"), value))+
+ ggplot(flux.ltar.long,aes(parse_date_time_orig(TIMESTAMP_END,"YmdHM",tz="UTC"), value))+
    geom_line()+
    facet_grid(variable~.,scales="free_y")
  
@@ -543,7 +626,7 @@ ggplot()+
  
  # 20200310 version has 2014-2018 data with SD filter and 30min with rain events removed
  # write.table(flux.ltar1, file="FluxData_jerbajada_20200310.csv",
- # sep=",", dec=".",row.names=FALSE, na="-9999", quote=FALSE)
+#  sep=",", dec=".",row.names=FALSE, na="-9999", quote=FALSE)
  
  # metadata file is created in Jornada_EddyPro_Output.R because that is able to take units from the full output files
  # I manually modified and renamed the metadata file because the output here has _1_1_1 in all the biomet variables

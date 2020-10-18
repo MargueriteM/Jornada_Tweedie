@@ -11,6 +11,12 @@
 #                15 April, 2019                 #
 #################################################
 
+# 7 Apr 2020 update: update to March 24 and add timestamp correction due to daylight savings changes
+# JER_Tower_SN_TimestampMismatches.xlsx
+# make the timestamp adjustments at the end, after filtering data. 
+# save in long format and by year in wide format as dataL2
+
+
 # load libraries
 library(ggplot2) # library for making figures in ggplot package
 library(lubridate) # library for easier date manipulation 
@@ -19,7 +25,7 @@ library(data.table) # library for data table which is more efficient with large 
 # make sure all files to merge are in one folder. 
 
 # set working directory where files are kept
-setwd("~/Desktop/TweedieLab/Projects/Jornada/SoilSensor_ECTM")
+setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SoilSensor_ECTM")
 
 # read all the files in the folder for merging
 ectm_files <- list.files(path="~/Desktop/TweedieLab/Projects/Jornada/Data/SoilSensor_ECTM", full.names=TRUE, pattern=".csv") 
@@ -219,13 +225,13 @@ ectm_30min_long[rep %in% c(7,8) & year==2019, value := NA]
 ectm_30min_long[measurement == "vwc" & year==2019 & month<=4 & value>0.2, value:=NA]
 
 # 2020
-# remove 4, 7, 8 in moisture
-ectm_30min_long[measurement == "vwc"& rep %in% c(4,7,8) & year==2020, value := NA]
+# remove all except 2 in temp and moisture
+ectm_30min_long[rep %in% c(1,3,4,5,6,7,8) & year==2020, value := NA]
 
 # look at data in figures and remoce points that are obviously bad. 
 
 # make a figure of temperature
-ggplot(ectm_30min_long[measurement=="t"&year>=2019,],
+ggplot(ectm_30min_long[measurement=="t"&year>=2020,],
        aes(date_time,value,colour=variable))+
   #geom_point()+
   geom_line()+
@@ -242,6 +248,113 @@ ggplot(ectm_30min_long[measurement=="vwc" & year>=2019,],
   facet_grid(variable~.)
 
 
+
+# correct the timestamps
+ectm_30min_long_orig <- copy(ectm_30min_long)
+# to revert, if a mistake happens:
+## rm(ectm_30min_long)
+## ectm_30min_long <- copy(ectm_30min_long_orig)
+
+# keep the original timestamp and fix date_time column to make all times MST
+# (use tz=UTC to prevent convervsion of data)
+ectm_30min_long[,date_time_orig := date_time][,date_time:=NULL]
+
+# do nothing before 2011-03-21
+ectm_30min_long[date_time_orig<as.POSIXct("2011-03-21 16:00:00",tz="UTC"),
+           date_time := date_time_orig]
+
+# minus 1 hour
+ectm_30min_long[(date_time_orig>=as.POSIXct("2011-03-21 17:00:00",tz="UTC") & 
+              date_time_orig<=as.POSIXct("2011-11-12 12:00:00",tz="UTC")),
+           date_time := date_time_orig - hours(1)]
+
+# do nothing
+ectm_30min_long[date_time_orig>=as.POSIXct("2011-11-12 12:30:00",tz="UTC") & 
+             date_time_orig<as.POSIXct("2012-05-17 16:00:00",tz="UTC"),
+           date_time := date_time_orig]
+
+# minus 1 hour
+ectm_30min_long[date_time_orig>=as.POSIXct("2012-05-17 17:00:00",tz="UTC") & 
+             date_time_orig<=as.POSIXct("2013-01-11 13:00:00",tz="UTC"),
+           date_time := date_time_orig - hours(1)]
+
+# do nothing
+ectm_30min_long[date_time_orig>=as.POSIXct("2013-01-11 13:30:00",tz="UTC") & 
+             date_time_orig<as.POSIXct("2013-08-02 12:00:00",tz="UTC"),
+           date_time := date_time_orig]
+
+# minus 1 hour
+ectm_30min_long[date_time_orig>=as.POSIXct("2013-08-02 13:00:00",tz="UTC") & 
+             date_time_orig<=as.POSIXct("2015-10-19 12:00:00",tz="UTC"),
+           date_time := date_time_orig-hours(1)]
+
+
+# do nothing
+ectm_30min_long[date_time_orig>=as.POSIXct("2015-10-19 12:30:00",tz="UTC"),
+           date_time := date_time_orig]
+
+
+# remake year, month, doy
+ectm_30min_long[,':=' (year=year(date_time),
+                  month=month(date_time),
+                  doy=yday(date_time))]
+
+
+# import SW potential and merge because that fixed the timestamp reverting issue in FluxTable
+sw.pot <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Ameriflux/QA_QC_Report_Ameriflux/US-Jo1_HH_2010_2019_SW_IN_pot.csv",
+                sep=",",header=TRUE, na.strings=c("-9999"))
+
+sw.pot[,date_time := parse_date_time(TIMESTAMP_END, "YmdHM",tz="UTC")]
+
+sw.pot[,':=' (location="potential",
+              variable="sw_pot",
+              measurement="sw_pot",
+              value=SW_IN_POT,
+              date_time_orig=date_time,
+              year=year(date_time),
+              month=month(date_time),
+              doy=yday(date_time))][,SW_IN_POT:=NULL]
+
+
+ectm_long_comp <- rbind(ectm_30min_long, sw.pot, fill=TRUE)
+
+# get rid of the NA timestamps from date_time
+ectm_long_comp <- ectm_long_comp[!is.na(date_time),]
+
+
+ggplot(ectm_long_comp[measurement=="t"&rep==2&year==2011&month==3&doy<90])+
+  geom_line(aes(date_time_orig,value),colour="black")+
+  geom_line(aes(date_time,value),colour="red")
+
+ggplot(ectm_long_comp[measurement=="t"&rep==2&year==2012&month==5&doy<140])+
+  geom_line(aes(date_time_orig,value),colour="black")+
+  geom_line(aes(date_time,value),colour="red")
+
+
+ggplot(ectm_long_comp[measurement=="t"&rep==2&as.Date(date_time)==as.Date("2013-08-02")])+
+  geom_line(aes(date_time_orig,value),colour="black")+
+  geom_line(aes(date_time,value),colour="red")
+
+
+ggplot(ectm_long_comp[measurement=="t"&rep==2&as.Date(date_time)==as.Date("2015-10-18")])+
+  geom_line(aes(date_time_orig,value),colour="black")+
+  geom_line(aes(date_time,value),colour="red")
+
+ggplot(ectm_long_comp[measurement=="t"&rep==2&as.Date(date_time)==as.Date("2015-10-19")])+
+  geom_line(aes(date_time_orig,value),colour="black")+
+  geom_line(aes(date_time,value),colour="red")
+
+ggplot(ectm_long_comp[measurement=="t"&rep==2&as.Date(date_time)==as.Date("2015-10-20")])+
+  geom_line(aes(date_time_orig,value),colour="black")+
+  geom_line(aes(date_time,value),colour="red")
+
+ 
+ggplot(ectm_long_comp[measurement=="t"&rep==2&as.Date(date_time)==as.Date("2015-10-17")])+
+  geom_line(aes(date_time_orig,value),colour="black")+
+  geom_line(aes(date_time,value),colour="red")
+
+
+ 
 # FOR ANTHONY: 
 # look only at probe 5 and 6
 # I feel fairly confident that 5 = 10cm open and 6 = 5cm shrub
@@ -274,6 +387,49 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SoilSensor_ECTM/Combined")
 # write.table(ectm_30min_long, file="Soil_Temp_VWC_ECTM_L1_2010_20190531_30min.csv", sep=",", row.names = FALSE)
 
 # save updated to 12 Jan 2020
-# write.table(ectm_30min_long, file="Soil_Temp_VWC_ECTM_L1_2010_20200112_30min.csv", sep=",", row.names = FALSE)
+# write.table(ectm_30min_save, file="Soil_Temp_VWC_ECTM_L1_2010_20200112_30min.csv", sep=",", dec='.',row.names = FALSE)
+
+
+# save updated to 24 March 2020 and with timestamps corrected
+# CHANGE NAME TO L2!!!!
+# write.table(ectm_long_comp[measurement %in% c("vwc","t"),], file="Soil_Temp_VWC_ECTM_L2_2010_20200324_30min.csv", sep=",", row.names = FALSE)
+
+
+# save in wide format
+
+ectm_30min_long[,id := paste(measurement,rep,sep="_")]
+
+ectm30_wide_save <- data.table:: dcast(ectm_30min_long[!is.na(date_time),.(date_time, date_time_orig,id,value)],
+                                      date_time+date_time_orig~id,
+                                      value.var="value")
+
+setnames(ectm30_wide_save,c("date_time","date_time_orig"),
+         c("timestamp","timestamp_orig"))
+
+ggplot(ectm30_wide_save, aes(x=timestamp))+
+  geom_line(aes(y=t_2)) 
+              
+
+ggplot(ectm30_wide_save[as.Date(timestamp)==as.Date("2013-08-02")])+
+   geom_line(aes(timestamp,t_2),colour="red")+
+   geom_line(aes(timestamp_orig,t_2),colour="black")
+
+# save by year!
+setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SoilSensor_ECTM/Yearly_QAQC_timestamp")
+
+saveyears <- function(data,startyear,endyear) {
+  data[is.na(data)] <- NA
+  
+  for (i in startyear:endyear) {
+    data_save <- data[year(timestamp)==i,]
+    
+    write.table (data_save[,.(timestamp,timestamp_orig,vwc_1, vwc_2, vwc_3, vwc_4, vwc_5, vwc_6, vwc_7, vwc_8,
+                              t_1, t_2, t_3, t_4, t_5, t_6, t_7, t_8)],
+                 file=paste("dataL2_ECTM",i, ".csv",sep="_"),
+                 sep =',', dec='.', row.names=FALSE,quote=FALSE)
+  }}
+
+
+# saveyears(ectm30_wide_save,2010,2020)
 
 
