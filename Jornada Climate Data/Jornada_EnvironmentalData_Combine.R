@@ -125,6 +125,10 @@
 library(ggplot2) # library for making figures in ggplot package
 library(lubridate) # library for easier date manipulation 
 library(data.table) # library for data table which is more efficient with large data sets
+library(zoo)
+library(scales)
+library(Hmisc)
+library(corrplot)
 
 #############
 # IMPORT DATA
@@ -527,6 +531,7 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP")
 
 
 # load("Biomet_EddyPro_2010_2019_20190709.Rdata")
+# load("Biomet_EddyPro_2010_2020_20200112.Rdata")
 
 # save Biomet Data for EddyPro for each year (csv) after editing timestamp
 ## setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/20190709")
@@ -544,6 +549,9 @@ source("~/Desktop/R/R_programs/Functions/SaveFiles_Biomet_EddyPro.R")
 
 # save 2019
 # savebiomet(biomet,2019,2019)
+
+# save 2020 up to Feb 2020-02-10 (on 11 Nov 2020, for processing EP data for Hayden)
+# savebiomet(biomet,2020,2020)
 
 ##################################################
 # BIOMET2: Expanded format for Ameriflux submission
@@ -873,6 +881,341 @@ saveyears <- function(data,startyear,endyear) {
 
 ### GAPFILL ENV Data for internal use #### 
 
+# From ReddyProc FAQ: 
+# I have no incoming solar radiation (Rg) - What can I do?
+#   
+# Incoming radiation (Rg) is used for different purposes in REddyproc. The answer depends on which purpose.
+# Option 1: Estimate Rg by measured PAR
+# *This should give reasonable results for gap-filling, nighttime partitoning, and daytime partitioning Rg = PAR/0.47
+# *References e.g. Yu 2015 et al. 10.1016/j.enconman.2014.09.038, Britton & Dodd 1976, 10.1016/0002-1571(76)90080-7
+# Option 2: Use Rg of a geographically not to distant site
+# *ok for night-time partitioning,
+# *probably reasonable for gap-filling unless the periods where conditions differ much between the sites, and
+# *do not use daytime partitioning.
+# Option 3: net radiation
+# *is not an option for us, but try to convince us with your results.
+
+# see where gaps are
+# create a gap variable that 1 for data and 0 for NA
+env_30min[is.na(mean.val),gap:=0]
+env_30min[!is.na(mean.val),gap:=1]
+
+# graph the gap locations: 
+ggplot(env_30min[variable %in% "Rs_up",], aes(doy,gap))+
+  geom_line()+
+  facet_grid(year~.)
+
+# graph the data
+ggplot(env_30min[variable %in% "Rs_up",], aes(doy,mean.val))+
+  geom_line()+
+  facet_grid(year~.)
+
+# graph the gap locations for SW from other locations and sensors
+ggplot(env_30min[((variable %in% c("solar") & veg=="UP" )| variable %in% c("Rs_up")),],
+       aes(doy,gap,colour=location))+
+  geom_line()+
+  facet_grid(location~year)
+
+# graph the NRCS and Sn data with the tower data early in the year
+ggplot(env_30min[((variable %in% c("solar") & veg=="UP" )| variable %in% c("Rs_up")) &
+                   doy>=1 & doy <=20,],
+       aes(hour(date_time),mean.val,colour=location))+
+  geom_line()+
+  facet_grid(year~doy)
+
+# graph the NRCS and Sn data with the tower data mid-year
+ggplot(env_30min[((variable %in% c("solar") & veg=="UP" )| variable %in% c("Rs_up")) &
+                   doy>=1 & doy <=10,],
+       aes(hour(date_time),mean.val,colour=location))+
+  geom_line()+
+  facet_grid(year~doy)
+
+
+# graph the NRCS and Sn data with the tower data mid-year
+ggplot(env_30min[((variable %in% c("solar") & veg=="UP" )| variable %in% c("Rs_up")) &
+                   doy>=100 & doy <=120,],
+       aes(hour(date_time),mean.val,colour=variable))+
+  geom_line()+
+  facet_grid(year~doy)
+
+# graph the NRCS and Sn data with the tower data late-year
+ggplot(env_30min[((variable %in% c("solar") & veg=="UP" )| variable %in% c("Rs_up")) &
+                   doy>=300 & doy <=320,],
+       aes(hour(date_time),mean.val,colour=location))+
+  geom_line()+
+  facet_grid(year~doy)
+
+
+# look at RS_up and PAR at tower
+ggplot(env_30min[((variable %in% c("par") & veg=="UP" )|
+                    variable %in% c("Rs_up")) &
+                   doy>=100 & doy <=120 &
+                   location=="tower",],
+       aes(hour(date_time),mean.val,colour=variable))+
+  geom_line()+
+  facet_grid(year~doy)
+
+# look at RS_up and PAR at SN
+ggplot(env_30min[(variable %in% c("par",
+                                   'solar') & veg=="UP" ) &
+                   doy>=100 & doy <=120 &
+                   location=="SN",],
+       aes(hour(date_time),mean.val,colour=variable))+
+  geom_line()+
+  facet_grid(year~doy)
+
+# graph the relationship between NRCS, SN, and tower data
+# subset only the solar variables
+solar.comp.sn <- copy(env_30min[((variable %in% c("solar") & veg=="UP") & location=="SN"),
+                                .(date_time,mean.val)])
+setnames(solar.comp.sn, c("mean.val"),c("solar.sn"))
+
+par.comp.sn <- copy(env_30min[((variable %in% c("par") & veg=="UP") & location=="SN"),
+                                .(date_time,mean.val)])
+setnames(par.comp.sn, c("mean.val"),c("par.sn"))
+
+solar.comp.tower <- copy(env_30min[variable %in% c("Rs_up"),
+                                   .(date_time,mean.val)])
+setnames(solar.comp.tower, c("mean.val"),c("solar.tower"))
+
+par.comp.tower <- copy(env_30min[((variable %in% c("par") & veg=="UP") & location=="tower"),
+                                   .(date_time,mean.val)])
+setnames(par.comp.tower, c("mean.val"),c("par.tower"))
+
+
+solar.comp.nrcs <- copy(env_30min[((variable %in% c("solar") & veg=="UP") & location=="nrcs"),
+                                  .(date_time,mean.val)])
+setnames(solar.comp.nrcs, c("mean.val"),c("solar.nrcs"))
+
+
+solar.comp <- merge(solar.comp.sn,solar.comp.tower,by=c("date_time"),all=TRUE)
+solar.comp <- merge(solar.comp,solar.comp.nrcs,by=c("date_time"), all=TRUE)
+solar.comp <- merge(solar.comp,par.comp.tower,by=c("date_time"), all=TRUE)
+solar.comp <- merge(solar.comp,par.comp.sn,by=c("date_time"), all=TRUE)
+
+# remove NAs in date_time
+solar.comp <- solar.comp[!is.na(date_time)]
+
+# create all dates and then interpolate the half-hours at nrcs
+# from 2010-01-01 00:00 to 2020-03-24 13:00:00
+alldates <- data.table(date_time=seq(as.POSIXct("2009-12-31 17:00",tz="UTC"),
+                                        as.POSIXct("2020-03-24 13:00",tz="UTC"),
+                                        by="30 mins"))
+
+solar.comp <- merge(alldates,solar.comp, by="date_time", all.x=TRUE)
+
+# interpolate half hours for solar.nrcs
+solar.comp[date_time>=as.POSIXct("2009-12-31 17:00")&
+             date_time <= as.POSIXct("2017-07-04 09:00"),
+           solar.nrcs.int := na.approx(solar.nrcs)]
+
+# look at a few of the interpolated points
+ggplot(solar.comp[yday(date_time)>=100 & yday(date_time) <=110,])+
+      geom_point(aes(hour(date_time),solar.nrcs), colour="pink", size=0.5)+
+  geom_line(aes(hour(date_time),solar.nrcs.int), size=0.25)+
+  facet_grid(year(date_time)~yday(date_time))
+
+# convert PAR using the ReddyProc equation
+solar.comp[,':=' (par.sn.adj=par.sn*0.47, par.tower.adj=par.tower*0.47)]
+
+# graph adjusted par and solar: SN
+ggplot(solar.comp[yday(date_time)>=100 & yday(date_time) <=110,])+
+  geom_line(aes(hour(date_time),par.sn.adj),colour="green")+
+  geom_line(aes(hour(date_time),solar.sn))+
+  labs(title="SN")+
+  facet_grid(year(date_time)~yday(date_time))
+
+# graph adjusted par and solar: Tower
+ggplot(solar.comp[yday(date_time)>=100 & yday(date_time) <=110,])+
+  geom_line(aes(hour(date_time),par.tower.adj),colour="green")+
+  geom_line(aes(hour(date_time),solar.tower))+
+  labs(title="Tower")+
+  facet_grid(year(date_time)~yday(date_time))
+
+
+# graph adjusted par and solar: SN PAR with Tower Solar
+ggplot(solar.comp[yday(date_time)>=100 & yday(date_time) <=110,])+
+  geom_line(aes(hour(date_time),par.sn.adj),colour="green")+
+  geom_line(aes(hour(date_time),solar.tower))+
+  labs(title="SN Par and Tower Solar")+
+  facet_grid(year(date_time)~yday(date_time))
+
+
+# relationship between SN PAR and Tower Solar
+ggplot(solar.comp, aes(par.sn.adj, solar.tower))+
+  geom_point()+
+  geom_abline(aes(intercept=0, slope=1),colour="blue")
+
+# look at the relationship with SN and Tower Solar coloured by month
+ggplot(solar.comp, aes(solar.sn, solar.tower, colour=factor(month(date_time))))+
+  geom_point()
+
+# look at the relationship with SN and Tower Solar coloured by month, with smooth
+ggplot(solar.comp, aes(solar.sn, solar.tower, colour=factor(month(date_time))))+
+  geom_point(alpha=0.5)+
+  geom_smooth(method="lm", alpha=0)+
+  geom_abline(aes(intercept=0, slope=1))+
+  facet_wrap(month(date_time)~.)
+
+# instead split by hour of the day
+# look at the relationship with SN and Tower Solar coloured by month, with smooth
+ggplot(solar.comp, aes(solar.sn, solar.tower, colour=factor(hour(date_time))))+
+  geom_point(alpha=0.5)+
+  geom_smooth(method="lm", alpha=0)+
+  geom_abline(aes(intercept=0, slope=1))+
+  facet_wrap(hour(date_time)~.)
+
+
+# compare NRCS station with tower
+# look at the relationship with NRCS and Tower coloured by month, with smooth
+ggplot(solar.comp, aes(solar.nrcs, solar.tower, colour=factor(month(date_time))))+
+  geom_point(alpha=0.5)+
+  geom_smooth(method="lm", alpha=0)+
+  geom_abline(aes(intercept=0, slope=1))+
+  facet_wrap(month(date_time)~.)
+
+# instead split by hour of the day
+# look at the relationship with NRCS and Tower coloured by month, with smooth
+ggplot(solar.comp, aes(solar.nrcs, solar.tower, colour=factor(hour(date_time))))+
+  geom_point(alpha=0.5)+
+  geom_smooth(method="lm", alpha=0)+
+  geom_abline(aes(intercept=0, slope=1))+
+  facet_wrap(hour(date_time)~.)
+
+# look at the relationship with Tower PAR and Tower Solar coloured by month, with smooth
+ggplot(solar.comp, aes(par.tower.adj, solar.tower, colour=factor(month(date_time))))+
+  geom_point(alpha=0.5)+
+  geom_smooth(method="lm", alpha=0)+
+  geom_abline(aes(intercept=0, slope=1))+
+  facet_wrap(month(date_time)~.)
+
+# several of the measurements in tower PAR are bad, look by year...
+# the tower PAR to solar is good until 2014. In 2015 the PAR sensor starts going bad
+# sometimes during the day and this gets worse and worse into 2019. 2020 doesn't look that bad... 
+ggplot(solar.comp, aes(par.tower.adj, solar.tower, colour=factor(month(date_time))))+
+  geom_point(alpha=0.5)+
+  geom_smooth(method="lm", alpha=0)+
+  geom_abline(aes(intercept=0, slope=1))+
+  facet_wrap(year(date_time)~.)
+
+
+# look at the relationship with SN PAR and Tower Solar coloured by month, with smooth
+ggplot(solar.comp, aes(par.sn.adj, solar.tower, colour=factor(month(date_time))))+
+  geom_point(alpha=0.5)+
+  geom_smooth(method="lm", alpha=0)+
+  geom_abline(aes(intercept=0, slope=1))+
+  facet_wrap(month(date_time)~.)
+
+# look by year, some spots are funky, 
+# in 2013 March, April, and May have several outlying values in the solar tower data
+# in 2020 March has outlying values in SN PAR and Tower Solar... large spread/cloud in the data
+ggplot(solar.comp, aes(par.sn.adj, solar.tower, colour=factor(month(date_time))))+
+  geom_point(alpha=0.5)+
+  geom_smooth(method="lm", alpha=0)+
+  geom_abline(aes(intercept=0, slope=1))+
+  facet_wrap(year(date_time)~.)
+
+# make a correlation matrix and calculate by month and year
+
+# add hour, date, month and year to solar.comp
+solar.comp[,':='(hour = hour(date_time),date = as.Date(date_time),month=month(date_time),year=year(date_time))]
+
+# use function 
+fun.corr <- function(dat) {
+ # dat1 <- copy(dat[,solar.nrcs := NULL])
+ dat.corr <- rcorr(as.matrix(dat))
+ return(dat.corr$r)
+}
+
+# create a data table for correlation with non-interpolated nrcs data removed and all NAs omitted
+solar.comp.corr.dat <- copy(solar.comp[,solar.nrcs := NULL])
+solar.comp.corr.dat <- na.omit(solar.comp.corr.dat)
+
+solar.comp.corr <- solar.comp.corr.dat[,.(r = list(fun.corr(.SD))),by="year,month",
+                              .SDcols=c("solar.sn","solar.tower","solar.nrcs.int",
+                                       "par.sn.adj","par.tower.adj")]
+
+# graph
+corrplot(solar.comp.corr$r[[22]], type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45)
+
+# http://www.sthda.com/english/wiki/correlation-matrix-a-quick-start-guide-to-analyze-format-and-visualize-a-correlation-matrix-using-r-software 
+# ++++++++++++++++++++++++++++
+# flattenCorrMatrix
+# ++++++++++++++++++++++++++++
+#########
+# cormat : matrix of the correlation coefficients
+# pmat : matrix of the correlation p-values
+flattenCorrMatrix <- function(cormat, pmat) {
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut],
+    p = pmat[ut]
+  )
+}
+
+flattenCorrMatrix_r <- function(dat) {
+  cormat <- dat$r[[1]]
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut]
+  )
+}
+########
+
+solar.comp.corr.flat <- solar.comp.corr[,flattenCorrMatrix_r(.SD),by="year,month"]
+
+ggplot(solar.comp.corr.flat, aes(row,column,fill=cor))+
+  geom_tile()+
+  facet_grid(month~year)+
+  theme(axis.text.x = element_text(angle=45))
+
+solar.corr <- flattenCorrMatrix(solar.comp.corr$r, solar.comp.corr$P)
+
+# 
+solar.comp [,':='(solar.tower.sn = solar.tower-solar.sn,
+                                     solar.tower.nrcs = solar.tower-solar.nrcs.int,
+                                     solar.par.tower = solar.tower-par.tower.adj,
+                                     solar.par.sn = solar.tower-par.sn.adj)]
+
+ggplot(solar.comp, aes(date_time,solar.tower.sn))+geom_point() # +/- 300
+ggplot(solar.comp, aes(date_time,solar.tower.nrcs))+geom_point() # +/- 550
+ggplot(solar.comp, aes(date_time,solar.par.tower))+geom_point() # +/- 200
+ggplot(solar.comp, aes(date_time,solar.par.sn))+geom_point() # +/- 200
+
+solar.comp.sd <- solar.comp[(solar.tower.sn >= (-300) & solar.tower.sn<=300) |
+                              (solar.tower.nrcs >= (-550) | solar.tower.nrcs <= 550) |
+                              (solar.par.tower >= (-200) & solar.par.tower <= 200) |
+                              (solar.par.sn >= (-200) & solar.par.sn <= 200),
+  list(solar.tower.sn.mean=mean(solar.tower.sn,na.rm=TRUE),
+                                  solar.tower.nrcs.mean=mean(solar.tower.nrcs,na.rm=TRUE),
+                                  solar.par.tower.mean=mean(solar.par.tower,na.rm=TRUE),
+                                  solar.par.sn.mean=mean(solar.par.sn,na.rm=TRUE),
+                                  solar.tower.sn.sd=sd(solar.tower.sn,na.rm=TRUE),
+                        solar.tower.nrcs.sd=sd(solar.tower.nrcs,na.rm=TRUE),
+                        solar.par.tower.sd=sd(solar.par.tower,na.rm=TRUE),
+                        solar.par.sn.sd=sd(solar.par.sn,na.rm=TRUE)),
+                  by="hour,month"]
+
+solar.comp1 <- merge(solar.comp,solar.comp.sd,by=c("hour","month"), all.x=TRUE)
+
+ggplot(solar.comp1[year>2010 & month==10,])+geom_point(aes(hour(date_time),solar.tower.sn),size=0.25)+
+  geom_line(aes(hour(date_time),solar.tower.sn.mean+2*solar.tower.sn.sd),colour="green",size=0.5)+
+  geom_line(aes(hour(date_time),solar.tower.sn.mean-2*solar.tower.sn.sd),colour="green",size=0.5)+
+  facet_grid(year~yday(date_time))
+  
+
+
+# gapfill missing Rs (solar.tower)
+# use direct-imputation since the relationships generally fall on 1:1 line
+# and the diurnal patterns investigated match nicely
+# Use hierarchical direct-fill approach:
+
+
 # find mismatch by looking through all data (no tower Rs data until 2011 doy 194: 13 July)
 # 2014 no SN solar data
 # 2017 doy 69-233 no tower Rs data
@@ -1117,9 +1460,63 @@ ggplot(hadn_wide, aes(date_time,VWC_LATR_20))+geom_line()
 #             row.names=FALSE, sep=",", dec=".")
 
 
+# For Maria Saenz Franco
+# Weekly temperature and precipitation data
+# Create a week column
+
+biomet[, ':='(year=year(date_time),
+              date = as.Date(date_time),
+              week= week(date_time))]
+
+# calculate daily and weekly cumulative precipitation and mean temperatures
+biomet_daily <- biomet[!is.na(date_time),list(precip_daily = sum(P_rain_1_1_1, na.rm=TRUE),
+                              Ta_daily = mean(Ta_1_1_1, na.rm=TRUE)),
+                              by="year,date"]
+
+biomet_weekly <- biomet[!is.na(date_time),list(date=unique(date),
+                                               precip_week = sum(P_rain_1_1_1, na.rm=TRUE),
+                                              Ta_week = mean(Ta_1_1_1, na.rm=TRUE)),
+                       by="year,week"]
+
+
+# make figure of daily and weekly precip and air temperature
+p_rain_daily <- ggplot(biomet_daily, aes(date, precip_daily, colour=factor(year)))+
+  geom_col()+
+  scale_color_brewer(palette="Spectral", guide=FALSE)+
+  scale_x_date(date_breaks="month")+
+  facet_grid(.~year, scales="free_x")+
+  theme_bw()
+
+p_Ta_daily <- ggplot(biomet_daily, aes(date, Ta_daily, colour=factor(year)))+
+  geom_line()+
+  scale_color_brewer(palette="Spectral", guide=FALSE)+
+  facet_grid(.~year, scales="free_x")+
+  theme_bw()
+
+p_daily <- grid.arrange(p_Ta_daily, p_rain_daily)
+
+# week
+p_rain_week <- ggplot(biomet_weekly[year>2011&year<2018,], aes(date, precip_week, fill=factor(year)))+
+  geom_col()+
+  scale_fill_brewer(palette="Spectral", guide=FALSE)+
+  scale_x_date(date_minor_breaks="months",date_labels="%b")+
+  facet_grid(.~year, scales="free_x")+
+  theme_light(base_size=14)+
+  labs(x="Month",y="Total Weekly Precipitation (mm)")
+
+p_Ta_week <- ggplot(biomet_weekly, aes(date, Ta_week, colour=factor(year)))+
+  geom_line()+
+  scale_color_brewer(palette="Spectral", guide=FALSE)+
+  facet_grid(.~year, scales="free_x")+
+  theme_bw()
+
+p_week <- grid.arrange(p_Ta_week, p_rain_week)
+
+
 # figures of biomet data for JER Short course Poster
 # time series of rain and temperature
 library(scales)
+library(gridExtra)
 
 p <- ggplot(biomet[!is.na(date_time)&year(date_time)<=2019,],aes(date_time,P_rain_1_1_1,colour=factor(year(date_time))))+
   geom_line()+
@@ -1174,8 +1571,6 @@ t <- ggplot(biomet[!is.na(date_time)&year(date_time)<=2019,],aes(date_time,Ta_1_
 grid.arrange(p,t, nrow=2)
 
 # Lab meeting September 30: 
-library(scales)
-library(gridExtra)
 
 p1 <- ggplot(biomet[!is.na(date_time)&year(date_time)<=2019,],aes(date_time,P_rain_1_1_1,colour=factor(year(date_time))))+
   geom_line()+
