@@ -1502,7 +1502,7 @@ p_rain_week <- ggplot(biomet_weekly[year>2011&year<2018,], aes(date, precip_week
   scale_x_date(date_minor_breaks="months",date_labels="%b")+
   facet_grid(.~year, scales="free_x")+
   theme_light(base_size=14)+
-  labs(x="Month",y="Total Weekly Precipitation (mm)")
+  labs(x="Month",y="Total Weekly Precipitation (mm)") 
 
 p_Ta_week <- ggplot(biomet_weekly, aes(date, Ta_week, colour=factor(year)))+
   geom_line()+
