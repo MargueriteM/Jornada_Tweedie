@@ -1510,7 +1510,7 @@ p_Ta_week <- ggplot(biomet_weekly, aes(date, Ta_week, colour=factor(year)))+
   facet_grid(.~year, scales="free_x")+
   theme_bw()
 
-p_week <- grid.arrange(p_Ta_week, p_rain_week)
+p_week <- grid.arrange(p_Ta_week, p_rain_week) 
 
 
 # figures of biomet data for JER Short course Poster
