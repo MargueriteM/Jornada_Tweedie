@@ -111,6 +111,8 @@ SNfiles_test <- list.files(path=data_dir,
 SN_test <- do.call("rbind", c(fill=TRUE,lapply(SNfiles_test, header = TRUE, fread, sep=",",
                                                na.strings=c(-9999,-888.88,"#NAME?"))))
 
+
+
 # column names for 2019 onward 
 ## On June 20 2019 between ~ 8am - 10am we did some sensor removal and moved 10cm PRGL to 5cm Bare
 # after this the variable name for 5cm Bare changed.
@@ -145,7 +147,22 @@ SN_test_long <- melt.data.table(SN_test_fx,c("Date"))
 SN_test_long <- merge(SN_test_long, colnames2019, by="variable")
 
 
-## save the 5 min data for later use
+## save the 5 min data for later use. save the data in wide format, use the date info from the long file
+## save with start and end date of merged data files
+setwd(save_dir_final)
+write.table(SN_test,file=paste(paste('SensorNetwork',
+                                     sprintf("%04d%02d%02d%02d%02d%02d", year(min(SN_test_long$Date)),month(min(SN_test_long$Date)),
+                                             day(min(SN_test_long$Date)),
+                                             hour(min(SN_test_long$Date)),
+                                             minute(min(SN_test_long$Date)),
+                                             second(min(SN_test_long$Date))),
+                                     sprintf("%04d%02d%02d%02d%02d%02d",year(max(SN_test_long$Date)),month(max(SN_test_long$Date)),day(max(SN_test_long$Date)),
+                                             hour(max(SN_test_long$Date)),minute(max(SN_test_long$Date)),second(max(SN_test_long$Date))),
+                                     "5min",sep="_"),".csv"),
+            sep=",",dec=".",row.names=FALSE)
+
+
+## save the 5 min data for later use in long format
 ## save with start and end date of merged data files
 setwd(save_dir_final)
 write.table(SN_test_long,file=paste(paste('SensorNetwork',
@@ -156,7 +173,7 @@ write.table(SN_test_long,file=paste(paste('SensorNetwork',
           second(min(SN_test_long$Date))),
    sprintf("%04d%02d%02d%02d%02d%02d",year(max(SN_test_long$Date)),month(max(SN_test_long$Date)),day(max(SN_test_long$Date)),
           hour(max(SN_test_long$Date)),minute(max(SN_test_long$Date)),second(max(SN_test_long$Date))),
-   "5min",sep="_"),".csv"),
+   "5min_long",sep="_"),".csv"),
             sep=",",dec=".",row.names=FALSE)
 
 # Take a look at some of the data to make sure the name change on 2019-06-20 worked correctly

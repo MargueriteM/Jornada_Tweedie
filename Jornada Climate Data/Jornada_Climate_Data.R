@@ -40,6 +40,11 @@ library(lattice)
 # hor_wnd_spd (horizontal wind speed): m/s
 # hor_wnd_dir (horizontal wind direction): degrees
 # precip_tot (total precipitation): mm
+             # The accuracy of the TE525-L diminishes as rainfall intensity increases (see the Accuracy specification) because at higher intensities, rain will keep pouring into the tipping mechanism as it is tipping, causing missed tips.
+             # The maximum listed intensity in the specifications is 2 to 3 in./hr, which would give an accuracy of +0%, -5%.
+             # 1inch/hour = max accuracy
+             # 2-3 inch/hour ~ 50-75mm/hour ~ 25-48mm/30min
+             # https://s.campbellsci.com/documents/eu/manuals/te525.pdf
 # par (photosynthetically active radiation): umol/m/s
 # albedo: unitless
 # lws_2 (leaf wetness): mV  THIS IS 'leaf' wetness at 5m; lws_1 is in the Flux_Table data and measures in a shrub
@@ -141,6 +146,7 @@ met30_long[,':=' (year=year(date_time),month=month(date_time),doy=yday(date_time
 
 # data to filter: 
 # airtemp, RH, e, press, precip, are good
+# precip max is ~50mm/30min
 
 
 

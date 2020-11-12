@@ -478,8 +478,11 @@ SN_30min[sensor=="par"&SN=="SN7"&veg=="FLCE"&year==2020&mean.val>2000, mean.val 
 SN_30min[sensor=="pressure" & mean.val<0, mean.val := NA]
 
 # precip has to be >0 and 
-# max the istrument can log is 12.7cm/hour = 6.3cm/30min ~ 70mm/30 min
-SN_30min[sensor=="rain" & (mean.val<0 | mean.val>70), mean.val := NA]
+# The maximum listed intensity in the specifications is 2 to 3 in./hr, which would give an accuracy of +0%, -5%.
+# 1inch/hour = max accuracy
+# 2-3 inch/hour ~ 50-75mm/hour ~ 25-48mm/30min
+# https://s.campbellsci.com/documents/eu/manuals/te525.pdf
+SN_30min[sensor=="rain" & (mean.val<0 | mean.val>50), mean.val := NA]
 
 # solar radiation
 # remove SN1 

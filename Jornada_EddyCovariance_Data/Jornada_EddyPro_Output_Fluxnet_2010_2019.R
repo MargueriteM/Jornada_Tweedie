@@ -1003,10 +1003,10 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/LTAR_Synthesis_Browning")
 # 
 
 
-flux_filter_sd <- copy(flux)
-flux_filter_sd[filter_fc_roll_daynight!=0, FC := NA]
-flux_filter_sd[filter_h_roll_daynight!=0, H := NA]
-flux_filter_sd[filter_le_roll_daynight!=0, LE := NA]
+# flux_filter_sd <- copy(flux)
+# flux_filter_sd[filter_fc_roll_daynight!=0, FC := NA]
+# flux_filter_sd[filter_h_roll_daynight!=0, H := NA]
+# flux_filter_sd[filter_le_roll_daynight!=0, LE := NA]
 
 # 20200206: fixed 2010!! save filtered data set. 
 # save(flux,file="JER_flux_2010_2019_EddyPro_Output_filtered_SD_2010good_20200206.Rdata")

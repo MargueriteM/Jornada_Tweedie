@@ -126,7 +126,7 @@ fluxtable <- fread("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/dataL1
   
 fluxtable[, ':=' (date_time = ymd_hms(TIMESTAMP))]
 
-ggplot(fluxtable[month(date_time)<3,], aes(date_time, Fc_irga))+
+ggplot(fluxtable, aes(date_time, Fc_irga))+
   geom_line()+
   ylim(c(-5,5))
 
