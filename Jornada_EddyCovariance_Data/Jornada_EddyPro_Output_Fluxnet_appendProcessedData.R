@@ -1,5 +1,6 @@
 # Rscript to process a smaller section of EC data and then append it to already-processed data. 
 # This code follows steps laid out in Jornada_EddyPro_Output_Fluxnet_2010_2019_20200212.R
+# for examples use the demofileFlux2020.Rdata and skip steps with flux_filter_sd
 
 # The data get filtered by unlikely values and a 3-day running mean standard deviation of 3
 # filter columns are coded:
@@ -27,10 +28,9 @@ library(zoo)
 
 
 # read the data in fluxnet format that you want to append to other data
+# or read demofile instead
 flux2020 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2020/eddypro_JER_2020_Jan_fluxnet_2020-11-13T180934_adv.csv",
                   sep=",", header=TRUE, na.strings=c("-9999"))
-
-# for examples use the demofileFlux2020.Rdata and skip steps with flux_filter_sd
 
 # remove duplicate data
 flux2020 <- (flux2020[!(duplicated(flux2020, by=c("TIMESTAMP_START")))])
