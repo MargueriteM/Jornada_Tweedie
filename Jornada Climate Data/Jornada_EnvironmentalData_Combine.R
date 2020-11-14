@@ -425,10 +425,10 @@ biomet_mean_precip <- env_30min[variable %in% c("precip.tot") & veg=="BARE",
                              list(P_rain_1_1_1 = mean(mean.val, na.rm=TRUE)),
                            by="date_time_orig"]
 
-ggplot(SN_30min[variable %in% c("precip.tot") & veg=="BARE" &year(date_time_orig)==2015,],aes(date_time_orig,mean.val,colour=veg))+geom_point()
-ggplot(env_30min[variable %in% c("precip.tot") & veg=="BARE" &year(date_time_orig)==2015,],aes(date_time_orig,mean.val,colour=datastream))+geom_point()
+ggplot(SN_30min[variable %in% c("precip.tot") & veg=="BARE" &year(date_time_orig)==2020,],aes(date_time_orig,mean.val,colour=veg))+geom_point()
+ggplot(env_30min[variable %in% c("precip.tot") & veg=="BARE" &year(date_time_orig)==2020,],aes(date_time_orig,mean.val,colour=datastream))+geom_point()
 
-ggplot(biomet_mean_precip[year(date_time_orig)==2015,],aes(date_time_orig,P_rain_1_1_1))+geom_point()
+ggplot(biomet_mean_precip[year(date_time_orig)==2020,],aes(date_time_orig,P_rain_1_1_1))+geom_point()
 
 # soilmoisture & soiltemp: average from tower and SN regardless of depth or veg
 # soil moisture = soil water content
@@ -436,7 +436,7 @@ ggplot(biomet_mean_precip[year(date_time_orig)==2015,],aes(date_time_orig,P_rain
 biomet_mean_soilM <- copy(env_30min[variable %in% c("soilmoisture"),])
 
 # for biomet soil moisture averaging reemove the periods with baseline shift
-ggplot(biomet_mean_soilM[year>2017], aes(date_time_orig,mean.val, colour=factor(depth)))+
+ggplot(biomet_mean_soilM[year>2019], aes(date_time_orig,mean.val, colour=factor(depth)))+
   geom_line()+
   facet_grid(paste(location,veg)~.)
 
@@ -511,6 +511,8 @@ biomet <- merge(biomet,biomet_mean_soilT, by="date_time_orig",all=TRUE)
 biomet <- merge(biomet,biomet_mean_hfp, by="date_time_orig",all=TRUE)
 biomet <- merge(biomet,biomet_mean_Pa, by="date_time_orig",all=TRUE)
 
+setnames(biomet, c("date_time_orig"),c("date_time"))
+
 # save Biomet Data for EddyPro for all years (R file) before editing timestamp
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP")
 ## incorrect precip data: save(biomet, file="Biomet_EddyPro_2010_2019_20190528.Rdata")
@@ -528,6 +530,9 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP")
 
 # save biomet data up to 12 Jan 2020
 # save(biomet, file="Biomet_EddyPro_2010_2020_20200112.Rdata")
+
+# save biomet data up to 3 March 2020
+# save(biomet, file="Biomet_EddyPro_2010_2020_20203024.Rdata")
 
 
 # load("Biomet_EddyPro_2010_2019_20190709.Rdata")
@@ -550,7 +555,7 @@ source("~/Desktop/R/R_programs/Functions/SaveFiles_Biomet_EddyPro.R")
 # save 2019
 # savebiomet(biomet,2019,2019)
 
-# save 2020 up to Feb 2020-02-10 (on 11 Nov 2020, for processing EP data for Hayden)
+# save 2020 up to March 2020-03-24 (on 13 Nov 2020, for processing EP data for Hayden)
 # savebiomet(biomet,2020,2020)
 
 ##################################################
