@@ -5,6 +5,7 @@
 #    update: 9 August 2019                 #
 ############################################
 
+# 20201112: add Jan 2020 data for Hayden
 # 20200128: add SD based filters (3 day running mean/SD seperately for day/night and remove Fc, H, LE more than 3SD out of range from running mean)
 # 20200205: update with 2010 data processed in batches of files with 14 and 15 data rows (see Jornada_EC_2010_diagnosing.R)
 # 20200212: update with full year of 2019 data and simplify filter to only include SD filter steps.
@@ -79,10 +80,12 @@ flux2018 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_
 flux2019 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2019/eddypro_JER_2019_fluxnet_2020-02-11T163749_adv.csv",
                   sep=",", header=TRUE, na.strings=c("-9999"))
 
+flux2020 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2020/eddypro_JER_2020_Jan_fluxnet_2020-11-11T171034_adv.csv",
+        sep=",", header=TRUE, na.strings=c("-9999"))
 
 # combine all individual years of flux runs
 flux <- rbind(flux2010a, flux2010b, flux2010c, flux2011a, flux2011b, flux2012a, flux2012b,
-              flux2013,flux2014,flux2015, flux2016, flux2017, flux2018, flux2019)
+              flux2013,flux2014,flux2015, flux2016, flux2017, flux2018, flux2019, flux2020)
 
 # remove duplicate data
 flux <- (flux[!(duplicated(flux, by=c("TIMESTAMP_START")))])
@@ -186,23 +189,23 @@ flux[FC<(-30)|FC>30, filter_fc := 1L]
 
 
 # look at the fluxes by month for each year
-p_flux <- ggplot(flux[filter_fc !=1&month==31&DOY_START<61,],
+p_flux <- ggplot(flux[filter_fc !=1&month_orig==1,],
        aes(DOY_START,FC))+
   geom_point(aes(colour=factor(FC_SSITC_TEST)))+
   geom_line()+
   geom_hline(yintercept=c(-5,5))+
   #ylim(c(-5,5))+
-         facet_grid(year~.,scales="free_y")
+         facet_grid(year_orig~.,scales="free_y")
 
 # p_flux
 
 ###### H ######
 # look at H  by month for each year
-ggplot(flux[filter_H!=1,],
+ggplot(flux[month_orig==1&DOY_START<31,],
        aes(DOY_START,H,colour=factor(H_SSITC_TEST)))+
   geom_point()+
   #ylim(c(-30,30))+
-  facet_grid(year~.,scales="free_y")
+  facet_grid(year_orig~.,scales="free_y")
 
 # remove QC >1 and AGC > 50
 flux[,filter_H := 0L]
@@ -217,7 +220,7 @@ flux[year_orig==2018 & month_orig==1 & H>400, filter_H := 1L]
 
 
 # look at all filtered H
-ggplot(flux[filter_H!=1,],
+ggplot(flux[filter_H!=1&month_orig==1&DOY_START<31,],
        aes(DOY_START,H))+
   geom_line()+
   #ylim(c(-30,30))+
@@ -226,11 +229,11 @@ ggplot(flux[filter_H!=1,],
 
 ##### LE ####
 # look at LE  by month for each year
-ggplot(flux,
+ggplot(flux[month_orig==1&DOY_START<31,],
        aes(DOY_START,LE,colour=factor(LE_SSITC_TEST)))+
   geom_point()+
   #ylim(c(-30,30))+
-  facet_grid(year~.,scales="free_y")
+  facet_grid(year_orig~.,scales="free_y")
 
 # remove QC >1 and AGC > 50
 flux[,filter_LE:= 0L]
@@ -246,17 +249,17 @@ flux[LE >1000, filter_LE := 1L]
 
 
 # look at LE  by month for each year
-ggplot(flux[filter_LE!=1&month==1&hour(date_time_orig)>0,],
+ggplot(flux[filter_LE!=1&month_orig==1&DOY_START<31,],
        aes(DOY_START,LE,colour=factor(LE_SSITC_TEST)))+
   geom_point()+
   geom_hline(yintercept=c(-50,200))+
-  facet_grid(year~.,scales="free_y")
+  facet_grid(year_orig~.,scales="free_y")
 
 # Before the SD filter remove all fluxes that occur at the moment of a rain event
 ggplot()+
-  geom_line(data=flux[filter_fc !=1], aes(DOY_START,FC))+
+  geom_line(data=flux[filter_fc !=1], aes(DOY_START,FC),alpha=0.5)+
   geom_point(data=flux[filter_fc !=1&P_RAIN_1_1_1>0], aes(DOY_START,FC), colour="red",size=0.25)+
-  facet_grid(year~.)
+  facet_grid(year_orig~.)
   
 flux[P_RAIN_1_1_1>0, ':=' (filter_fc = 1L, filter_LE = 1L, filter_H = 1L)]
 
