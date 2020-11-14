@@ -397,7 +397,7 @@ flux.hayden[mins==0, Hour := hours+0.0]
 flux.hayden[mins==30, Hour := hours+0.5]
 
 # save the data
-write.table(flux.hayden[,.(Year,DoY,Hour,LE_orig,H_orig,Rg_orig,Tair_orig,rH_orig,VPD)],
+write.table(flux.hayden[,.(Year,DoY,Hour,LE_orig,H_orig,Rg_orig,Tair_orig,rH_orig,VPD,USTAR)],
             file="~/Desktop/TweedieLab/People/Hayden/FluxData_USJo1_LE_H_2020.csv", sep=",", dec=".",
             row.names=FALSE)
 
