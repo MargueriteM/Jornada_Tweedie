@@ -367,9 +367,38 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filt
 # save(flux_filter_sd_all,
 # file="JER_flux_2010_20200131_EddyPro_Output_filtered_SD_TIMEcorr_20201114.Rdata")
 
+# save only 2020 data for ReddyProc 
+# save(flux2020_filter_sd,
+# file="JER_flux_20200131_EddyPro_Output_filtered_SD_TIMEcorr_20201114.Rdata")
+
 # save only the 2020 flux data as Rdata for a demo file
 # save(flux2020,
 # file="/Users/memauritz/Desktop/R/R_programs/Tweedie/Jornada/Jornada_Tweedie/Jornada_EddyCovariance_Data/demofileFlux2020.Rdata")
 
+# Save data for Hayden with similar columns as previous data supplied. (as in: Jornada_ReddyProc_2010_2019_OnlineToolOut)
+# This is not gap-filled because it's only1 month of data
+
+# save data for Hayden. Could not run through ReddyProc because it's only 1 month. 
+flux.hayden <- copy(flux2020_filter_sd)
+
+flux.hayden[,':=' (Year = year(date_time),
+                   DoY = yday(date_time),
+                   hours = hour(date_time),
+                   mins = minute(date_time),
+                   LE_orig = LE,
+                   H_orig = H, 
+                   Rg_orig = SW_IN_1_1_1,
+                   Tair_orig = TA_1_1_1,
+                   rH_orig = RH_1_1_1,
+                   VPD = VPD_EP)]
+
+# Create an Hour variable that matches ReddyProc format
+flux.hayden[mins==0, Hour := hours+0.0]
+flux.hayden[mins==30, Hour := hours+0.5]
+
+# save the data
+write.table(flux.hayden[,.(Year,DoY,Hour,LE_orig,H_orig,Rg_orig,Tair_orig,rH_orig,VPD)],
+            file="~/Desktop/TweedieLab/People/Hayden/FluxData_USJo1_LE_H_2020.csv", sep=",", dec=".",
+            row.names=FALSE)
 
 
