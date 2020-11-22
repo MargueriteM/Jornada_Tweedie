@@ -203,7 +203,7 @@ Wohlfahrt et al 2008, Petrie et al 2014, Petrie et al 2019
 ###
 
 ###Questions
-* When is peak CO2 updake?
+* When is peak CO2 uptake?
 * How much does peak CO2 uptake vary from year to year?
 * What is the inter-annual variation of CO2 budgets at JER?
 
