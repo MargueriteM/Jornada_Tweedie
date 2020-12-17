@@ -56,6 +56,15 @@ radioButtons("variable1", "Flux variables:",
                "Latent Heat WPL (W/m2)" = "LE_wpl",
                "H2O mean concentration (g/m3)" = "H2O_Avg"))
 
+numericInput("range_flux","Adjust range of flux graph",
+             min=NA,
+             max=NA)
+
+radioButtons("variable1_2", "Sonic Anemometer variables:",
+             c("Ux" = "Ux_Avg",
+               "Uy" = "Uy_Avg",
+               "Uz" = "Uz_Avg"))
+
 radioButtons("variable2", "Biomet variables:",
              c("Air temperature, hmp (C)" = "t_hmp_mean",
                "Air temperature, sonic (C)" = "Ts_mean",
@@ -91,9 +100,20 @@ Column
     setnames(c,input$variable1,"selected")
   
   # plot_ly(c,x=~date_time,y=~airtemp, type="scatter")},
+  ggplot(c[selected>=input$range_flux[[1]] & selected<=input$range_flux[[2]],], aes(date_time, selected))+
+    geom_line()+
+    labs(title = "Flux variables", y=input$variable1)+
+ theme_bw()})
+
+renderPlot({
+    c <- flux[date >= input$daterange[[1]] & date <= input$daterange[[2]],.SD,.SDcols=c("date","date_time",input$variable1_2)]
+  
+    setnames(c,input$variable1_2,"selected")
+  
+  # plot_ly(c,x=~date_time,y=~airtemp, type="scatter")},
   ggplot(c, aes(date_time, selected))+
     geom_line()+
-    labs(Title = "Flux variables", y=input$variable1)+
+    labs(title = "Sonic Anemomemter Orthogonal Wind Directions x, y, z", y=input$variable1_2)+
  theme_bw()})
 
 renderPlot({
@@ -104,7 +124,7 @@ renderPlot({
   # plot_ly(c,x=~date_time,y=~airtemp, type="scatter")},
   ggplot(c, aes(date_time, selected))+
     geom_line()+
-    labs(Title = "Biomet variables", y=input$variable2)+
+    labs(title = "Biomet variables", y=input$variable2)+
  theme_bw()})
 
 renderPlot({
@@ -115,6 +135,6 @@ renderPlot({
   # plot_ly(c,x=~date_time,y=~airtemp, type="scatter")},
   ggplot(c, aes(date_time, selected))+
     geom_line()+
-    labs(Title = "Instrument variables", y=input$variable3)+
+    labs(title = "Instrument variables", y=input$variable3)+
  theme_bw()})
 ```
