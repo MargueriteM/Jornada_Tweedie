@@ -56,16 +56,16 @@ radioButtons("variable1", "Flux variables:",
                "Sensible Heat WPL (W/m2)" = "Hc",
                "Latent Heat WPL (W/m2)" = "LE_wpl",
                "H2O mean concentration (g/m3)" = "H2O_Avg"))
-
+```
+**17 Dec 20: When implementing range filter, missing values get connected by a line. :/**
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
  numericInput("range_flux_max","Max range of flux graph (non-reactive)",
           value = 1)
 
  numericInput("range_flux_min","Min range of flux graph (non-reactive)",
             value = -1)
-```
-**When implementing range filter, missing values get connected by a line. :/**
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
+ 
 radioButtons("variable1_2", "Sonic Anemometer variables:",
              c("Ux" = "Ux_Avg",
                "Uy" = "Uy_Avg",
