@@ -41,6 +41,7 @@ These graphs show most recent incoming eddy covariance and ancillary data from t
 
 **Note: Flux calculations are preliminary and for visualisation only!!** 
 
+
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 
 dateRangeInput("daterange", "Date range:",
@@ -56,14 +57,26 @@ radioButtons("variable1", "Flux variables:",
                "Latent Heat WPL (W/m2)" = "LE_wpl",
                "H2O mean concentration (g/m3)" = "H2O_Avg"))
 
-numericInput("range_flux","Adjust range of flux graph",
-             min=NA,
-             max=NA)
+ numericInput("range_flux_max","Max range of flux graph (non-reactive)",
+          value = 1)
 
+ numericInput("range_flux_min","Min range of flux graph (non-reactive)",
+            value = -1)
+```
+**When implementing range filter, missing values get connected by a line. :/**
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 radioButtons("variable1_2", "Sonic Anemometer variables:",
              c("Ux" = "Ux_Avg",
                "Uy" = "Uy_Avg",
                "Uz" = "Uz_Avg"))
+
+# numericInput("range_sonic_max","Max range of Sonic graph",
+   #        value = 30)
+
+# numericInput("range_sonic_min","Min range of Sonic graph",
+    #         value =  -30)
+
 
 radioButtons("variable2", "Biomet variables:",
              c("Air temperature, hmp (C)" = "t_hmp_mean",
@@ -83,6 +96,13 @@ radioButtons("variable2", "Biomet variables:",
                "Soil Heat Flux 3 (W/m2)" = "hfp01_3_Avg",
                 "Soil Heat Flux 4 (W/m2)" = "hfp01_4_Avg"))
 
+# numericInput("range_met_max","Max range of Biomet graph",
+    #       value = 40)
+
+# numericInput("range_met_min","Min range of Biomet graph",
+       #      value = -20)
+
+
 radioButtons("variable3", "Instrument variables:",
              c("Battery (V)" = "batt_volt_Avg",
                "AGC/signal strength (unitless)" = "agc_Avg"))
@@ -98,9 +118,12 @@ Column
     c <- flux[date >= input$daterange[[1]] & date <= input$daterange[[2]],.SD,.SDcols=c("date","date_time",input$variable1)]
   
     setnames(c,input$variable1,"selected")
-  
+  # can filter for input range here or in ggplot below
+  #  c <- c[selected>=input$range_flux_min & selected<=input$range_flux_max,]
+    
   # plot_ly(c,x=~date_time,y=~airtemp, type="scatter")},
-  ggplot(c[selected>=input$range_flux[[1]] & selected<=input$range_flux[[2]],], aes(date_time, selected))+
+  # ggplot(c[selected>=input$range_flux_min & selected<=input$range_flux_max,], aes(date_time, selected))+
+     ggplot(c, aes(date_time, selected))+
     geom_line()+
     labs(title = "Flux variables", y=input$variable1)+
  theme_bw()})
@@ -111,8 +134,9 @@ renderPlot({
     setnames(c,input$variable1_2,"selected")
   
   # plot_ly(c,x=~date_time,y=~airtemp, type="scatter")},
-  ggplot(c, aes(date_time, selected))+
-    geom_line()+
+  # ggplot(c[selected>=input$range_sonic_min & selected<=input$range_sonic_max,], aes(date_time, selected))+
+   ggplot(c, aes(date_time, selected))+
+     geom_line()+
     labs(title = "Sonic Anemomemter Orthogonal Wind Directions x, y, z", y=input$variable1_2)+
  theme_bw()})
 
@@ -122,8 +146,9 @@ renderPlot({
     setnames(c,input$variable2,"selected")
   
   # plot_ly(c,x=~date_time,y=~airtemp, type="scatter")},
-  ggplot(c, aes(date_time, selected))+
-    geom_line()+
+  # ggplot(c[selected>=input$range_met_min & selected<=input$range_met_max,], aes(date_time, selected))+
+   ggplot(c, aes(date_time, selected))+
+     geom_line()+
     labs(title = "Biomet variables", y=input$variable2)+
  theme_bw()})
 
