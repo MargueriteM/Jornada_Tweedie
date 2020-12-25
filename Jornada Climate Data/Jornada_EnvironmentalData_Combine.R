@@ -15,6 +15,8 @@
 #          April 2019                     #
 ###########################################
 
+# 24 Dec 2020 update: fix Ameriflux QAQC: LWS_1_1_1 rescale by min/max to set between 0 and 1, SWC_3_3_1 is out of range 2019, SWC_1_1_1 out of range, PPFD_IN is higher than expected in 2010-2011
+#                     see ⁨Macintosh HD⁩ ▸ ⁨Users⁩ ▸ ⁨memauritz⁩ ▸ ⁨Desktop⁩ ▸ ⁨TweedieLab⁩ ▸ ⁨Projects⁩ ▸ ⁨Jornada⁩ ▸ ⁨EddyCovariance⁩ ▸ ⁨Ameriflux⁩ ▸ ⁨QA_QC_Report_Ameriflux⁩ ▸ ⁨2020_06_10⁩
 # 14 Apr 2020 update: made timestamp corrections in individual datastreams and improved soil probe depth guessses
 
 # 8 Apr 2020 update: update to March 24 and add data timestamp correction due to daylight savings changes
