@@ -17,6 +17,8 @@
 
 # 24 Dec 2020 update: fix Ameriflux QAQC: LWS_1_1_1 rescale by min/max to set between 0 and 1, SWC_3_3_1 is out of range 2019, SWC_1_1_1 out of range, PPFD_IN is higher than expected in 2010-2011
 #                     see ⁨Macintosh HD⁩ ▸ ⁨Users⁩ ▸ ⁨memauritz⁩ ▸ ⁨Desktop⁩ ▸ ⁨TweedieLab⁩ ▸ ⁨Projects⁩ ▸ ⁨Jornada⁩ ▸ ⁨EddyCovariance⁩ ▸ ⁨Ameriflux⁩ ▸ ⁨QA_QC_Report_Ameriflux⁩ ▸ ⁨2020_06_10⁩
+#                     add Tower ~1m in a shrub (LEAF_WET_1_2_1) to ameriflux (previously excluded)
+
 # 14 Apr 2020 update: made timestamp corrections in individual datastreams and improved soil probe depth guessses
 
 # 8 Apr 2020 update: update to March 24 and add data timestamp correction due to daylight savings changes
@@ -443,18 +445,22 @@ ggplot(biomet_mean_soilM[year>2019], aes(date_time_orig,mean.val, colour=factor(
   facet_grid(paste(location,veg)~.)
 
 
-# LATR 10cm: had a baseline shift 14 Feb 2019.
+# LATR 10cm: had a baseline shift 14 Feb 2019 at 23:30.
 biomet_mean_soilM[veg=="LATR"&depth==10&
-           (date_time_orig>=as.Date("2019-02-14")), mean.val := NA]
+           (date_time_orig>=as.POSIXct("2019-02-14 23:20:00", tz="UTC")), mean.val := NA]
 
-# LATR 20cm: had baseline shift after 3 March 2019 and does a few seept until reaching new baseline 3rd Apr 2019 
+# LATR 20cm: had baseline shift after 28 Feb 2019 18:00 and does a few steps until reaching new baseline 3rd Apr 2019 
 biomet_mean_soilM[veg=="LATR"&depth==20&
-           date_time_orig >= as.Date("2019-03-03"), mean.val := NA]
+           date_time_orig >= as.POSIXct("2019-02-28 18:00:00", tz="UTC"), mean.val := NA]
 
 
-# MUPO 20cm: in October 2018 there was a baseline shift! After this i believe the dynamics but not the values.
+# MUPO 20cm: on 2018-10-23 there was a baseline shift! After this i believe the dynamics but not the values.
 biomet_mean_soilM[veg=="MUPO"&depth==20&
-           (date_time_orig>=as.Date("2018-10-26")), mean.val := NA]
+           (date_time_orig>=as.Date("2018-10-23")), mean.val := NA]
+
+# BARE 5cm SN: remove after 2019, the sensor pattern is getting weird
+biomet_mean_soilM[veg=="BARE"&depth==5& location=="SN" &
+          year>=2019, mean.val := NA]
 
 
 biomet_mean_soilM <- biomet_mean_soilM[,list(SWC_1_1_1 = mean(mean.val, na.rm=TRUE)),
@@ -536,6 +542,9 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP")
 # save biomet data up to 3 March 2020
 # save(biomet, file="Biomet_EddyPro_2010_2020_20203024.Rdata")
 
+# save biomet with more SWC data removed based on Ameriflux QAQC from June 2020
+# save(biomet, file="Biomet_EddyPro_2010_2020_20201224.Rdata")
+
 
 # load("Biomet_EddyPro_2010_2019_20190709.Rdata")
 # load("Biomet_EddyPro_2010_2020_20200112.Rdata")
@@ -570,6 +579,15 @@ source("~/Desktop/R/R_programs/Functions/SaveFiles_Biomet_EddyPro.R")
 biomet2 <- copy(env_30min)
 
 # PAR UP from tower and SN = PPFD
+
+ggplot(biomet2[variable %in% c("par") & veg=="UP"], aes(date_time, mean.val))+geom_line()+
+  facet_grid(location~.)
+
+# tower PPFD_IN in 2010 and 2011 is higher than expected. 
+# exclude
+biomet2[variable %in% c("par") & veg=="UP" & location=="tower"& year<=2011,
+        mean.val := NA]
+
 # tower == 1, SN == 2
 # tower: PPFD_1_1_1, SN: PPFD_2_1_1
 biomet2[variable %in% c("par") & veg=="UP" & location=="tower",
@@ -652,9 +670,29 @@ biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN" & SN=="SN6"
 
 
 # report SWC seperately for each depth and veg type
+# remove data with baseline shifts
+
+# LATR 10cm: had a baseline shift 14 Feb 2019 at 23:30.
+biomet2[veg=="LATR"&depth==10&
+                    (date_time_orig>=as.POSIXct("2019-02-14 23:20:00", tz="UTC")), mean.val := NA]
+
+# LATR 20cm: had baseline shift after 28 Feb 2019 18:00 and does a few steps until reaching new baseline 3rd Apr 2019 
+biomet2[veg=="LATR"&depth==20&
+                    date_time_orig >= as.POSIXct("2019-02-28 18:00:00", tz="UTC"), mean.val := NA]
+
+
+# MUPO 20cm: on 2018-10-23 there was a baseline shift! After this i believe the dynamics but not the values.
+biomet2[variable %in% c("soilmoisture") & veg=="MUPO"&depth==20& location=="SN" &
+                    (date_time_orig>=as.Date("2018-10-23")), mean.val := NA]
+
+
+# BARE 5cm SN: remove after 2019, the sensor pattern is getting weird
+biomet2[variable %in% c("soilmoisture") & veg=="BARE"&depth==5& location=="SN" &
+          year>=2019, mean.val := NA]
+
 # report only from SN because I do not know depth of tower sensors
 ggplot(biomet2[variable %in% c("soilmoisture") & veg %in% c("LATR","PRGL","MUPO","SHRUB", "BARE") & location=="SN" &
-                year==2011,],
+                year==2018,],
        aes(date_time, mean.val))+
   geom_line()+
   facet_grid(veg+height~.)
@@ -754,6 +792,10 @@ biomet2_ts2 <- biomet2[!is.na(mean.val) & variable %in% c("soiltemp") & height %
 ggplot(biomet2[variable %in% c("hfp")&year==2011], aes(date_time, mean.val))+geom_line()+
   facet_grid(veg~height)
 
+# remove SHF values less than -50
+biomet2[variable %in% c("hfp") & mean.val< (-50), mean.val := NA]
+
+# assign ameriflux variable names
 biomet2[variable %in% c("hfp") & (veg == "SHRUB" & height=="-10"),
         ameriflux.id := "G_1_1_1"]
 
@@ -781,11 +823,34 @@ biomet2[variable %in% c("atm_press") & location=="tower",
 biomet2[variable %in% c("atm_press") & location=="SN",
         ameriflux.id := "PA_2_1_1"]
 
-# leaf wetness (use only 5m from tower)
-ggplot(biomet2[variable %in% c("lws","lws_5m")&year==2011], aes(date_time, mean.val,colour=veg))+geom_line()+
+# leaf wetness 
+ggplot(biomet2[variable %in% c("lws","lws_5m")&year==2016], aes(date_time, mean.val,colour=veg))+geom_line()+
   facet_grid(SN~.)
 
+# For tower (lws and lws_5m) rescale between 0-100
+ggplot(biomet2[variable %in% c("lws","lws_5m")&location=="tower"], aes(date_time, mean.val,colour=veg))+geom_line()+
+  facet_grid(variable~.)
+
+# remove values <250
+biomet2[variable %in% c("lws","lws_5m") & location=="tower" & mean.val<250, mean.val := NA]
+# remove values >375 since this is a very common max value and the SN LWS sensors often appear to max out
+biomet2[variable %in% c("lws","lws_5m") & location=="tower" & mean.val>375, mean.val := NA]
+
+# min val: 250.2; max val = 375
+
+# RESCALE from 0 to 100
+biomet2[variable %in% c("lws","lws_5m")& location=="tower", mean.val := ((mean.val-250.2)/(375-250.2))*100]
+
+# remove values >100
+biomet2[variable %in% c("lws","lws_5m") & mean.val>100, mean.val := NA]
+
+# graph again
+ggplot(biomet2[variable %in% c("lws","lws_5m")], aes(date_time, mean.val,colour=veg))+geom_line()+
+  facet_grid(SN~.)
+
+
 # Tower 5m (LEAF_WET_1_1_1)
+# Tower ~1m in a shrub (LEAF_WET_1_2_1)
 # SN1 LATR (LEAF_WET_2_1_1)
 # SN2 PRGL (LEAF_WET_3_1_1)
 # SN4 BARE (LEAF_WET_4_1_1)
@@ -796,6 +861,9 @@ ggplot(biomet2[variable %in% c("lws","lws_5m")&year==2011], aes(date_time, mean.
 
 biomet2[variable %in% c("lws_5m"),
         ameriflux.id := "LEAF_WET_1_1_1"]
+
+biomet2[variable %in% c("lws") & location=="Tower",
+        ameriflux.id := "LEAF_WET_1_2_1"]
 
 biomet2[variable %in% c("lws") & SN=="SN1" & (veg == "LATR"),
         ameriflux.id := "LEAF_WET_2_1_1"]
