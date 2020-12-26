@@ -21,6 +21,7 @@
 #                8 May, 2019                      #
 ###################################################
 
+# 26 Dec 2020 update: add Ameriflux QA/QC to rescale LWS between 0-100
 # 6 Apr 2020 update: update to March 24 and add timestamp correction due to daylight savings changes
 # JER_Tower_SN_TimestampMismatches.xlsx
 # make the timestamp adjustments at the end, after filtering data. 
@@ -399,9 +400,21 @@ flux_long[variable=="lws_1_Avg"&
 # lws_2 remove the really low values in Apr 2015
 flux_long[variable=="lws_2_Avg"&value<225, value := NA]
 
+# rescale LWS between 0-100
+# remove values <250
+flux_long[variable %in% c("lws_1_Avg","lws_2_Avg") & value<250, value := NA]
+# remove values >375 since this is a very common max value and the SN LWS sensors often appear to max out
+flux_long[variable %in% c("lws_1_Avg","lws_2_Avg") & value>375, value := NA]
+
+# min val: 250.2; max val = 375
+
+# RESCALE from 0 to 100
+flux_long[variable %in% c("lws_1_Avg","lws_2_Avg"), value := ((value-250.2)/(375-250.2))*100]
+
+
 
 # graph lws data
-ggplot(flux_long[variable %in% c("lws_1_Avg", "lws_2_Avg")&year==2015,],
+ggplot(flux_long[variable %in% c("lws_1_Avg", "lws_2_Avg"),],
        aes(date_time, value))+geom_line()+
   facet_grid(variable~.,scales="free_y")
 
@@ -639,6 +652,12 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining
 # write.table(flux_long_comp[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
 #  "Rn_nr_Avg", "lws_1_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg"),.(date_time,date_time_orig,variable,gapfill_id,value)],
 #  file="FluxTable_L2_2010_2020324_30min.csv", sep=",", dec=".", row.names = FALSE)
+
+# save updated 26 Dec 2020 to rescale LWS from 0-100
+# save flux_long_comp instead just flux_long because for some reason that fixes the timestamp 'reversion'!!! 
+# write.table(flux_long_comp[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
+# "Rn_nr_Avg", "lws_1_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg"),.(date_time,date_time_orig,variable,gapfill_id,value)],
+# file="FluxTable_L2_2010_20201226_30min.csv", sep=",", dec=".", row.names = FALSE)
 
 # # AND save in wide format
 # save by year
