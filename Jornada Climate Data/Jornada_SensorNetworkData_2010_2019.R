@@ -5,6 +5,7 @@
 # modified April 2019 to add 2010-2019   #
 ##########################################
 
+# 26 Dec 2020 update: add QA/QC from ameriflux to limit LWS below 100 and remove LATR 10,20cm and MUPO 20cm baseline shifts
 # 8 Apr 2020 update: update to March 24 and add timestamp correction due to daylight savings changes
 # JER_Tower_SN_TimestampMismatches.xlsx
 # make the timestamp adjustments at the end, after filtering data. 
