@@ -328,8 +328,10 @@ SN_30min1 <- copy(SN_30min)
 # SN_30min <- copy(SN_30min1)
 
 # REMOVE OBVIOUSLY BAD DATA POINTS
-# lws: remove values <0
-SN_30min[sensor=="lws" & mean.val<0, mean.val := NA]
+# lws values should be between 0-100
+# lws: remove values <0 and >100
+SN_30min[sensor=="lws" & (mean.val<0 | mean.val>100), mean.val := NA]
+
 
 ##### moisture: 
 # MUPO 30cm: July 2013 it looks like MUPO 30cm had a baseline shift. And then measures until early 2015
@@ -337,11 +339,12 @@ SN_30min[sensor=="lws" & mean.val<0, mean.val := NA]
 SN_30min[sensor=="moisture"&veg=="MUPO"&depth==30&date_time>=as.Date("2013-07-01"),
          mean.val := NA]
 # MUPO 20cm: 4 Sep to 23 Oct 2017; April 2018; from October 27 2018 to end of Feb 2018
-#            in October there was a baseline shift! After this i believe the dynamics but not the values.
+#            in October 2018 there was a baseline shift! Remove after this.
 SN_30min[sensor=="moisture"&veg=="MUPO"&depth==20&
                   (date_time>=as.Date("2017-09-04") & date_time<=as.Date("2017-10-23") |
                   date_time>=as.Date("2018-04-01") & date_time<=as.Date("2018-04-30") |
-                  date_time>=as.Date("2018-10-27") & date_time<as.Date("2018-03-01")), mean.val := NA]
+                  date_time>=as.Date("2018-10-27") & date_time<as.Date("2018-03-01") |
+                    date_time>= as.Date("2018-10-23")), mean.val := NA]
 
 
 # PRGL 5cm: high outlying value in August 2015 >0.4
@@ -369,19 +372,20 @@ SN_30min[sensor=="moisture"&veg=="LATR"&depth==5&
 
 
 # LATR 10cm: probe is strange 23 Feb to 30 Apr 2015;
-#            had a baseline shift 14 Feb 2019. I believe the dynamics after this, not the absolute values
+#            had a baseline shift 14 Feb 2019 at 23:30. Remove values after this.
 SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&
-           (date_time>=as.Date("2015-02-23") & date_time<=as.Date("2015-04-30")), mean.val := NA]
+           (date_time>=as.Date("2015-02-23") & date_time<=as.Date("2015-04-30")| 
+            (date_time_orig>=as.POSIXct("2019-02-14 23:00:00", tz="UTC"))), mean.val := NA]
 
 # from 2018-05-22 to 2018-05-24 10cm LATR point>0.07
 SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&date_time>=as.Date("2018-05-22")&
            date_time<=as.Date("2018-05-24")&mean.val>0.07,
          mean.val := NA]
 
-# LATR 20cm: had baseline shift after 3 March 2019 and does a few seept until reaching new baseline 3rd Apr 2019 
+# LATR 20cm: had baseline shift after 28 Feb 2019 18:00 and does a few steps until reaching new baseline 3rd Apr 2019
+#            remove after 3 March 2019. 
 SN_30min[sensor=="moisture"&veg=="LATR"&depth==20&
-              date_time >= as.Date("2019-03-03") & date_time <= as.Date("2019-04-03"), mean.val := NA]
-
+              date_time >= as.POSIXct("2019-02-28 18:00:00", tz="UTC"), mean.val := NA]
 
 # BARE 5cm 2019 June 20-30 remove all
 SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
@@ -504,7 +508,7 @@ ggplot(SN_30min[sensor=="current",], aes(date_time, mean.val, colour=SN))+
 
 
 # lws
-# can't be negative
+# can't be negative or >100
 ggplot(SN_30min[sensor=="lws",], aes(date_time, mean.val, colour=SN))+
   geom_line()+
   labs(title="Leaf Wetness") +
@@ -669,7 +673,7 @@ SN_long_comp <- rbind(SN_30min[!is.na(date_time),], sw.pot, fill=TRUE)
 
 # look at adjusment
 # non adjusted, original
-daycheck <- as.Date("2013-04-05", tz="UTC")
+daycheck <- as.Date("2017-07-17", tz="UTC")
 
 # original timestamps (uncorrected)
 ggplot(SN_long_comp[sensor%in% c("solar", "sw_pot")& (veg=="BARE" | is.na(veg)) & 
@@ -716,6 +720,9 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Combined")
 # save SN_long_comp to try and solve the timestamp reverting issue.
 # write.table(SN_long_comp[!(sensor %in% c("sw.pot")),], file="SensorNetwork_L2_2010_20200324_30min.csv", sep=",", dec='.', row.names = FALSE)
 
+# 2020-12-26 updated to remove LATR 10cm and 20cm, MUPO 20cm after 2018/2019 baseline shifts.
+# write.table(SN_long_comp[!(sensor %in% c("sw.pot")),], file="SensorNetwork_L2_2010_20201226_30min.csv", sep=",", dec='.', row.names = FALSE)
+
 
 # AND save in wide format
 # use SN_long_comp
@@ -736,7 +743,7 @@ setnames(SN30_wide_save,c("date_time","date_time_orig"),
 ggplot(SN30_wide_save, aes(x=timestamp))+
   geom_line(aes(y=SN7_moisture_MUPO_5)) # with NA
 
-# save by year!
+# save by year! (re-run 2020-12-26)
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Yearly_QAQC_timestamp")
 
 saveyears <- function(data,startyear,endyear) {
