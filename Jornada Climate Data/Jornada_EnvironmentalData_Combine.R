@@ -15,9 +15,12 @@
 #          April 2019                     #
 ###########################################
 
-# 24 Dec 2020 update: fix Ameriflux QAQC: LWS_1_1_1 rescale by min/max to set between 0 and 1, SWC_3_3_1 is out of range 2019, SWC_1_1_1 out of range, PPFD_IN is higher than expected in 2010-2011
+# 27 Dec 2020 update: use SN, Flux, Climate data updated in seperate streams to fix Ameriflux QAQC:
+#                     Climate and FluxTable: LWS_1_1_1 (TOWER) rescale by min/max to set between 0 and 1, (add the tower shurb LWS as LWS_1_2_1)
+#                     SN: SWC_3_3_1 is out of range 2019, SWC_1_1_1 out of range,
+#                     Climate: PPFD_IN is higher than expected in 2010-2011
 #                     see ⁨Macintosh HD⁩ ▸ ⁨Users⁩ ▸ ⁨memauritz⁩ ▸ ⁨Desktop⁩ ▸ ⁨TweedieLab⁩ ▸ ⁨Projects⁩ ▸ ⁨Jornada⁩ ▸ ⁨EddyCovariance⁩ ▸ ⁨Ameriflux⁩ ▸ ⁨QA_QC_Report_Ameriflux⁩ ▸ ⁨2020_06_10⁩
-#                     add Tower ~1m in a shrub (LEAF_WET_1_2_1) to ameriflux (previously excluded)
+#                     ALSO: add Tower ~1m in a shrub (LEAF_WET_1_2_1) to ameriflux (previously excluded)
 
 # 14 Apr 2020 update: made timestamp corrections in individual datastreams and improved soil probe depth guessses
 
@@ -139,7 +142,7 @@ library(corrplot)
 #############
 # Sensor network data:
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Combined")
-SN_30min <- fread("SensorNetwork_L2_2010_20200324_30min.csv", sep=",", header=TRUE)
+SN_30min <- fread("SensorNetwork_L2_2010_20201226_30min.csv", sep=",", header=TRUE)
 # format date and add column to deginate the data stream
 SN_30min[, ':=' (date_time = ymd_hms(date_time),date_time_orig = ymd_hms(date_time_orig),
                  datastream = "SN", location = "SN")]
@@ -163,12 +166,12 @@ SN_30min[variable=="soilmoisture" & depth=="30", height:="-30"]
 # convert pressure from mbar to kPa (1mbar = 0.1kPa)
 SN_30min[variable=="atm_press", mean.val := mean.val/10]
 
-# Tower Met Data
+# Tower Met Data (get LWS 5m from here. It's also in FluxTable)
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/Compiled")
-met_30min <- fread("TowerMet_L2_2010_20200324_30min.csv", sep=",", header=TRUE)
+met_30min <- fread("TowerMet_L2_2010_20201227_30min.csv", sep=",", header=TRUE)
 # format date and add column to deginate the data stream
 met_30min[, ':=' (date_time = ymd_hms(date_time),date_time_orig = ymd_hms(date_time_orig),
-                  datastream = "climate",location = "tower")]
+                  datastream = "climate",location = "tower", TIMESTAMP_START = NULL, TIMESTAMP_END = NULL)]
 setnames(met_30min, 'value', 'mean.val')
 
 met_30min[variable=="par", veg := "UP"]
@@ -179,7 +182,7 @@ met_30min[variable=="precip.tot", veg := "BARE"]
  
 # Data from FluxTable: Rs, Rl, HFP, LWS_1 (in shrub)
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining")
-flux_30min <- fread("FluxTable_L2_2010_2020324_30min.csv", sep=",", header=TRUE)
+flux_30min <- fread("FluxTable_L2_2010_20201226_30min.csv", sep=",", header=TRUE)
 flux_30min[, ':=' (date_time = ymd_hms(date_time),date_time_orig = ymd_hms(date_time_orig),
                    year=year(date_time),datastream = "flux", location = "tower")]
 setnames(flux_30min, 'value', 'mean.val')
@@ -355,9 +358,10 @@ env_30min1 <- copy(env_30min)
 rm(env_30min)
 env_30min <- copy(env_30min1[!(variable=="precip.tot"&veg=="BARE"),])
 
-# STOP HERE. last step to create final version of env_30min
+# last step to create final version of env_30min
 env_30min <- rbind(env_30min, precip)
-
+#### STOP HERE. ####
+## 
 
 # create data for Eddy Pro Biomet
 # airtemp, rh, atm_press, par, wnd_spd, wnd_dir, precip.tot, Rn_nr, Rl_downwell, Rl_upwell,
@@ -368,6 +372,7 @@ ggplot(env_30min[variable %in% c("soilmoisture","soiltemp"),],
        aes(date_time_orig, mean.val,colour=veg, linetype=height))+
   geom_line()+
   facet_grid(paste(variable,location,sep="_")~., scales="free_y")
+
 
 # look at PAR UP from tower and SN
 ggplot(env_30min[variable == "par"& veg %in% c("UP"),], aes(date_time_orig, mean.val,colour=SN))+
@@ -400,6 +405,7 @@ ggplot(env_30min[variable == "atm_press",], aes(date_time_orig, mean.val,colour=
 
 
 # look at PAR from tower and SN
+# change x variable to compare date_time or date_time_orig!!!
 ggplot(env_30min[(yday(date_time)>=303 & yday(date_time)<=313) &
                    ((variable %in% c("par") & veg=="UP")),],
        aes(hour(date_time_orig), mean.val, colour=paste(variable,location)))+
@@ -439,30 +445,12 @@ ggplot(biomet_mean_precip[year(date_time_orig)==2020,],aes(date_time_orig,P_rain
 
 biomet_mean_soilM <- copy(env_30min[variable %in% c("soilmoisture"),])
 
-# for biomet soil moisture averaging reemove the periods with baseline shift
+# for biomet soil moisture averaging look at data
 ggplot(biomet_mean_soilM[year>2019], aes(date_time_orig,mean.val, colour=factor(depth)))+
   geom_line()+
   facet_grid(paste(location,veg)~.)
 
-
-# LATR 10cm: had a baseline shift 14 Feb 2019 at 23:30.
-biomet_mean_soilM[veg=="LATR"&depth==10&
-           (date_time_orig>=as.POSIXct("2019-02-14 23:20:00", tz="UTC")), mean.val := NA]
-
-# LATR 20cm: had baseline shift after 28 Feb 2019 18:00 and does a few steps until reaching new baseline 3rd Apr 2019 
-biomet_mean_soilM[veg=="LATR"&depth==20&
-           date_time_orig >= as.POSIXct("2019-02-28 18:00:00", tz="UTC"), mean.val := NA]
-
-
-# MUPO 20cm: on 2018-10-23 there was a baseline shift! After this i believe the dynamics but not the values.
-biomet_mean_soilM[veg=="MUPO"&depth==20&
-           (date_time_orig>=as.Date("2018-10-23")), mean.val := NA]
-
-# BARE 5cm SN: remove after 2019, the sensor pattern is getting weird
-biomet_mean_soilM[veg=="BARE"&depth==5& location=="SN" &
-          year>=2019, mean.val := NA]
-
-
+# calculate average across depths and veg for biomet
 biomet_mean_soilM <- biomet_mean_soilM[,list(SWC_1_1_1 = mean(mean.val, na.rm=TRUE)),
             by="date_time_orig"]
 
@@ -542,8 +530,8 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP")
 # save biomet data up to 3 March 2020
 # save(biomet, file="Biomet_EddyPro_2010_2020_20203024.Rdata")
 
-# save biomet with more SWC data removed based on Ameriflux QAQC from June 2020
-# save(biomet, file="Biomet_EddyPro_2010_2020_20201224.Rdata")
+# save biomet with SWC baseline shifts removed, Tower PAR in 2010/2011 removed, Tower LWS rescaled 0-100, based on Ameriflux QAQC from June 2020
+# save(biomet, file="Biomet_EddyPro_2010_2020_20201227.Rdata")
 
 
 # load("Biomet_EddyPro_2010_2019_20190709.Rdata")
@@ -560,7 +548,7 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP")
 
 source("~/Desktop/R/R_programs/Functions/SaveFiles_Biomet_EddyPro.R")
 
-# save each year
+# save each year (NOT UPDATED 2020-12-27 because not rerunning EddyPro and the adjustments wouldn't have a huge impact.)
 # savebiomet(biomet,2010,2019)
 
 # save 2019
@@ -583,10 +571,6 @@ biomet2 <- copy(env_30min)
 ggplot(biomet2[variable %in% c("par") & veg=="UP"], aes(date_time, mean.val))+geom_line()+
   facet_grid(location~.)
 
-# tower PPFD_IN in 2010 and 2011 is higher than expected. 
-# exclude
-biomet2[variable %in% c("par") & veg=="UP" & location=="tower"& year<=2011,
-        mean.val := NA]
 
 # tower == 1, SN == 2
 # tower: PPFD_1_1_1, SN: PPFD_2_1_1
@@ -669,28 +653,9 @@ biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN" & SN=="SN6"
         ameriflux.id := "P_RAIN_3_1_1"]
 
 
-# report SWC seperately for each depth and veg type
-# remove data with baseline shifts
-
-# LATR 10cm: had a baseline shift 14 Feb 2019 at 23:30.
-biomet2[veg=="LATR"&depth==10&
-                    (date_time_orig>=as.POSIXct("2019-02-14 23:20:00", tz="UTC")), mean.val := NA]
-
-# LATR 20cm: had baseline shift after 28 Feb 2019 18:00 and does a few steps until reaching new baseline 3rd Apr 2019 
-biomet2[veg=="LATR"&depth==20&
-                    date_time_orig >= as.POSIXct("2019-02-28 18:00:00", tz="UTC"), mean.val := NA]
-
-
-# MUPO 20cm: on 2018-10-23 there was a baseline shift! After this i believe the dynamics but not the values.
-biomet2[variable %in% c("soilmoisture") & veg=="MUPO"&depth==20& location=="SN" &
-                    (date_time_orig>=as.Date("2018-10-23")), mean.val := NA]
-
-
-# BARE 5cm SN: remove after 2019, the sensor pattern is getting weird
-biomet2[variable %in% c("soilmoisture") & veg=="BARE"&depth==5& location=="SN" &
-          year>=2019, mean.val := NA]
-
-# report only from SN because I do not know depth of tower sensors
+# Soil moisture
+# report SWC seperately for each depth and veg type only from SN
+# because I do not know depth of tower sensors
 ggplot(biomet2[variable %in% c("soilmoisture") & veg %in% c("LATR","PRGL","MUPO","SHRUB", "BARE") & location=="SN" &
                 year==2018,],
        aes(date_time, mean.val))+
@@ -827,22 +792,9 @@ biomet2[variable %in% c("atm_press") & location=="SN",
 ggplot(biomet2[variable %in% c("lws","lws_5m")&year==2016], aes(date_time, mean.val,colour=veg))+geom_line()+
   facet_grid(SN~.)
 
-# For tower (lws and lws_5m) rescale between 0-100
+# Graph only for tower (lws and lws_5m) to check rescale between 0-100
 ggplot(biomet2[variable %in% c("lws","lws_5m")&location=="tower"], aes(date_time, mean.val,colour=veg))+geom_line()+
   facet_grid(variable~.)
-
-# remove values <250
-biomet2[variable %in% c("lws","lws_5m") & location=="tower" & mean.val<250, mean.val := NA]
-# remove values >375 since this is a very common max value and the SN LWS sensors often appear to max out
-biomet2[variable %in% c("lws","lws_5m") & location=="tower" & mean.val>375, mean.val := NA]
-
-# min val: 250.2; max val = 375
-
-# RESCALE from 0 to 100
-biomet2[variable %in% c("lws","lws_5m")& location=="tower", mean.val := ((mean.val-250.2)/(375-250.2))*100]
-
-# remove values >100
-biomet2[variable %in% c("lws","lws_5m") & mean.val>100, mean.val := NA]
 
 # graph again
 ggplot(biomet2[variable %in% c("lws","lws_5m")], aes(date_time, mean.val,colour=veg))+geom_line()+
