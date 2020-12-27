@@ -5,7 +5,8 @@
 #             August 2019                  #
 ############################################
 
-# 20200427: update with timestamp corrected biomet and flux data
+# 20201227: update with PPFD_1_1_1 removed in 2010 & 2011, LWS rescaled to 0-100, SWC_1_1_1 amd 3_3_1 baseline jumps removed
+# 20200427: update with timestamp corrected biomet and flux data 
 
 library(data.table)
 library(lubridate)
@@ -35,9 +36,9 @@ flux <- (flux_filter_sd[!(duplicated(flux_filter_sd, by=c("date_time")))])
 
 
 # import biomet2 which contains all sensors as individual datastreams
-setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/Biomet2_20200415")
+setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/Biomet2_20201227")
 
-biometfiles <- list.files(path="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/Biomet2_20200415",
+biometfiles <- list.files(path="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/Biomet2_20201227",
                           full.names=TRUE, pattern="_wide_") 
 
 # read files and bind them into one file. fill=TRUE because of the missing columns in 2011
@@ -68,7 +69,7 @@ setcolorder(flux.biomet,names_output)
 
 # save to upload to ameriflux: 
 # <SITE_ID>_<RESOLUTION>_<TS-START>_<TS-END>_<OPTIONAL>.csv
-setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Ameriflux/20200514")
+setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Ameriflux/20201227")
 
 # Don't save this version. Just takes up space.
 #write.table(flux.biomet[,!c("date_time"),with=FALSE], paste("USJo1_HH",min(flux.biomet$TIMESTAMP_END),max(flux.biomet$TIMESTAMP_END),
