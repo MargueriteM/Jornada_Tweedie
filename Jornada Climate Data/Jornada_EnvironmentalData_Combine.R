@@ -789,7 +789,7 @@ biomet2[variable %in% c("atm_press") & location=="SN",
         ameriflux.id := "PA_2_1_1"]
 
 # leaf wetness 
-ggplot(biomet2[variable %in% c("lws","lws_5m")&year==2016], aes(date_time, mean.val,colour=veg))+geom_line()+
+ggplot(biomet2[variable %in% c("lws","lws_5m")&year==2018], aes(date_time, mean.val,colour=veg))+geom_line()+
   facet_grid(SN~.)
 
 # Graph only for tower (lws and lws_5m) to check rescale between 0-100
@@ -811,7 +811,7 @@ ggplot(biomet2[variable %in% c("lws","lws_5m")], aes(date_time, mean.val,colour=
 # SN7 FLCE (LEAF_WET_7_1_1)
 # SN8 PRGL (LEAF_WET_8_1_1)
 
-biomet2[variable %in% c("lws_5m"),
+biomet2[variable %in% c("lws_5m") & location=="Tower" ,
         ameriflux.id := "LEAF_WET_1_1_1"]
 
 biomet2[variable %in% c("lws") & location=="Tower",
@@ -840,20 +840,20 @@ biomet2[variable %in% c("lws") & SN=="SN8" & (veg == "PRGL"),
 
 
 # #################
-# # run if biomet above hasn't been run. You need this to subset out the sensors for which only 1 exists
+# # run for biomet2. You need this to subset out the sensors for which only 1 exists
 # # get the other variables that don't need averaging:
 # # change names to Eddy Pro names and put data into column format
-#  biomet_other <- copy(env_30min[variable %in% c("airtemp","rh","wnd_spd","wnd_dir",
-#                                                 "Rn_nr_Avg","Rl_down","Rl_up","Rs_down","Rs_up"),
-#                                 .(date_time,variable,mean.val)])
-# 
-#  biomet_other1 <- dcast(biomet_other[!is.na(date_time)],date_time~variable, value.var="mean.val")
-# 
-# # change the name of SWin to Rg for global radiation because they are
-# # _down is downward facing sensor = out
-# # _up is upward facing sensor = in
-# setnames(biomet_other1,c("Rl_down","Rl_up","Rn_nr_Avg","Rs_down","Rs_up","airtemp","rh","wnd_dir","wnd_spd"),
-#          c("LW_OUT_1_1_1","LW_IN_1_1_1","NETRAD_1_1_1","SW_OUT_1_1_1","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","WD_1_1_1","WS_1_1_1"))
+ biomet_other_dateadj <- copy(env_30min[variable %in% c("airtemp","rh","wnd_spd","wnd_dir",
+                                                "Rn_nr_Avg","Rl_down","Rl_up","Rs_down","Rs_up"),
+                                .(date_time,variable,mean.val)])
+
+ biomet_other2 <- dcast(biomet_other_dateadj[!is.na(date_time)],date_time~variable, value.var="mean.val")
+
+# change the name of SWin to Rg for global radiation because they are
+# _down is downward facing sensor = out
+# _up is upward facing sensor = in
+setnames(biomet_other2,c("Rl_down","Rl_up","Rn_nr_Avg","Rs_down","Rs_up","airtemp","rh","wnd_dir","wnd_spd"),
+         c("LW_OUT_1_1_1","LW_IN_1_1_1","NETRAD_1_1_1","SW_OUT_1_1_1","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","WD_1_1_1","WS_1_1_1"))
 # ##################
 
 # graph
@@ -873,7 +873,7 @@ biomet2_wide <- dcast(biomet2[!is.na(ameriflux.id) & !is.na(date_time),],
                       date_time ~ ameriflux.id, value.var = "mean.val")
 
 # merge wide biomet2 with biomet_other1 and biomet2_ts1, biomet2_ts2
-biomet2_wide <- merge(biomet_other1, biomet2_wide, by="date_time", all=TRUE)
+biomet2_wide <- merge(biomet_other2, biomet2_wide, by="date_time", all=TRUE)
 biomet2_wide <- merge(biomet2_wide, biomet2_ts1, by="date_time", all.x=TRUE)
 biomet2_wide <- merge(biomet2_wide, biomet2_ts2, by="date_time", all.x=TRUE)
 
@@ -887,11 +887,13 @@ biomet2_wide[, names(biomet2_wide[,!date_time_exclude,with=FALSE]) := lapply(.SD
              .SDcols = !date_time_exclude]
 
 # save biomet2 to combine with all flux data
-setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/Biomet2_20200415")
+# update 27 Dec 2020 with Ameriflux QA/QC changes
+setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/Biomet2_20201227")
 
 # write.table(biomet2_wide, file="Biomet_USJo1_wide_2010_2019_20200218.csv", sep=",", dec=".", row.names=FALSE)
 
 # 15 Apr 2020: save by year!
+# 27 Dec 2020: save updated by year. 
 
 saveyears <- function(data,startyear,endyear) {
 
