@@ -10,6 +10,7 @@
 #                13 March, 2019                 #
 #################################################
 
+# 26 Dec 2020 update: add Ameriflux QA/QC to remove PAR at tower in 2010 and 2011, rescale LWS between 0-100
 # 6 Apr 2020 update: update to March 24 and add timestamp correction due to daylight savings changes
 # JER_Tower_SN_TimestampMismatches.xlsx
 # make the timestamp adjustments at the end, after filtering data. 
@@ -157,12 +158,52 @@ met30_long[(date_time > as.POSIXct("2017-10-06 12:00", tz="UTC") & date_time < a
              (date_time > as.POSIXct("2017-12-01 00:00", tz="UTC") & date_time < as.POSIXct("2018-04-03 7:30", tz="UTC"))  , 
            value := NA]
 
-# lws_5m, par, wnd_dir
+# par, lws_5m, wnd_dir
 # remove > Oct 20 2015 12:00 to <Nov 6 2015 12:30 (flat-line)
 met30_long[(date_time > as.POSIXct("2015-10-20 12:00", tz="UTC") &
               date_time < as.POSIXct("2015-10-06 12:30", tz="UTC")) &
              variable %in% c("lws_5m","par","wnd_dir"), 
            value := NA]
+
+# par: Amerflux QA/QC says 2010 and 2011 values are higher than expected (out of range). Remove
+# ggplot(met30_long[variable %in% c("par"),], aes(date_time, value))+geom_line()
+# remove PAR in 2010 and 2011
+met30_long[variable %in% c("par") & year<=2011,
+        value := NA]
+
+# par remove > Feb 1 2012 and < Mar 8 2012 (flat-line)
+met30_long[variable=="par"&date_time>as.Date("2012-02-01")&
+             date_time<as.Date("2012-03-08"), value := NA]
+
+# par remove >Oct 20 2015 and < Nov 7 2015 (flat-line)
+met30_long[variable=="par"&date_time>as.Date("2015-10-20")&
+             date_time<as.Date("2015-11-07"), value := NA]
+
+
+
+# lws_5m also looks very strange in 2010. Remove lws from 2010: 
+met30_long[variable %in% c("lws_5m") & year==2010, value := NA]
+
+# lws_5m. There are some high spike values, not sure what those mean (rain?). Leave them in.
+# remove lws_5m prior to Aug 25 2011
+met30_long[variable=="lws_5m"&date_time<as.Date("2011-08-25"), value := NA]
+
+# lws_5m remove > Feb 1 2012 and < Mar 8 2012 (flat-line)
+met30_long[variable=="lws_5m"&date_time>as.Date("2012-02-01")&
+             date_time<as.Date("2012-03-08"), value := NA]
+
+# Ameriflux QA/QC: rescale LWS to 0-100
+# lws 5m make same adjustments as with lws in shrub in FluxTable
+# remove values <250
+met30_long[variable %in% c("lws_5m") & value<250, value := NA]
+# remove values >375 since this is a very common max value and the SN LWS sensors often appear to max out
+met30_long[variable %in% c("lws_5m") & value>375, value := NA]
+
+# min val: 250.2; max val = 375
+
+# RESCALE from 0 to 100
+met30_long[variable %in% c("lws_5m"), value := ((value-250.2)/(375-250.2))*100]
+
 
 # albedo
 # remove values < -300 and > 300
@@ -177,21 +218,6 @@ met30_long[variable=="albedo"&date_time>as.Date("2012-02-01")&
 met30_long[variable=="albedo"&date_time>as.Date("2015-10-20")&
              date_time<as.Date("2015-11-07"), value := NA]
 
-# lws_5m. There are some high spike values, not sure what those mean (rain?). Leave them in.
-# remove lws_5m prior to Aug 25 2011
-met30_long[variable=="lws_5m"&date_time<as.Date("2011-08-25"), value := NA]
-
-# lws_5m remove > Feb 1 2012 and < Mar 8 2012 (flat-line)
-met30_long[variable=="lws_5m"&date_time>as.Date("2012-02-01")&
-             date_time<as.Date("2012-03-08"), value := NA]
-
-# par remove > Feb 1 2012 and < Mar 8 2012 (flat-line)
-met30_long[variable=="par"&date_time>as.Date("2012-02-01")&
-             date_time<as.Date("2012-03-08"), value := NA]
-
-# par remove >Oct 20 2015 and < Nov 7 2015 (flat-line)
-met30_long[variable=="par"&date_time>as.Date("2015-10-20")&
-             date_time<as.Date("2015-11-07"), value := NA]
 
 
 # wnd_dir remove > Feb 1 2012 and < Mar 8 2012 (flat-line)
@@ -264,11 +290,11 @@ met30_long[date_time %in% up_tot_na & variable %in% c("albedo","net_rs"),
 
 # # use cross-correlation between PAR and potential short-wave IN to define where lags are
 # # import SW potential to compare with adjusted timestamp
-# sw.pot <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Ameriflux/QA_QC_Report_Ameriflux/US-Jo1_HH_2010_2019_SW_IN_pot.csv",
-#                 sep=",",header=TRUE, na.strings=c("-9999"))
-# 
-# sw.pot[,date_time := parse_date_time(TIMESTAMP_END, "YmdHM",tz="UTC")]
-# 
+sw.pot <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Ameriflux/QA_QC_Report_Ameriflux/US-Jo1_HH_2010_2019_SW_IN_pot.csv",
+                sep=",",header=TRUE, na.strings=c("-9999"))
+
+sw.pot[,date_time := parse_date_time(TIMESTAMP_END, "YmdHM",tz="UTC")]
+ 
 
 # # merge sw.pot with par
 # dat.ccf <- merge(sw.pot,met30_long[variable=="par",], by="date_time")
@@ -373,7 +399,7 @@ met30_long[,':=' (year=year(date_time),
 # compare to sw.pot
 sw.pot[,':=' (variable="sw_pot",
               value=SW_IN_POT,
-             # date_time_orig=date_time,
+             date_time_orig=date_time,
               year=year(date_time),
               month=month(date_time),
               doy=yday(date_time))][,SW_IN_POT:=NULL]
@@ -383,7 +409,7 @@ met30_long_comp <- rbind(met30_long, sw.pot, fill=TRUE)
 
 # look at adjusment
 # non adjusted, original
-daycheck <- as.Date("2011-03-21")
+daycheck <- as.Date("2013-08-10")
 
 
 ggplot(met30_long_comp[variable%in% c("par", "sw_pot") & 
@@ -391,7 +417,7 @@ ggplot(met30_long_comp[variable%in% c("par", "sw_pot") &
   geom_line(aes(date_time_orig,value, colour=variable))
 
 ggplot(met30_long_comp[variable%in% c("par", "sw_pot") & 
-                         year==2012&month==5])+
+                         year==2012&month==6])+
   geom_line(aes(date_time_orig,value, colour=variable))
 
 
@@ -401,7 +427,7 @@ ggplot(met30_long_comp[variable%in% c("par", "sw_pot") &
   geom_line(aes(date_time,value, colour=variable))
 
 ggplot(met30_long_comp[variable%in% c("par", "sw_pot") & 
-                         year==2012&month==5])+
+                         year==2012&month==6])+
   geom_line(aes(date_time,value, colour=variable))
 
 
@@ -578,10 +604,15 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/Compiled")
 # save in long format. CHANGE NAME TO L2!!!!
 # write.table(met30_long, file="TowerMet_L2_2010_20200324_30min.csv", sep=",", row.names = FALSE)
 
+# 27 Dec 2020 update: Ameriflux QA/QC remove PAR in 2010 and 2011, rescale LWS 0-100
+# should be saving met30_long_comp?? Will save that one. 
+# write.table(met30_long_comp, file="TowerMet_L2_2010_20201227_30min.csv", sep=",", row.names = FALSE)
+
 # AND save in wide format
 # save by year
+# 27 Dec 2020: change to met30_long_comp
 
-met30_wide_save <- data.table:: dcast(met30_long[!is.na(date_time),.(date_time, date_time_orig, variable,value)],
+met30_wide_save <- data.table:: dcast(met30_long_comp[!is.na(date_time),.(date_time, date_time_orig, variable,value)],
                          date_time+date_time_orig~variable,
                           value.var="value")
 
@@ -609,7 +640,7 @@ saveyears <- function(data,startyear,endyear) {
   }}
 
 
-#saveyears(met30_wide_save,2010,2020)
+# saveyears(met30_wide_save,2010,2020)
 
 # calculate daily precip
 met_daily1 <- met_all[,list(precip_daily_mean = mean(precip),
