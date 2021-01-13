@@ -1,5 +1,6 @@
 # Make figures with SD filterred data and webtool ReddyProc gap-filled, partitioned data
-# code to append data
+
+# load libraries
 
 library(REddyProc)
 library(data.table)
@@ -18,85 +19,10 @@ library(viridis)
 
 # make sure that there are no -9999 values and all -9999 is recognized as NA!! 
 
+# THIS CODE SHOULD WORK WITH JUST 1 YEAR OF DATA OR ALL YEARS MERGED
 
-# import filtered flux data file from Eddy Pro as data table
-# update with timestamp corrected data
-# filtered in: Jornada_EddyPro_Output_Fluxnext_2010_2019.R
-ep.units <- (fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200427/REddyResults_Us-Jo1_20200428_586625386/output.txt",
-                   header=TRUE))[1,]
 
-flux.ep <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200427/REddyResults_Us-Jo1_20200428_586625386/output.txt",
-                      header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
-                 col.names = colnames(ep.units))
-
-# for some reason na.strings won't recognize the -9999
-flux.ep[flux.ep == -9999] <- NA
-
-# get the 'edata' to add 2010 to the timeseries eventhough 2010 won't gap fill.... 
-setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
-
-# import data that was filtered by 3SD filter
-load("JER_flux_2010_2019_EddyPro_Output_filtered_SD_TIMEcorr_20200427.Rdata")
-
-# convert date to POSIXct and get a year, day, hour column
-# if this step doesn't work, make sure bit64 library is loaded otherwise the timestamps importa in a non-sensical format
-flux_filter_sd[,':=' (date_time = parse_date_time(TIMESTAMP_END_correct,"YmdHM",tz="UTC"),
-                      date_time_start = parse_date_time(TIMESTAMP_START_correct,"YmdHM",tz="UTC"))][
-                        ,':='(Year=year(date_time),DoY=yday(date_time),
-                              hours = hour(date_time), mins = minute(date_time))]
-
-# there's duplicated data in 2012 DOY 138
-flux_filter <- (flux_filter_sd[!(duplicated(flux_filter_sd, by=c("TIMESTAMP_END_correct")))])
-
-# format data columns for ReddyProc
-# Year	DoY	Hour	NEE	LE	H	Rg	Tair	Tsoil	rH	VPD	Ustar 
-flux_filter[mins==0, Hour := hours+0.0]
-flux_filter[mins==30, Hour := hours+0.5]
-
-edata <- flux_filter[,.(Year,
-                        DoY,
-                        Hour,
-                        FC,
-                        LE,
-                        H,
-                        SW_IN_1_1_1,
-                        TA_1_1_1,
-                        RH_1_1_1,
-                        USTAR)]
-
-setnames(edata,c("FC","LE","H","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
-         c("NEE_orig","LE_orig","H_orig","Rg_orig","Tair_orig","rH_orig","Ustar"))
-
-# make all Rg<0 equal to 0 becuase ReddyProc won't accept values <0
-edata[Rg<0, Rg:=0]
-
-# create a grid of full dates and times
-filled <- expand.grid(date=seq(as.Date("2010-01-01"),as.Date("2019-12-31"), "days"),
-                      Hour=seq(0,23.5, by=0.5))
-filled$Year <- year(filled$date)
-filled$DoY <- yday(filled$date)
-
-filled$date <- NULL
-
-edata <- merge(edata,filled,by=c("Year","DoY","Hour"), all=TRUE)
-
-# online tool says hours must be between 0.5 and 24.0 
-# therefore add 0.5 to each hour
-edata[,Hour := Hour+0.5]
-
-# convert edata to data frame for ReddyProc
-edata <- as.data.frame(edata)
-
-# calculate VPD from rH and Tair in hPa (mbar), at > 10 hPa the light response curve parameters change
-edata$VPD <- fCalcVPDfromRHandTair(edata$rH, edata$Tair)
-
-# get only 2010 and go back to data table
-edata2010 <- as.data.table(subset(edata,Year==2010))
-
-flux.ep <- rbind(edata2010,flux.ep, fill=TRUE)
-
-# substract 0.5 from the hour again to match TIMESTAMP_END
-flux.ep[,Hour := Hour-0.5]
+# MAKE SOME FIGURES
 
 # plot with no U* filter or gapfill
 ggplot(flux.ep[Year==2019,], aes(DoY,NEE_orig))+
