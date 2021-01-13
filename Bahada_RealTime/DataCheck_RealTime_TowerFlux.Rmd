@@ -16,7 +16,7 @@ library(lubridate)
 library(plotly)
 
 # ENTER YEAR TO CHECK HERE
-yeartocheck <- 2020
+yeartocheck <- 2021
 
 # import data directly from SEL Data Archive
 flux_colnames <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/",yeartocheck,"/Raw_Data/ASCII/dataL1_flux_",yeartocheck,".csv",sep=""),
@@ -38,11 +38,19 @@ flux[,':=' (year = year(date_time), doy = yday(date_time), date = date(date_time
 
 Column {.sidebar}
 ---------------------------------------
+
 ###Select Date Range and variables
 
 These graphs show most recent incoming eddy covariance and ancillary data from the tower at the Jornada Bahada Site. Data are 30min mean values.
 
 **Note: Flux calculations are preliminary and for visualisation only!!** 
+
+#### Last timestamp when data sent to server:
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+print(max(flux$TIMESTAMP))
+```
 
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
