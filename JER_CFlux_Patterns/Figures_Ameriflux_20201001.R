@@ -165,6 +165,13 @@ precip_monthly <- flux_filter[!is.na(P_RAIN_1_1_1),list(precip.tot = sum(P_RAIN_
 
 precip_monthly[,year_lab := ifelse(month==12, Year, NA)]
 
+# daily precipitation
+precip_daily <- flux_filter[!is.na(P_RAIN_1_1_1),list(precip.tot = sum(P_RAIN_1_1_1)),
+                              by="date_time_end,Year"][Year>2010,precip.cum:=cumsum(precip.tot),by="Year"]
+
+precip_daily[,year_lab := ifelse(month==12, Year, NA)]
+
+
 ### Monthly Rainfall
 # Graph annual distribution of monthly data
 ggplot(precip_monthly, aes(month,precip.tot,fill=factor(month)))+
@@ -200,6 +207,11 @@ monthly.p.t <- merge(precip_monthly,temp_monthly,by=c("Year","month"))
 monthly.p.t <- rbind(monthly.p.t,
                      data.frame(precip.tot=c(25,25,75),mean.temp=c(5,20,25),env_lab=c("Cool, Dry","Warm, Dry","Warm, Wet")),
                      fill=TRUE)
+
+# save monthly precipitation and temperature for Mariana
+write.csv(monthly.p.t,
+          "~/Desktop/OneDrive - University of Texas at El Paso/SEL_Phenology/MetData_Temp_Precip/JER_monthly_TempPrecip_2010_2019",
+          row.names=FALSE)
 
 p2 <- ggplot(monthly.p.t, aes(mean.temp,precip.tot,colour=factor(month)))+
   geom_point(size=3)+
@@ -359,3 +371,7 @@ ggplot(annual_sum, aes(factor(Year),NEE_annual,fill=factor(Year)))+
   scale_fill_viridis_d()+
   theme_bw()+
   theme(legend.position="none")
+
+# save cumulative rainfall and daily mean (max and min) air temperature for Mariana
+
+
