@@ -14,6 +14,8 @@
 # * timestamp shift in tower and SN data (can be fixed: "~/Desktop/R/R_programs/Tweedie/Jornada/Jornada_Tweedie/Jornada Climate Data/test_fixingTimestamps.R")
 # * 2010 flux gap-fill missing because Rs data is missing. Gap-fill with NRCS data!! (can be done, got derailed by time-stamps)
 
+# 14 May 2021: 
+# added graphs for CZ presentation to carbon group
 
 # load libraries
 library(REddyProc)
@@ -196,22 +198,32 @@ p1 <- ggplot(precip_monthly[Year!=2010,], aes(month,precip.cum,colour=factor(Yea
   theme_bw(base_size=26)+
   theme(legend.position="none")
 
-png(file="~/Desktop/TweedieLab/AGU/2020/CumulativeRain.png",
-    width=800,height=540)
+#png(file="~/Desktop/TweedieLab/AGU/2020/CumulativeRain.png",
+ #   width=800,height=540)
 p1
 dev.off()
 
+# daily rainfall and cumulative rain
+ggplot(precip_daily)+
+  geom_point(aes(x=yday(date_time_end),y=precip.cum/5),colour="blue",size=0.5)+
+  geom_col(aes(x=yday(date_time_end), y=precip.tot), fill="black",colour="black")+
+  facet_grid(.~Year)+
+  theme_bw()+
+  labs(y="Total daily Rain (mm)",x="Day of Year")+
+  scale_y_continuous(sec.axis=sec_axis(~.*5, name="Cummulative Rain (mm)"))
+
+
 # Climate Envelope 
 # graph 'climate envelopes'
-monthly.p.t <- merge(precip_monthly,temp_monthly,by=c("Year","month"))
+monthly.p.t <- merge(precip_monthly,temp_monthly,by=c("Year","month"),all=TRUE)
 monthly.p.t <- rbind(monthly.p.t,
                      data.frame(precip.tot=c(25,25,75),mean.temp=c(5,20,25),env_lab=c("Cool, Dry","Warm, Dry","Warm, Wet")),
                      fill=TRUE)
 
 # save monthly precipitation and temperature for Mariana
-write.csv(monthly.p.t,
-          "~/Desktop/OneDrive - University of Texas at El Paso/SEL_Phenology/MetData_Temp_Precip/JER_monthly_TempPrecip_2010_2019",
-          row.names=FALSE)
+# write.csv(monthly.p.t,
+        #  "~/Desktop/OneDrive - University of Texas at El Paso/SEL_Phenology/MetData_Temp_Precip/JER_monthly_TempPrecip_2010_2019.csv",
+        #  row.names=FALSE)
 
 p2 <- ggplot(monthly.p.t, aes(mean.temp,precip.tot,colour=factor(month)))+
   geom_point(size=3)+
@@ -223,8 +235,8 @@ p2 <- ggplot(monthly.p.t, aes(mean.temp,precip.tot,colour=factor(month)))+
   theme_bw(base_size=26)+
   guides(name="Month")
 
-png(file="~/Desktop/TweedieLab/AGU/2020/ClimateEnvelope.png",
-    width=800,height=540)
+#png(file="~/Desktop/TweedieLab/AGU/2020/ClimateEnvelope.png",
+#    width=800,height=540)
 p2
 dev.off()
 
@@ -236,7 +248,7 @@ dev.off()
 # Plot the measured and U50 gap-filled data
 ggplot(subset(flux.ep, Year<2020), aes(DoY,NEE_orig))+
   geom_line(colour="#440154FF")+
-  geom_point(aes(y=NEE_U50_f),data=subset(flux.ep, is.na(NEE_orig)&Year<2020),colour="#55C667FF",size=0.15)+
+  geom_line(aes(y=NEE_U50_f),data=subset(flux.ep, is.na(NEE_orig)&Year<2020),colour="#55C667FF",size=0.15)+
   scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
                      labels=c("J","J","D"),
                      expand=c(0,0))+
@@ -257,7 +269,10 @@ daily_sum_dt <- as.data.table(subset(flux.ep))
 daily_sum <- daily_sum_dt[,list(NEE_daily = sum(NEE_U50_f*1800*1*10^-6*12.01),
                                 GPP_daily = sum(GPP_U50_f*1800*1*10^-6*12.01),
                                 Reco_daily = sum(Reco_U50*1800*1*10^-6*12.01),
-                                Tair_mean = mean(Tair)), 
+                                ET_daily = sum(LE_f*1800*1*10^-6*12.01),
+                                Tair_mean = mean(Tair),
+                                Tair_max=max(Tair),
+                                Tair_min=min(Tair)), 
                           by="Year,DoY"]
 
 # create a running mean 
@@ -299,10 +314,39 @@ p3 <- ggplot(daily_sum[Year>2010&Year<2020,], aes(DoY, NEE_daily))+
   theme_bw(base_size=26)+
   theme(strip.background = element_blank())
 
-png(file="~/Desktop/TweedieLab/AGU/2020/NEEdaily.png",
-    width=1920,height=1080)
+#png(file="~/Desktop/TweedieLab/AGU/2020/NEEdaily.png",
+  #  width=1920,height=1080)
 p3
 dev.off()
+
+# graph GPP and Reco
+pgpp <- ggplot(daily_sum[Year>2010&Year<2020,], aes(DoY, GPP_daily))+
+  +   geom_line(colour="forestgreen")+
+  +  # geom_line(aes(yday(date),Reco_daily),colour="burlywood4")+
+  +   geom_hline(yintercept=0)+ylim(c(0,3.5))+
+  +   scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
+                         +                      labels=c("Jan","Jul","D"),
+                         +                      expand=c(0,0))+
+  +   labs(y=expression("Daily cumulative GPP (gC" *m^-2*")"),
+           +        x="Month")+
+  +   facet_grid(.~Year)+
+  +   theme_bw(base_size=26)+
+  +   theme(strip.background = element_blank())
+ # Plot cumulative sum with 7 day running mean
+   preco <- ggplot(daily_sum[Year>2010&Year<2020,], aes(DoY, Reco_daily))+
+  +   geom_line(colour="burlywood4")+
+  +  # geom_line(aes(yday(date),Reco_daily),colour="burlywood4")+
+  +   geom_hline(yintercept=0)+ylim(c(0,3.5))+
+  +   scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
+                         +                      labels=c("Jan","Jul","D"),
+                         +                      expand=c(0,0))+
+  +   labs(y=expression("Daily Reco (gC" *m^-2*")"),
+           +        x="Month")+
+  +   facet_grid(.~Year)+
+  +   theme_bw(base_size=26)+
+  +   theme(strip.background = element_blank())
+ p.reco.gpp <- grid.arrange(pgpp, preco)
+# ggsave(p.reco.gpp, file="~/Desktop/TweedieLab/AGU/2020/Reco_GPP_daily.png",width=19,height=15)
 
 
 # Seasonal C Flux profile {data-navmenu="C Flux Data"}
@@ -322,8 +366,8 @@ p4 <- ggplot(daily_sum, aes(factor(DoY), NEE_daily, colour=factor(month)))+
   theme_bw(base_size=26)+
   theme(legend.position="none")
 
-png(file="~/Desktop/TweedieLab/AGU/2020/NEEseasonal.png",
-    width=1920,height=1080)
+#png(file="~/Desktop/TweedieLab/AGU/2020/NEEseasonal.png",
+  #  width=1920,height=1080)
 p4
 dev.off()
 
@@ -372,6 +416,14 @@ ggplot(annual_sum, aes(factor(Year),NEE_annual,fill=factor(Year)))+
   theme_bw()+
   theme(legend.position="none")
 
-# save cumulative rainfall and daily mean (max and min) air temperature for Mariana
+# save daily mean (max and min) air temperature for Mariana
+
+ggplot(daily_sum, aes(DoY,Tair_mean,colour=factor(Year)))+geom_line()
+
+
+# save monthly precipitation and temperature for Mariana
+write.csv(daily_sum[,.(date,Year,DoY,Tair_mean,Tair_max,Tair_min)],
+          "~/Desktop/OneDrive - University of Texas at El Paso/SEL_Phenology/MetData_Temp_Precip/JER_daily_Temp_2010_2019.csv",
+          row.names=FALSE)
 
 
