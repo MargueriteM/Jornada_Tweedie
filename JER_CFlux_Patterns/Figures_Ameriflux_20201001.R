@@ -392,6 +392,38 @@ p4 <- ggplot(daily_sum, aes(factor(DoY), NEE_daily, colour=factor(month)))+
 p4
 dev.off()
 
+# seasonal Reco and GPP patterns
+p.seas.reco <- ggplot(daily_sum, aes(factor(DoY), Reco_daily))+
+  geom_boxplot(colour="burlywood4")+
+  geom_hline(yintercept=0)+
+  ylim(c(0,3.5))+
+  scale_color_viridis_d(option="plasma")+
+  scale_x_discrete(breaks =c("31","61","91","121","151","181","211","241","271","301","331","361"),
+                   labels=c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))+
+  labs(title = "Aggregated seasonal Reco from 2011-2019",
+       y=expression("Daily cumulative Reco (gC" *m^-2*")"),
+       x="Month")+
+  theme_bw(base_size=26)+
+  theme(legend.position="none")
+# ggsave(p.seas.reco, file="~/Desktop/TweedieLab/AGU/2020/REco_Seasonal.png",width=19,height=15)
+
+# GPP
+p.seas.gpp <- ggplot(daily_sum, aes(factor(DoY), GPP_daily))+
+  geom_boxplot(colour="forestgreen")+
+  geom_hline(yintercept=0)+
+  ylim(c(0,3.5))+
+  scale_color_viridis_d(option="plasma")+
+  scale_x_discrete(breaks =c("31","61","91","121","151","181","211","241","271","301","331","361"),
+                   labels=c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))+
+  labs(title = "Aggregated seasonal GPP from 2011-2019",
+       y=expression("Daily cumulative GPP (gC" *m^-2*")"),
+       x="Month")+
+  theme_bw(base_size=26)+
+  theme(legend.position="none")
+
+
+# ggsave(p.seas.gpp, file="~/Desktop/TweedieLab/AGU/2020/GPP_Seasonal.png",width=19,height=15)
+
 
 # Annual C Budget {data-navmenu="C Flux Data"}
 # Annual C Budget from 2011 to 2019
@@ -403,7 +435,8 @@ dev.off()
 # calculate cumulative sums
 daily_cum_sum <- daily_sum[,':='(NEE_cum = cumsum(NEE_daily),
                                  GPP_cum = cumsum(GPP_daily),
-                                 Reco_cum = cumsum(Reco_daily)),
+                                 Reco_cum = cumsum(Reco_daily),
+                                 ET_cum = cumsum(ET_daily)),
                            by="Year"]
 
 daily_cum_sum[,year_lab := ifelse(yday(date)==365, Year, NA)]
@@ -418,21 +451,35 @@ p5 <- ggplot(daily_cum_sum, aes(DoY,NEE_cum,colour=factor(Year)))+
   theme_bw(base_size=26)+
   theme(legend.position="none")
 
-png(file="~/Desktop/TweedieLab/AGU/2020/NEEcummulative.png",
-    width=800,height=540)
+#png(file="~/Desktop/TweedieLab/AGU/2020/NEEcummulative.png",
+ #   width=800,height=540)
 p5
 dev.off()
 
 
+
+
 ### As Annual Sum
 # calculate annual budget
-annual_sum <- daily_sum[,list(NEE_annual = sum(NEE_daily)),
+annual_sum <- daily_sum[,list(NEE_annual = sum(NEE_daily),
+                              GPP_annual = sum(GPP_daily),
+                              Reco_annual = sum(Reco_daily),
+                              ET_annual = sum(ET_daily)),
                         by="Year"]
 
 # plot the annual budgets
+# NEE
 ggplot(annual_sum, aes(factor(Year),NEE_annual,fill=factor(Year)))+
-  geom_bar(stat="identity")+
+  geom_col()+
   labs(y=expression("Annual cumulative NEE (gC" *m^-2*")"),x="Year")+
+  scale_fill_viridis_d()+
+  theme_bw()+
+  theme(legend.position="none")
+
+# ET
+ggplot(annual_sum, aes(factor(Year),ET_annual,fill=factor(Year)))+
+  geom_col()+
+  labs(y="Annual cumulative ET (mm)",x="Year")+
   scale_fill_viridis_d()+
   theme_bw()+
   theme(legend.position="none")
@@ -443,8 +490,8 @@ ggplot(daily_sum, aes(DoY,Tair_mean,colour=factor(Year)))+geom_line()
 
 
 # save monthly precipitation and temperature for Mariana
-write.csv(daily_sum[,.(date,Year,DoY,Tair_mean,Tair_max,Tair_min)],
-          "~/Desktop/OneDrive - University of Texas at El Paso/SEL_Phenology/MetData_Temp_Precip/JER_daily_Temp_2010_2019.csv",
-          row.names=FALSE)
+#write.csv(daily_sum[,.(date,Year,DoY,Tair_mean,Tair_max,Tair_min)],
+ #         "~/Desktop/OneDrive - University of Texas at El Paso/SEL_Phenology/MetData_Temp_Precip/JER_daily_Temp_2010_2019.csv",
+ #         row.names=FALSE)
 
 
