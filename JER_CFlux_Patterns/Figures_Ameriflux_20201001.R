@@ -269,16 +269,19 @@ daily_sum_dt <- as.data.table(subset(flux.ep))
 daily_sum <- daily_sum_dt[,list(NEE_daily = sum(NEE_U50_f*1800*1*10^-6*12.01),
                                 GPP_daily = sum(GPP_U50_f*1800*1*10^-6*12.01),
                                 Reco_daily = sum(Reco_U50*1800*1*10^-6*12.01),
-                                ET_daily = sum(LE_f*1800*1*10^-6*12.01),
+                                ET_daily = sum((LE_f/2454000)*1800), # (amount of energy to evaporate a unit weight of water; 2454000 J kg-1).
                                 Tair_mean = mean(Tair),
                                 Tair_max=max(Tair),
                                 Tair_min=min(Tair)), 
                           by="Year,DoY"]
 
 # create a running mean 
-daily_sum[,NEE_daily_roll := rollmean(x=NEE_daily,
+daily_sum[,':=' (NEE_daily_roll = rollmean(x=NEE_daily,
                                       k=7,
-                                      fill=NA)]
+                                      fill=NA),
+          ET_daily_roll = rollmean(x=ET_daily,
+                                     k=7,
+                                     fill=NA))]
 
 # add a date variable to daily_sum
 daily_sum[Year==2010,date:= as.Date(DoY-1, origin = "2010-01-01")]
@@ -294,9 +297,10 @@ daily_sum[Year==2019,date:= as.Date(DoY-1, origin = "2019-01-01")]
 
 
 # calculate cumulative sums
-daily_cum_sum <- daily_sum[,list(NEE_cum = cumsum(NEE_daily),
-                                 GPP_cum = cumsum(GPP_daily),
-                                 Reco_cum = cumsum(Reco_daily)),
+daily_cum <- daily_sum[,list(NEE_cum = sum(NEE_daily),
+                                 GPP_cum = sum(GPP_daily),
+                                 Reco_cum = sum(Reco_daily),
+                                 ET_cum = sum(ET_daily)),
                            by="Year"]
 
 # Plot cumulative sum with 7 day running mean
@@ -321,34 +325,51 @@ dev.off()
 
 # graph GPP and Reco
 pgpp <- ggplot(daily_sum[Year>2010&Year<2020,], aes(DoY, GPP_daily))+
-  +   geom_line(colour="forestgreen")+
-  +  # geom_line(aes(yday(date),Reco_daily),colour="burlywood4")+
-  +   geom_hline(yintercept=0)+ylim(c(0,3.5))+
-  +   scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
-                         +                      labels=c("Jan","Jul","D"),
-                         +                      expand=c(0,0))+
-  +   labs(y=expression("Daily cumulative GPP (gC" *m^-2*")"),
-           +        x="Month")+
-  +   facet_grid(.~Year)+
-  +   theme_bw(base_size=26)+
-  +   theme(strip.background = element_blank())
+     geom_line(colour="forestgreen")+
+    # geom_line(aes(yday(date),Reco_daily),colour="burlywood4")+
+     geom_hline(yintercept=0)+ylim(c(0,3.5))+
+     scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
+                                               labels=c("Jan","Jul","D"),
+                                               expand=c(0,0))+
+     labs(y=expression("Daily cumulative GPP (gC" *m^-2*")"),
+                   x="Month")+
+     facet_grid(.~Year)+
+     theme_bw(base_size=26)+
+     theme(strip.background = element_blank())
  # Plot cumulative sum with 7 day running mean
    preco <- ggplot(daily_sum[Year>2010&Year<2020,], aes(DoY, Reco_daily))+
-  +   geom_line(colour="burlywood4")+
-  +  # geom_line(aes(yday(date),Reco_daily),colour="burlywood4")+
-  +   geom_hline(yintercept=0)+ylim(c(0,3.5))+
-  +   scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
-                         +                      labels=c("Jan","Jul","D"),
-                         +                      expand=c(0,0))+
-  +   labs(y=expression("Daily Reco (gC" *m^-2*")"),
-           +        x="Month")+
-  +   facet_grid(.~Year)+
-  +   theme_bw(base_size=26)+
-  +   theme(strip.background = element_blank())
+     geom_line(colour="burlywood4")+
+    # geom_line(aes(yday(date),Reco_daily),colour="burlywood4")+
+     geom_hline(yintercept=0)+ylim(c(0,3.5))+
+   scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
+                                              labels=c("Jan","Jul","D"),
+                                               expand=c(0,0))+
+     labs(y=expression("Daily Reco (gC" *m^-2*")"),
+                   x="Month")+
+     facet_grid(.~Year)+
+     theme_bw(base_size=26)+
+     theme(strip.background = element_blank())
  p.reco.gpp <- grid.arrange(pgpp, preco)
 # ggsave(p.reco.gpp, file="~/Desktop/TweedieLab/AGU/2020/Reco_GPP_daily.png",width=19,height=15)
 
+ # Plot daily ET sum with 7 day running mean
+pET <- ggplot(daily_sum[Year>2010&Year<2020,], aes(DoY, ET_daily))+
+   geom_line(colour="royalblue2")+
+   geom_line(aes(DoY,ET_daily_roll),colour="navyblue")+
+   geom_hline(yintercept=0)+
+   scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
+                      labels=c("Jan","Jul","D"),
+                      expand=c(0,0))+
+   labs(title="Daily ET and weekly running mean from 2011-2019",
+        y=expression("Daily total ET (mm)"),
+        x="Month")+
+   facet_grid(.~Year)+
+   theme_bw(base_size=26)+
+   theme(strip.background = element_blank())
 
+# ggsave(pET, file="~/Desktop/TweedieLab/AGU/2020/ET_daily.png",width=19,height=15)
+
+ 
 # Seasonal C Flux profile {data-navmenu="C Flux Data"}
 # Seasonal pattern of daily cumulative NEE across years 2011-2019
 ## Column
