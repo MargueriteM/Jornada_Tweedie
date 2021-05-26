@@ -55,32 +55,19 @@ noon <- noon %>% # 'pipe command' which allows sequential exectution
 
 
 # save only filepath and timestamp2 for PhenoAnalyzer to read lists
-setwd("~/Desktop/OneDrive - University of Texas at El Paso/CZ_Drylands/Jornada_REU/noon_lists_test")
-
-test <- noon %>%
-tidyr::separate(filename,c("filename2","txt"),".")
-group_by(filename)%>%
-select(full.path, timestamp2)%>%
-group_walk(~write.table(.x, file= paste(.y$filename,
-                                          "PhenoAnalyzer.txt",sep="_"),
-                          sep =',', dec='.', row.names=FALSE, col.names=FALSE,quote=FALSE)) 
-
-
-write.table("2021_noon_cam1_PhenoAnalyzer.txt", sep=",",
-            row.names=FALSE, col.names=FALSE quote=FALSE)
-
 # save data as txt by filename using group_walk, use filename in the saved name
 # https://luisdva.github.io/rstats/export-iteratively/
 # https://community.rstudio.com/t/map-write-csv/33292/2
 # https://stackoverflow.com/questions/41233173/how-can-i-write-dplyr-groups-to-separate-files
 
+setwd("~/Desktop/OneDrive - University of Texas at El Paso/CZ_Drylands/Jornada_REU/noon_lists_test")
 
-ffp_clim %>%
-  group_by(dn_sn) %>%
-  select(Year,Month,mDay,Hour,Minutes,zm,DISPLACEMENT_HEIGHT,
-         ROUGHNESS_LENGTH,WS,MO_LENGTH,V_SIGMA,USTAR,WD) %>%
-  group_walk(~write.table(.x, file= paste("ffp_clim_online_",.y$dn_sn,
-                                          ".csv",sep=""),
-                          sep =',', dec='.', row.names=FALSE, na="-999", quote=FALSE))
+noon %>%
+tidyr::separate(filename,c("filename2",NA),".txt",fill="right",extra="drop")%>%
+group_by(filename2)%>%
+select(full.path, timestamp2)%>%
+group_walk(~write.table(.x, file= paste(.y$filename,
+                                          "PhenoAnalyzer.txt",sep="_"),
+                          sep =',', dec='.', row.names=FALSE, col.names=FALSE,quote=FALSE)) 
 
 
