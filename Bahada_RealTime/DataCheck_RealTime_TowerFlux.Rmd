@@ -34,6 +34,11 @@ flux[,date_time := parse_date_time(TIMESTAMP, c("%Y!-%m-%d %H:%M:%S",
 
 # create derivative date columns
 flux[,':=' (year = year(date_time), doy = yday(date_time), date = date(date_time))]
+
+# calculate CO2 ppm from CO2_mean (mg/m^3) 
+# https://www.teesing.com/en/page/library/tools/ppm-mg3-converter
+flux[,CO2_ppm := (CO2_mean/0.0409)/44.01]
+
 ```
 
 Column {.sidebar}
@@ -64,6 +69,7 @@ dateRangeInput("daterange", "Date range:",
 radioButtons("variable1", "Flux variables:",
              c("CO2 Flux WPL (mg/m2/sec)" = "Fc_wpl",
                "CO2 mean concentration (mg/m3)" = "CO2_mean",
+               "CO2 mean ppm" = "CO2_ppm",
                "Sensible Heat WPL (W/m2)" = "Hc",
                "Latent Heat WPL (W/m2)" = "LE_wpl",
                "H2O mean concentration (g/m3)" = "H2O_Avg"))
@@ -116,7 +122,8 @@ radioButtons("variable2", "Biomet variables:",
 
 radioButtons("variable3", "Instrument variables:",
              c("Battery (V)" = "batt_volt_Avg",
-               "AGC/signal strength (unitless)" = "agc_Avg"))
+               "AGC/signal strength (unitless)" = "agc_Avg",
+               "Datalogger Panel Temperature (C)" = "panel_temp_Avg"))
 
  
 ```
