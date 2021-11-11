@@ -111,7 +111,7 @@ radioButtons("variable2", "Biomet variables:",
                "Soil Heat Flux 1 (W/m2)" = "hfp01_1_Avg",
                "Soil Heat Flux 2 (W/m2)" = "hfp01_2_Avg",
                "Soil Heat Flux 3 (W/m2)" = "hfp01_3_Avg",
-                "Soil Heat Flux 4 (W/m2)" = "hfp01_4_Avg"))
+              "Soil Heat Flux 4 (W/m2)" = "hfp01_4_Avg"))
 
 # numericInput("range_met_max","Max range of Biomet graph",
     #       value = 40)
@@ -132,9 +132,10 @@ radioButtons("variable3", "Instrument variables:",
 Column
 -------------------------------------------------------------
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
+# flux plot
   renderPlot({
     c <- flux[date >= input$daterange[[1]] & date <= input$daterange[[2]],.SD,.SDcols=c("date","date_time",input$variable1)]
-  
+    
     setnames(c,input$variable1,"selected")
   # can filter for input range here or in ggplot below
   #  c <- c[selected>=input$range_flux_min & selected<=input$range_flux_max,]
@@ -146,6 +147,7 @@ Column
     labs(title = "Flux variables", y=input$variable1)+
  theme_bw()})
 
+# sonic plot
 renderPlot({
     c <- flux[date >= input$daterange[[1]] & date <= input$daterange[[2]],.SD,.SDcols=c("date","date_time",input$variable1_2)]
   
@@ -158,6 +160,7 @@ renderPlot({
     labs(title = "Sonic Anemomemter Orthogonal Wind Directions x, y, z", y=input$variable1_2)+
  theme_bw()})
 
+# biomet variable plot
 renderPlot({
     c <- flux[date >= input$daterange[[1]] & date <= input$daterange[[2]],.SD,.SDcols=c("date","date_time",input$variable2)]
   
@@ -170,6 +173,7 @@ renderPlot({
     labs(title = "Biomet variables", y=input$variable2)+
  theme_bw()})
 
+# diagnostics plot
 renderPlot({
     c <- flux[date >= input$daterange[[1]] & date <= input$daterange[[2]],.SD,.SDcols=c("date","date_time",input$variable3)]
   
