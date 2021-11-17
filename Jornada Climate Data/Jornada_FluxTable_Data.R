@@ -127,10 +127,10 @@ library(lattice)
 # Rl_up_meas_Avg	W/m^2 # not temperature corrected (can use for net calculations because temp term cancels)
 # par_Avg	umol/m/s
 # I think depths on HFP are switched (assuming that open/bush labels are correct, I think it's:)
-# hfp01_1_Avg	W/m^2 Soil heat flux (5cm/15cm) 15 open ... (channel 3H. Field label: 10O)
-# hfp01_2_Avg	W/m^2 Soil heat flux (5cm/15cm) 10 open ... (channel 6H. Field label: 15O)
-# hfp01_3_Avg	W/m^2 Soil heat flux (5cm/15cm) 15 bush ... (channel 10H. Field label: 15B)
-# hfp01_4_Avg	W/m^2 Soil heat flux (5cm/15cm) 10 bush ... (channel 8L (=16 SE). Field label: 10B)
+# hfp01_1_Avg	W/m^2 Soil heat flux (5cm/15cm) 15 open ... (channel 3H/L. Field label: 10O)
+# hfp01_2_Avg	W/m^2 Soil heat flux (5cm/15cm) 10 open ... (channel 6H/L. Field label: 15O)
+# hfp01_3_Avg	W/m^2 Soil heat flux (5cm/15cm) 15 bush ... (channel 10H/L. Field label: 15B)
+# hfp01_4_Avg	W/m^2 Soil heat flux (5cm/15cm) 10 bush ... (channel 8L (=16 SE). Field label: 10B) *single-ended
 # n_mux	samples
 # precip_Tot	mm
 # hor_wnd_spd_mean	m/s
