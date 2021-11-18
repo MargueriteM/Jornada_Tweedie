@@ -50,6 +50,7 @@ SN <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada
               header = TRUE, sep=",",
             na.strings=c(-9999,-888.88,"#NAME?"))
 
+# column names with units
 colnames2019 <- fread(file="/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/MetaData/JER_SensorNetwork_ColumnNames_2019.csv",
                       sep=",",
                       header=TRUE) 
@@ -132,12 +133,14 @@ SN_long <- merge(SN_long, colnames2019, by="variable")
 
 # calculate half-hour means using ceiling date which takes each time to the next half-hour,
 # ie: 15:00:01 goes to 15:30, etc. 
-SN_30min <- SN_long[sensor!="rain", list(mean.val = mean(value, na.rm=TRUE)),
+SN_30min <- SN_long[sensor!="rain", list(mean.val = mean(value, na.rm=TRUE),
+                                         unit=unique(unit)),
                          by=.(SN,veg,depth,sensor,ceiling_date(Date,"30 minutes"))][,date_time := ceiling_date][,ceiling_date:=NULL]
 
 # for precip calculate the sum. Ignore NA because the way the data is offloaded from the sensors creates lots of NAs when the timestamps
 # don't perfectly match across all the SN. The result is that NAs get introduced where they shouldn't be, and I lose rain events.
-SN_30min_rain <- SN_long[sensor=="rain", list(mean.val = sum(value, na.rm=TRUE)),
+SN_30min_rain <- SN_long[sensor=="rain", list(mean.val = sum(value, na.rm=TRUE),
+                                              unit=unique(unit)),
                               by=.(SN,veg,depth,sensor,ceiling_date(Date,"30 min"))][,date_time := ceiling_date][,ceiling_date:=NULL]
 
 
@@ -333,7 +336,7 @@ ggplot(SN_30min[sensor=="solar",],
 
 # put data back in wide format to save
 
-SN_save <- copy(SN_30min[,variableID := paste(SN,sensor,veg,depth, sep="_")])
+SN_save <- copy(SN_30min[,variableID := paste(SN,sensor,unit,veg,depth, sep="_")])
 
 SN_wide_save <- data.table:: dcast(SN_save[!is.na(date_time),
                                                .(date_time, variableID, mean.val)],
