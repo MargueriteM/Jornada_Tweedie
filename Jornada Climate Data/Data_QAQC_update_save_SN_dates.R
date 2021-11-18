@@ -44,7 +44,7 @@ library(lattice)
 # Get sensor network data from server, using compiled files
 setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/")
 
-year_file <- 2020
+year_file <- 2021
 
 SN <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/WSN_",year_file,".csv",sep=""),
               header = TRUE, sep=",",
@@ -186,12 +186,6 @@ ggplot(SN_30min[sensor=="rain",], aes(date_time, mean.val, colour=SN))+
   labs(title="Rain") +
   facet_grid(veg~., scales="free_y")
 
-# graph lws and rain
-ggplot(SN_30min[sensor=="rain" | sensor =="lws",], aes(date_time, mean.val, colour=SN))+
-     geom_point()+
-     geom_line()+
-     labs(title="Leaf wetness and Rain") +
-     facet_grid(sensor~veg, scales="free_y")
 
 # The maximum listed intensity in the specifications is 2 to 3 in./hr, which would give an accuracy of +0%, -5%.
 # 1inch/hour = max accuracy
@@ -199,11 +193,36 @@ ggplot(SN_30min[sensor=="rain" | sensor =="lws",], aes(date_time, mean.val, colo
 # https://s.campbellsci.com/documents/eu/manuals/te525.pdf
 SN_30min[sensor=="rain" & (mean.val<0 | mean.val>50), mean.val := NA]
 
+# on Nov 12th 2021 ~10:15 cleaned rain bucket under PRGl and move tipping scale. 
+# remove "rain" on this day
+SN_30min[sensor=="rain" & date(date_time) == as.Date("2021-11-12") & veg=="PRGL" & mean.val>0 , mean.val := NA]
+
+
+# graph lws and rain
+ggplot(SN_30min[sensor=="rain" | sensor =="lws",], aes(date_time, mean.val, colour=SN))+
+  geom_point()+
+  geom_line()+
+  labs(title="Leaf wetness and Rain") +
+  facet_grid(sensor~veg, scales="free_y")
+
 # moisture
 # remove periods when the sensors are bad. 
+# plot
+ggplot(SN_30min[sensor=="moisture",],
+       aes(date_time, mean.val, colour=factor(depth)))+
+  geom_line(aes(linetype=factor(depth)))+
+  labs(title="Soil Moisture") +
+  facet_grid(veg~., scales="free_y")
+
+# MUPO 10cm: 13 July 2021 there was a baseline shift! Remove after this.
+SN_30min[sensor=="moisture"&veg=="MUPO"&depth==10&date_time>as.Date("2021-07-13"), mean.val := NA]
 
 # MUPO 20cm: in October 2018 there was a baseline shift! Remove after this.
 SN_30min[sensor=="moisture"&veg=="MUPO"&depth==20, mean.val := NA]
+
+# MUPO 30cm: 11 July 2021 there was a baseline shift! Remove after this.
+SN_30min[sensor=="moisture"&veg=="MUPO"&depth==30&date_time>as.Date("2021-07-11"), mean.val := NA]
+
 
 # PRGL remove all after January 2019 (sensors got moved on ~19 June 2019)
 SN_30min[sensor=="moisture"&veg=="PRGL"&date_time>=as.Date("2019-01-01"),
@@ -222,8 +241,7 @@ SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&
 SN_30min[sensor=="moisture"&veg=="LATR"&depth==20&
            date_time >= as.POSIXct("2019-02-28 18:00:00", tz="UTC"), mean.val := NA]
 
-
-# by years
+# plot soil moisture
 ggplot(SN_30min[sensor=="moisture",],
        aes(date_time, mean.val, colour=factor(depth)))+
   geom_line(aes(linetype=factor(depth)))+
@@ -231,16 +249,10 @@ ggplot(SN_30min[sensor=="moisture",],
   facet_grid(veg~., scales="free_y")
 
 
-# by veg type
-ggplot(SN_30min[sensor=="moisture"&veg=="MUPO",], aes(doy, mean.val, colour=factor(depth)))+
-  geom_line(aes(linetype=factor(depth)))+
-  labs(title="Soil Moisture") +
-  facet_grid(year~., scales="free_y")
-
 # plot rain, lws, soil moisture together
 ggplot(SN_30min[sensor%in%c("moisture","rain","lws"),], aes(date_time, mean.val, colour=factor(depth)))+
   geom_point(size=0.1)+
-  labs(title="Soil Moisture") +
+  labs(title="Leaf Wetness, Soil Moisture, and Rain") +
   facet_grid(sensor+veg~., scales="free_y")+
   theme_bw()
 
@@ -250,13 +262,16 @@ SN_30min[sensor=="par" & mean.val<0, mean.val := NA]
 # downward-facing unlikely to be >1000
 SN_30min[sensor=="par" & veg!="UP" & mean.val>1000, mean.val := NA]
 
+# 2021 downward-facing sensors had sporadic outlying values >600. remove
+SN_30min[sensor=="par" & veg!="UP" & mean.val>500, mean.val := NA]
+# In May 2021 FLCE high value was not removed by >500 but if I use a lower cutoff then I'll remove January high values that could be real due to snow
+SN_30min[sensor=="par" & veg=="FLCE" & month==5 & mean.val>400, mean.val := NA]
 
+# graph
 ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
   geom_line()+
   labs(title="PAR") +
   facet_grid(veg~., scales="free_y")
-
-
 
 # pressure
 # can't be negative
@@ -301,8 +316,6 @@ ggplot(SN_30min[sensor=="moisture",], aes(date_time, mean.val, colour=factor(dep
   labs(title="Soil Moisture") +
   facet_grid(veg~., scales="free_y")
 
-
-
 # par
 ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
   geom_line()+
@@ -335,7 +348,6 @@ ggplot(SN_30min[sensor=="solar",],
   facet_grid(veg~., scales="free_y")
 
 # put data back in wide format to save
-
 SN_save <- copy(SN_30min[,variableID := paste(SN,sensor,unit,veg,depth, sep="_")])
 
 SN_wide_save <- data.table:: dcast(SN_save[!is.na(date_time),
@@ -353,7 +365,7 @@ setwd(qaqc.path)
 
 # FOR INCOMPLETE YEARS
 write.table(SN_wide_save,
-            paste("WSN_L2",year(startdate),sprintf("%02d",(month(startdate))),sprintf("%02d",(day(startdate))),
+            paste("WSN_L2_",year(startdate),sprintf("%02d",(month(startdate))),sprintf("%02d",(day(startdate))),
                   sprintf("%02d",(hour(startdate))),sprintf("%02d",(minute(startdate))),
                   sprintf("%02d",(second(startdate))),
                   "_",
