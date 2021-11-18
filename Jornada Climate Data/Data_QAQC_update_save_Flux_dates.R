@@ -138,7 +138,7 @@ library(lattice)
 # panel_temp_Avg	C
 # batt_volt_Avg	V
 
-year_file <- 2020
+year_file <- 2021
 
 # import most recent file
 flux.loggerinfo <-fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
@@ -173,13 +173,29 @@ flux_long[,':=' (year=year(date_time),month=month(date_time),doy=yday(date_time)
 
 # all hfp 
 ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg")&
-                   month%in%c("6") &date_time<as.Date("2020-06-16"),],
+                   date_time>as.Date("2021-05-28") &date_time<as.Date("2021-06-04"),],
        aes(date_time, value))+
   geom_line()+
   facet_grid(variable~.,scales="free_y")
 
-# in 2020 there's a low value in several plates on Jun 12 that looks weird in full year
-# but when zoomed in looks OK
+# in 2021 something is wrong end of May/Early Jun. All plates have vvalues offset low. 
+# was checking and messsing with wiring in data logger. 
+# Remove all HFP between > 2021-05-28 and < 2021-06-04
+flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg")&
+            date_time>as.Date("2021-05-28") &date_time<as.Date("2021-06-04"), value := NA]
+
+# all hfp have a low spike on 2021-08-27 around 18:00.
+# Remove 17:30 - 28th 00:00
+
+flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg")&
+            date_time>as.POSIXct("2021-08-27 17:00", tz="UTC")&
+            date_time<as.POSIXct("2021-08-28 00:00", tz="UTC"), value := NA]
+
+
+ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg"),],
+       aes(date_time, value))+
+  geom_line()+
+  facet_grid(variable~.,scales="free_y")
 
 # LWS 
 # lws_1 (shrub) and lws_2 (5m)
@@ -201,7 +217,7 @@ ggplot(flux_long[variable %in% c("lws_1_Avg", "lws_2_Avg"),],
        aes(date_time, value))+geom_line()+
   facet_grid(variable~.,scales="free_y")
 
-# 2020: remove lws_1
+# 2021: remove lws_1
 flux_long[variable %in% c("lws_1_Avg"), value := NA]
 
 
@@ -220,10 +236,15 @@ ggplot(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Av
        aes(date_time, value))+geom_line()+
   facet_grid(variable~.,scales="free_y")
 
+# 2021 Rl_upwell is bad from 27 Aug 2021 to 29 Oct 2021 19:30 due to broken upward looking Rl sensor	
+flux_long[variable%in% c("Rl_upwell_Avg") &
+              (date_time > as.POSIXct("2021-08-27 00:00",	 tz="UTC") &
+                 date_time < as.POSIXct("2021-10-29 19:30",	 tz="UTC")),
+            value := NA]	
 
 # plot all radiation variables
 ggplot(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
-           "Rn_nr_Avg", "lws_1_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg"),], 
+           "Rn_nr_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg"),], 
        aes(date_time,value))+
   geom_line()+
   facet_grid(variable~., scales="free_y")
