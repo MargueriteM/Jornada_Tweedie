@@ -164,10 +164,13 @@ rm(SN_wide)
 
 # Tower Met Data (get LWS 5m from here. It's also in FluxTable)
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Climate/Compiled")
-met_30min <- fread("TowerMet_L2_2010_20201227_30min.csv", sep=",", header=TRUE)
+met_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/Combined/dataL2_met_",year_file,".csv",sep=""),
+                   sep=",", header=TRUE)
 # format date and add column to deginate the data stream
-met_30min[, ':=' (date_time = ymd_hms(date_time),date_time_orig = ymd_hms(date_time_orig),
-                  datastream = "climate",location = "tower", TIMESTAMP_START = NULL, TIMESTAMP_END = NULL)]
+met_30min <- melt.data.table(met_wide,c("timestamp"))
+
+met_30min[, ':=' (date_time = ymd_hms(timestamp),
+                  datastream = "climate",location = "tower")][,timestamp:=NULL]
 setnames(met_30min, 'value', 'mean.val')
 
 met_30min[variable=="par", veg := "UP"]
