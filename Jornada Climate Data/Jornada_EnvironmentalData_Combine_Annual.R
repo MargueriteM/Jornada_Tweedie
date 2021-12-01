@@ -117,8 +117,8 @@ library(corrplot)
 #############
 # IMPORT DATA
 #############
-year_file <- 2020
-
+year_file <- 2021
+year_file <- "20210101000000_20211117100000"
 # Sensor network data:
 SN_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
@@ -293,6 +293,9 @@ precip[SN2==0 & (SN6!=0 | tower!=0), SN2 := NA]
 precip[SN6==0 & (SN2!=0 | tower!=0), SN6 := NA]
 precip[tower==0 & (SN2!=0 | SN6!=0), tower := NA]
 
+# in 2021 SN6 was not working, make all SN6 precip NA
+precip[, SN6 := NA]
+
 # now join the fixed precip data back to the env_30min
 precip <- melt(precip,measure.vars=c("tower","SN2","SN6"), variable.name="SN",value.name="mean.val")
 
@@ -300,7 +303,7 @@ precip <- melt(precip,measure.vars=c("tower","SN2","SN6"), variable.name="SN",va
 
 # get all the additional columns
 precip_extra <- copy(env_30min[variable=="precip.tot"&veg=="BARE"&!is.na(date_time),
-                               .(date_time,variable,datastream,location,veg,height,depth,
+                               .(date_time,variable,unit,datastream,location,veg,height,depth,
                                  SN,year,month,doy,
                                  coverage)])
 precip[SN=="tower",SN := NA]
@@ -340,7 +343,7 @@ ggplot(env_30min[variable == "par"& veg %in% c("UP"),], aes(date_time, mean.val,
   geom_line()+
   facet_grid(paste(variable,location,sep="_")~., scales="free_y")
 
-# look at PAR over Veg from tower and SN
+# look at downward PAR over Veg from SN
 ggplot(env_30min[variable == "par"& veg %in% c("LATR","PRGL","DAPU","MUPO","BARE"),],
        aes(date_time, mean.val,colour=SN))+
   geom_line()+
@@ -348,7 +351,7 @@ ggplot(env_30min[variable == "par"& veg %in% c("LATR","PRGL","DAPU","MUPO","BARE
 
 
 # look at precip from tower and SN
-ggplot(env_30min[variable == "precip.tot"& veg=="BARE",], aes(date_time, mean.val,colour=datastream))+
+ggplot(env_30min[variable == "precip.tot"& veg=="BARE",], aes(date_time, mean.val,colour=SN))+
   geom_line()+
   facet_grid(paste(variable,location,veg,sep="_")~., scales="free_y")
 
@@ -361,19 +364,6 @@ ggplot(env_30min[variable == "hfp",], aes(date_time, mean.val,colour=veg))+
 ggplot(env_30min[variable == "atm_press",], aes(date_time, mean.val,colour=location))+
       geom_line()+
       facet_grid(paste(variable,location,sep="_")~., scales="free_y")
-
-
-
-
-# look at PAR from tower and SN
-# change x variable to compare date_time or date_time_orig!!!
-ggplot(env_30min[(yday(date_time)>=325 & yday(date_time)<=332) &
-                   ((variable %in% c("par") & veg=="UP")),],
-       aes(hour(date_time), mean.val, colour=paste(variable,location)))+
-  geom_line()+
-  #geom_vline(xintercept=c(6.5,17.0))+
-  facet_grid(year~doy)
-
 
 
 # FOR BIOMET 
@@ -396,10 +386,10 @@ biomet_mean_precip <- env_30min[variable %in% c("precip.tot") & veg=="BARE",
                              list(P_rain_1_1_1 = mean(mean.val, na.rm=TRUE)),
                            by="date_time"]
 
-ggplot(SN_30min[variable %in% c("precip.tot") & veg=="BARE" &year(date_time)==2020,],aes(date_time,mean.val,colour=veg))+geom_point()
-ggplot(env_30min[variable %in% c("precip.tot") & veg=="BARE" &year(date_time)==2020,],aes(date_time,mean.val,colour=datastream))+geom_point()
+ggplot(SN_30min[variable %in% c("precip.tot") & veg=="BARE" &year(date_time)==2021,],aes(date_time,mean.val,colour=veg))+geom_point()
+ggplot(env_30min[variable %in% c("precip.tot") & veg=="BARE" &year(date_time)==2021,],aes(date_time,mean.val,colour=datastream))+geom_point()
 
-ggplot(biomet_mean_precip[year(date_time)==2020,],aes(date_time,P_rain_1_1_1))+geom_point()
+ggplot(biomet_mean_precip[year(date_time)==2021,],aes(date_time,P_rain_1_1_1))+geom_point()
 
 # soilmoisture & soiltemp: average from tower and SN regardless of depth or veg
 # soil moisture = soil water content
