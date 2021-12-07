@@ -30,7 +30,7 @@
 # SDI 4 SN 46416 Depth 17.5 cm Caliche above
 # SDI 5 SN 46414 Depth 11.5 cm Caliche above
 
-# Data logging starts 2021-05-04 12:44:00 Temperature blipped to 0 in all probes on 2021-05-05
+# Data logging starts 2021-05-04 12:44:00 
 
 # load libraries
 library(tidyverse)
