@@ -39,7 +39,7 @@ library(lubridate)
 
 # Sensor network data:
 setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/SensorNetwork/Combined")
-SN_30min <- fread("SensorNetwork_L1_2010_2019_30min.csv", sep=",", header=TRUE)
+SN_30min <- fread("SensorNetwork_L2_2010_20200324_30min.csv", sep=",", header=TRUE)
 # format date and add column to deginate the data stream
 SN_30min[, ':=' (date_time = ymd_hms(date_time), datastream = "SN", location = "SN")]
 setnames(SN_30min, 'sensor', 'variable')
@@ -70,6 +70,13 @@ colnames(SN_moisture)
 # [13] "soilmoisture_SN5_LATR_-5"  "soilmoisture_SN7_MUPO_-10" "soilmoisture_SN7_MUPO_-20" "soilmoisture_SN7_MUPO_-30"
 # [17] "soilmoisture_SN7_MUPO_-5" 
 
+# Compare vegetated and bare ground sensor profiles
+# Timeseries of vegetated and BARE
+ggplot(subset(SN_30min,variable%in% c("precip.tot","soilmoisture")&year==2016),
+       aes(date_time, mean.val,colour=veg))+
+  geom_line()+
+  facet_grid(height~., scales="free_y")
+
 # main question for moving sensors: 
 # is PRGL or MUPO more similar to LATR?
 # assume BARE is quite different and don't need the comparison. 
@@ -90,6 +97,31 @@ ggplot(SN_moisture, aes(`soilmoisture_SN3_PRGL_-10`, `soilmoisture_SN5_LATR_-10`
 
 
 # LATR vs MUPO 5 and 10cm 
+ggplot(SN_moisture, aes(`soilmoisture_SN7_MUPO_-5`, `soilmoisture_SN5_LATR_-5`, colour=factor(year(date_time))))+
+  geom_point()+
+  geom_smooth(method="lm")+
+  facet_wrap(month(date_time)~.)
+
+ggplot(SN_moisture, aes(`soilmoisture_SN7_MUPO_-10`, `soilmoisture_SN5_LATR_-10`, colour=factor(year(date_time))))+
+  geom_point()+
+  geom_smooth(method="lm")+
+  facet_wrap(month(date_time)~.)
+
+
+# PRGL vs BARE 5 and 10cm 
+ggplot(SN_moisture, aes(`soilmoisture_SN3_PRGL_-5`, `soilmoisture_SN4_BARE_-5`, colour=factor(year(date_time))))+
+  geom_point()+
+  geom_smooth(method="lm")+
+  facet_wrap(month(date_time)~.)
+
+ggplot(SN_moisture, aes(`soilmoisture_SN3_PRGL_-10`, `soilmoisture_SN4_BARE_-10`, colour=factor(year(date_time))))+
+  geom_point()+
+  geom_smooth(method="lm")+
+  facet_wrap(month(date_time)~.)
+
+
+
+# MUPO vs BARE 5 and 10cm 
 ggplot(SN_moisture, aes(`soilmoisture_SN7_MUPO_-5`, `soilmoisture_SN5_LATR_-5`, colour=factor(year(date_time))))+
   geom_point()+
   geom_smooth(method="lm")+

@@ -168,10 +168,9 @@ precip_monthly <- flux_filter[!is.na(P_RAIN_1_1_1),list(precip.tot = sum(P_RAIN_
 precip_monthly[,year_lab := ifelse(month==12, Year, NA)]
 
 # daily precipitation
-precip_daily <- flux_filter[!is.na(P_RAIN_1_1_1),list(precip.tot = sum(P_RAIN_1_1_1)),
-                              by="date_time_end,Year"][Year>2010,precip.cum:=cumsum(precip.tot),by="Year"]
+precip_daily <- flux_filter[,date:=as.Date(date_time_end)][!is.na(P_RAIN_1_1_1),list(precip.tot = sum(P_RAIN_1_1_1)),
+                              by="date,Year"][Year>2010,precip.cum:=cumsum(precip.tot),by="Year"]
 
-precip_daily[,year_lab := ifelse(month==12, Year, NA)]
 
 
 ### Monthly Rainfall
@@ -205,8 +204,8 @@ dev.off()
 
 # daily rainfall and cumulative rain
 ggplot(precip_daily)+
-  geom_point(aes(x=yday(date_time_end),y=precip.cum/5),colour="blue",size=0.5)+
-  geom_col(aes(x=yday(date_time_end), y=precip.tot), fill="black",colour="black")+
+  geom_point(aes(x=yday(date),y=precip.cum/5),colour="blue",size=0.5)+
+  geom_col(aes(x=yday(date), y=precip.tot), fill="black",colour="black")+
   facet_grid(.~Year)+
   theme_bw()+
   labs(y="Total daily Rain (mm)",x="Day of Year")+
@@ -493,5 +492,25 @@ ggplot(daily_sum, aes(DoY,Tair_mean,colour=factor(Year)))+geom_line()
 #write.csv(daily_sum[,.(date,Year,DoY,Tair_mean,Tair_max,Tair_min)],
  #         "~/Desktop/OneDrive - University of Texas at El Paso/SEL_Phenology/MetData_Temp_Precip/JER_daily_Temp_2010_2019.csv",
  #         row.names=FALSE)
+
+# merge daily temperature, precip, NEE, GPP, Reco for Will to compare with Phenocam
+# precip_daily
+# daily_cum_sum
+
+# merge by date
+daily_all <- merge(daily_cum_sum, precip_daily, by=c("Year","date"))
+
+ggplot(daily_all)+
+  geom_line(aes(date,NEE_daily))+
+  geom_line(aes(date,precip.tot), colour="blue")
+
+# Save daily flux, temperature, precip data 2010-2019 for Will
+# write.csv(daily_all,
+#          "~/Desktop/OneDrive - University of Texas at El Paso/CZ_Drylands/Jornada_REU/2021/JER_daily_Temp_Precip_Cflux_2010_2019.csv",
+#          row.names=FALSE)
+# 
+
+  
+
 
 

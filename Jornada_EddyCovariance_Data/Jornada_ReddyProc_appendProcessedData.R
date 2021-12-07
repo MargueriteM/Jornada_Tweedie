@@ -1,6 +1,7 @@
 ############################################
 #  Process filtered EC data in ReddyProc   #
 #   for appending regular processing steps #
+# (need 3 month data minium for ReddyProc!)#
 #           written by: M. Mauritz         #
 #             November 2020                #
 ############################################
@@ -17,6 +18,7 @@ library(zoo)
 library(bit64)
 
 # import filtered flux data file from Eddy Pro as data table
+# MINIMUM 3 MONTHS OF DATA
 # filtered in: Jornada_EddyPro_Output_Fluxnext_appendProcessedData.R
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
  load("JER_flux_20200131_EddyPro_Output_filtered_SD_TIMEcorr_20201114.Rdata")
@@ -113,5 +115,5 @@ edata[is.na(edata)]=-9999
 
 # export data for online tool of ReddyProc,
 # with timesstamp corrected
-# write.table(edata, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200427/JER_ReddyProc_Input_20200131_20201114.txt", sep=" ", dec=".",row.names=FALSE)
+# write.table(edata, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20201114/JER_ReddyProc_Input_20200131_20201114.txt", sep=" ", dec=".",row.names=FALSE)
 

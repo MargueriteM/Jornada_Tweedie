@@ -79,5 +79,10 @@ params.long %>%
 # Make a figure like this for each species by changing Spp==
 # keep the ETRmax.start<1000 filter! 
 
+params.long <- params.long %>% 
+  mutatate(year=year(Date),
+           month=month(Date),
+           doy=yday(Date))
+
 
  

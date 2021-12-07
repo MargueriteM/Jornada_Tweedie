@@ -1,5 +1,7 @@
 # Graph CS650 Data from US-Jo1 Bajada Site
 # Initial glance as CS650 data 
+# Update code at: https://github.com/MargueriteM/Jornada_Tweedie/tree/master/Jornada%20Climate%20Data 
+# Marguerite Mauritz, June 24 2021
 
 # Notes on CS650 12cm Installation at US-Jo1 for Dryland CZ Project
 # 27 Mar 2021
@@ -20,14 +22,18 @@
 
 # load libraries
 library(tidyverse)
+library(lubridate)
+library(ggplot2)
 
-
-# set working directory
+# set working directory to One Drive
 setwd("~/Desktop/OneDrive - University of Texas at El Paso/CZ_Drylands/USJo1")
 
+# set working directory to server
+setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_CS650/2021/Raw_Data/ASCII")
+
 # load headers of file and data
-cs650names <- colnames(read.table("dataL1_SoilCS650_2021.csv", sep=",", skip=1,heade=TRUE))
-cs650wide <- read.table("dataL1_SoilCS650_2021.csv", sep=",", skip=4, col.names = cs650names, na.strings="-9999")
+cs650names <- colnames(read.table("dataL1_Soil_2021.csv", sep=",", skip=1,heade=TRUE))
+cs650wide <- read.table("dataL1_Soil_2021.csv", sep=",", skip=4, col.names = cs650names, na.strings="-9999")
 
 # convert to long format
 cs650 <- cs650wide %>%
@@ -45,18 +51,27 @@ cs650 <- cs650 %>%
 
 
 # graph different metrics: "EC"  "P"   "PA"  "T"   "VR"  "VWC"
-# graph VWC
+# graph all metrics
 cs650 %>%
+  filter( !is.na(value) & value>0) %>%
+  ggplot(., aes(datetime, value, colour=factor(probe_depth)))+
+  geom_line()+
+  facet_grid(metric~., scales="free_y")
+
+# graph VWC
+sm <- cs650 %>%
   filter(metric %in% c("VWC") & !is.na(value)) %>%
   ggplot(., aes(datetime, value, colour=factor(probe_depth)))+
   geom_line()+
-  labs(title = "VWC")
+  labs(y = "VWC")+
+  theme(legend.position="bottom")
 
 
 # graph T
 cs650 %>%
   filter(metric %in% c("T") & !is.na(value)) %>%
-  ggplot(., aes(datetime, value, colour=probe))+
+  ggplot(., aes(datetime, value, colour=factor(probe_depth)))+
   geom_line()+
   labs(title = "Soil Temperature")
+
 

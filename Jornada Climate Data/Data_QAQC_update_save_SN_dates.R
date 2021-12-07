@@ -44,7 +44,7 @@ library(lattice)
 # Get sensor network data from server, using compiled files
 setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/")
 
-year_file <- 2021
+year_file <- 2020
 
 SN <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/WSN_",year_file,".csv",sep=""),
               header = TRUE, sep=",",

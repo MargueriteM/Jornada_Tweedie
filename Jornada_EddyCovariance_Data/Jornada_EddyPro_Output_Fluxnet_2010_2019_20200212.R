@@ -80,7 +80,7 @@ flux2018 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_
 flux2019 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2019/eddypro_JER_2019_fluxnet_2020-02-11T163749_adv.csv",
                   sep=",", header=TRUE, na.strings=c("-9999"))
 
-flux2020 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2020/eddypro_JER_2020_Jan_fluxnet_2020-11-11T171034_adv.csv",
+flux2020 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2020/eddypro_JER_2020_Jan_fluxnet_2020-11-13T180934_adv.csv",
         sep=",", header=TRUE, na.strings=c("-9999"))
 
 # combine all individual years of flux runs
