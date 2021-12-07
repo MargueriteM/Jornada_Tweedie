@@ -1,7 +1,17 @@
-# Graph CS650 Data from US-Jo1 Bajada Site
-# Initial glance as CS650 data 
-# Update code at: https://github.com/MargueriteM/Jornada_Tweedie/tree/master/Jornada%20Climate%20Data 
-# Marguerite Mauritz, June 24 2021
+###############################################
+# Get the most recent data to QA/QC and save  #
+#          Soil CS650 probe Data              #
+#      written by: M. Mauritz                 #
+#            date: 7 December 2019            #
+###############################################
+
+# This code will:
+# 1. allow data to be checked
+# 2. run standard range filters determined from 2010-2019 and input from Ameriflux
+# 3. allow year-specific data removal based on visual checks
+# 4. save data with date/time in file name of SoilSensor_CS650/year/QAQC folder on server
+# 5. save a full year of data to SoilSensor_CS650/Combined with only year in filename
+# 6. save a csv file of this code as Data_QAQC_Code_yyyy.csv (or with date/time) to SoilSensor_CS650/year/QAQC folder to record data filter steps
 
 # Notes on CS650 12cm Installation at US-Jo1 for Dryland CZ Project
 # 27 Mar 2021
@@ -19,6 +29,8 @@
 # SDI 3 SN 46374 Depth 25.5 cm Caliche above
 # SDI 4 SN 46416 Depth 17.5 cm Caliche above
 # SDI 5 SN 46414 Depth 11.5 cm Caliche above
+
+# Data logging starts 2021-05-04 12:44:00 Temperature blipped to 0 in all probes on 2021-05-05
 
 # load libraries
 library(tidyverse)
