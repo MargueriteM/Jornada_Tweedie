@@ -154,14 +154,14 @@ plot.windrose <- function(data,
 ###########
 
 # create working directory paths: 
-wd_climate <- "/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/2020/Raw_Data/ASCII"
-wd_flux <- "/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/2020/Raw_Data/ASCII"
-wd_ts <- '/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2020/Raw_Data/ASCII'
-wd_ectm <- "/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_ECTM/2020/Raw_Data/ASCII"
+wd_climate <- "/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/2021/Raw_Data/ASCII"
+wd_flux <- "/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/2021/Raw_Data/ASCII"
+wd_ts <- '/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2021/Raw_Data/ASCII'
+wd_ectm <- "/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_ECTM/2021/Raw_Data/ASCII"
 
 # CLIMATE DATA
 # import most recent file
-climate <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/2020/Raw_Data/ASCII/dataL1_met_2020.csv",
+climate <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/2021/Raw_Data/ASCII/dataL1_met_2021.csv",
                  header = FALSE, sep=",", skip = 4,fill=TRUE,
                  na.strings=c(-9999,"#NAME?"),
                  col.names=c("timestamp","record","airtemp","rh","e",
