@@ -42,7 +42,7 @@ library(plotly)
 # CO2_raw: mmol/m3
 # H2O_raw: mmol/m3
 
-year_file <- 2020
+year_file <- 2021
 
 # import most recent file
 climate.loggerinfo <-fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/",year_file,"/Raw_Data/ASCII/dataL1_met_",year_file,".csv",sep=""),
@@ -91,7 +91,7 @@ climate_30min <- merge(climate_30min, precip_tot_30min, by="date_time")
 
 
 # select the date on and after which you want to see the data
-date_select <- as.POSIXct("2020-01-01 00:00:00", ("%Y-%m-%d %H:%M:%S"), tz="UTC")
+date_select <- as.POSIXct("2021-01-01 00:00:00", ("%Y-%m-%d %H:%M:%S"), tz="UTC")
 
 climate_30min <- climate_30min[date_time >= date_select,]
 
@@ -114,10 +114,16 @@ grid.arrange(fig.precip, fig.lws, nrow=2)
 ggplot(climate_30min, aes(date_time, par))+geom_line()
 ggplot(climate_30min, aes(date_time, albedo))+geom_line()
 
+# selected net Rs and Rl
 ggplot(climate_30min[date_time>as.Date("2021-10-29") & date_time<as.Date("2021-10-30"),])+
   geom_line(aes(date_time, net_rs, colour="net_rs"))+
   geom_line(aes(date_time, net_ri, colour="net_rl"))
-  
+
+# all net Rs and Rl  
+ggplot(climate_30min)+
+  geom_line(aes(date_time, net_rs, colour="net_rs"))+
+  geom_line(aes(date_time, net_ri, colour="net_rl"))
+
 
 ggplot(climate_30min)+
   geom_line(aes(date_time, up_tot, colour="up facing"))+
@@ -179,6 +185,16 @@ met30_long[variable=="dn_tot" & (value< (-900) | value > 350), value := NA]
 ggplot(met30_long[variable%in% c("up_tot", "dn_tot")], aes(date_time, value, colour=variable))+geom_point()+
   labs(title="Total up and down")
 
+# 2021 Net Rl and up_tot is bad from 27 Aug 2021 to 29 Oct 2021 19:30 due to broken upward looking Rl sensor						
+met30_long[variable%in% c("net_ri","up_tot") &
+             (date_time > as.POSIXct("2021-08-27 00:00", tz="UTC") &
+                date_time < as.POSIXct("2021-10-29 19:30", tz="UTC")),
+           value := NA]
+
+ggplot(met30_long[variable%in% c("net_rs", "net_ri")], aes(date_time, value, colour=variable))+geom_point()+
+  labs(title="net_rs and net_rl")
+
+
 # if up or dn is NA then albedo and net are also NA
 dn_tot_na <- copy(met30_long[variable == "dn_tot" & is.na(value), (date_time)])
 up_tot_na <- copy(met30_long[variable == "up_tot" & is.na(value), (date_time)])
@@ -211,26 +227,38 @@ setnames(climate.save,c("date_time","airtemp","rh","e",
 qaqc.path<- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/",year_file,"/QAQC/", sep="")
 setwd(qaqc.path)
 
+############ write with specific date and time ############
+# write.table(climate.save,
+#   paste("dataL2_met_",year(startdate),sprintf("%02d",(month(startdate))),sprintf("%02d",(day(startdate))),
+#                       sprintf("%02d",(hour(startdate))),sprintf("%02d",(minute(startdate))),
+#                       sprintf("%02d",(second(startdate))),
+#         "_",
+#         year(enddate),sprintf("%02d",(month(enddate))),sprintf("%02d",(day(enddate))),
+#         sprintf("%02d",(hour(enddate))),sprintf("%02d",(minute(enddate))),
+#          sprintf("%02d",(second(enddate))), ".csv",sep=""),
+#   sep=",", dec=".", row.names=FALSE)
+############################################################
 
+# Save to Qa/QC and Combined folder with only year name
+# QAQC folder
 write.table(climate.save,
-  paste("dataL2_met_",year(startdate),sprintf("%02d",(month(startdate))),sprintf("%02d",(day(startdate))),
-                      sprintf("%02d",(hour(startdate))),sprintf("%02d",(minute(startdate))),
-                      sprintf("%02d",(second(startdate))),
-        "_",
-        year(enddate),sprintf("%02d",(month(enddate))),sprintf("%02d",(day(enddate))),
-        sprintf("%02d",(hour(enddate))),sprintf("%02d",(minute(enddate))),
-         sprintf("%02d",(second(enddate))), ".csv",sep=""),
-  sep=",", dec=".", row.names=FALSE)
+            paste("dataL2_met_",year_file, ".csv",sep=""),
+            sep=",", dec=".", row.names=FALSE)
 
+# save a text file that says date that code was run (system time), start and end date of data
+run.info <- data.frame(info=c("Data_start","Data_end","Date_processed"),
+                       date_time=c(startdate,enddate,ymd_hms(Sys.time(),tz="UTC")))
 
-# IF year is complete, also save to Combined folder with only year name
-difftime(startdate,enddate)
+write.table(run.info, "dataL2_met_DateRange.csv",
+            sep=",", dec=".", row.names=FALSE)
 
+# combined folder
 setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/Combined")
 
 write.table(climate.save,
             paste("dataL2_met_",year_file, ".csv",sep=""),
             sep=",", dec=".", row.names=FALSE)
+
 
 # save the R script that went along with creating the file to have a record of QA/QC
 # use rstudioapi to get the path of the current script and then copy it to the 
@@ -254,5 +282,5 @@ file.copy(from = rstudioapi::getActiveDocumentContext()$path,
              to = file.path(qaqc.path,
             #to = file.path("~/Desktop",                
                            paste("Data_QAQC_Code_",year_file, ".csv",sep="")))
-
+# If response: [TRUE] the code save worked. If [FALSE], the file already exists. Remove and run again. 
 
