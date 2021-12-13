@@ -21,6 +21,9 @@ library(gridExtra)
 library(lubridate)
 library(plotly)
 
+# windrose function
+source("~/Desktop/R/R_programs/Functions/plot.windrose.R")
+
 # CLIMATE DATA
 
 # Units of data:
@@ -102,6 +105,8 @@ ggplot(climate_30min, aes(date_time, e))+geom_line()
 ggplot(climate_30min, aes(date_time, atm_press))+geom_line()
 ggplot(climate_30min, aes(date_time, wnd_spd))+geom_line()
 ggplot(climate_30min, aes(date_time, wnd_dir))+geom_line()
+plot.windrose(climate_30min,climate_30min$wnd_spd, climate_30min$wnd_dir)
+
 fig.precip <- ggplot(climate_30min, aes(date_time, precip_tot))+geom_line()
 fig.precip+scale_x_datetime(date_breaks="1 month", date_labels="%b")+labs(title="Bajada US-Jo1 Rainfall, 2021", y="Total 30 min Rainfall (mm)")
 fig.lws <- ggplot(climate_30min, aes(date_time, lws_5m))+geom_line()
