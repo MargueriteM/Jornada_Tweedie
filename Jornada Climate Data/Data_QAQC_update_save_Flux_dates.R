@@ -172,8 +172,8 @@ flux_long[,':=' (year=year(date_time),month=month(date_time),doy=yday(date_time)
 # hfp01_4_Avg	W/m^2 Soil heat flux (5cm/15cm) 10 bush ... (channel 8L (=16 SE). Field label: 10B)
 
 # all hfp 
-ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg")&
-                   date_time>as.Date("2021-05-28") &date_time<as.Date("2021-06-04"),],
+ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg"),],#&
+                  # date_time>as.Date("2021-05-28") &date_time<as.Date("2021-06-04"),],
        aes(date_time, value))+
   geom_line()+
   facet_grid(variable~.,scales="free_y")
@@ -236,8 +236,8 @@ ggplot(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Av
        aes(date_time, value))+geom_line()+
   facet_grid(variable~.,scales="free_y")
 
-# 2021 Rl_upwell is bad from 27 Aug 2021 to 29 Oct 2021 19:30 due to broken upward looking Rl sensor	
-flux_long[variable%in% c("Rl_upwell_Avg") &
+# 2021 Rl_upwell and Rn is bad from 27 Aug 2021 to 29 Oct 2021 19:30 due to broken upward looking Rl sensor	
+flux_long[variable%in% c("Rl_upwell_Avg","Rn_nr_Avg") &
               (date_time > as.POSIXct("2021-08-27 00:00",	 tz="UTC") &
                  date_time < as.POSIXct("2021-10-29 19:30",	 tz="UTC")),
             value := NA]	
@@ -258,8 +258,6 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining
 
 
 # # AND save in wide format
-# save by year
-
 flux_wide_save <- data.table:: dcast(flux_long[!is.na(date_time)&variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg",
                                                                                  "Rl_upwell_Avg","Rl_downwell_Avg",
                                                   "Rn_nr_Avg", "lws_1_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg",
@@ -270,31 +268,42 @@ flux_wide_save <- data.table:: dcast(flux_long[!is.na(date_time)&variable %in% c
 
 # quick graph just to make sure nothing silly happened
 ggplot(flux_wide_save, aes(x=date_time))+
-  geom_line(aes(y=Rl_upwell_Avg)) # with NA
+  geom_line(aes(y=Rn_nr_Avg)) # with NA
 
 # save to QAQC folder on data archive
 startdate <- (min(flux_wide_save$date_time))
 enddate <- (max(flux_wide_save$date_time))
 
-# # save in QAQC folder with start and end date in the file name
+# # Save to Qa/QC and Combined folder with only year name
 qaqc.path<- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/",year_file,"/QAQC/", sep="")
 setwd(qaqc.path)
 
-
-write.table(flux_wide_save,
-            paste("dataL2_flux_",year(startdate),sprintf("%02d",(month(startdate))),sprintf("%02d",(day(startdate))),
-                  sprintf("%02d",(hour(startdate))),sprintf("%02d",(minute(startdate))),
-                  sprintf("%02d",(second(startdate))),
-                  "_",
-                  year(enddate),sprintf("%02d",(month(enddate))),sprintf("%02d",(day(enddate))),
-                  sprintf("%02d",(hour(enddate))),sprintf("%02d",(minute(enddate))),
-                  sprintf("%02d",(second(enddate))), ".csv",sep=""),
-            sep=",", dec=".", row.names=FALSE)
-
+###################### with start and end date in the file name ##################
+# write.table(flux_wide_save,
+#             paste("dataL2_flux_",year(startdate),sprintf("%02d",(month(startdate))),sprintf("%02d",(day(startdate))),
+#                   sprintf("%02d",(hour(startdate))),sprintf("%02d",(minute(startdate))),
+#                   sprintf("%02d",(second(startdate))),
+#                   "_",
+#                   year(enddate),sprintf("%02d",(month(enddate))),sprintf("%02d",(day(enddate))),
+#                   sprintf("%02d",(hour(enddate))),sprintf("%02d",(minute(enddate))),
+#                   sprintf("%02d",(second(enddate))), ".csv",sep=""),
+#             sep=",", dec=".", row.names=FALSE)
+##########################################################################################
 
 # IF year is complete, also save to Combined folder with only year name
-difftime(startdate,enddate)
+# difftime(startdate,enddate)
 
+write.table(flux_wide_save,
+            paste("dataL2_flux_",year_file, ".csv",sep=""),
+            sep=",", dec=".", row.names=FALSE)
+# save a text file that says date that code was run (system time), start and end date of data
+run.info <- data.frame(info=c("Data_start","Data_end","Date_processed"),
+                       date_time=c(startdate,enddate,ymd_hms(Sys.time(),tz="UTC")))
+
+write.table(run.info, "dataL2_flux_DateRange.csv",
+            sep=",", dec=".", row.names=FALSE)
+
+# save to combined folder
 setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/Combined")
 
 write.table(flux_wide_save,
@@ -324,6 +333,7 @@ file.copy(from = rstudioapi::getActiveDocumentContext()$path,
                          #to = file.path("~/Desktop",                
                          paste("Data_QAQC_Code_",year_file, ".csv",sep="")))
 
+# If response: [TRUE] the code save worked. If [FALSE], the file already exists. Remove and run again. 
 
 
 
