@@ -44,7 +44,7 @@ library(lattice)
 # Get sensor network data from server, using compiled files
 setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/")
 
-year_file <- 2020
+year_file <- 2021
 
 SN <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/WSN_",year_file,".csv",sep=""),
               header = TRUE, sep=",",
@@ -241,6 +241,13 @@ SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&
 SN_30min[sensor=="moisture"&veg=="LATR"&depth==20&
            date_time >= as.POSIXct("2019-02-28 18:00:00", tz="UTC"), mean.val := NA]
 
+# BARE 5cm: drifts after July 2021 rain event then looks Ok again. Remove between dates
+# 1 July and 15 October
+SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
+           date_time >= as.Date("2021-07-01") & 
+           date_time <= as.Date("2021-10-15"), mean.val := NA]
+
+
 # plot soil moisture
 ggplot(SN_30min[sensor=="moisture",],
        aes(date_time, mean.val, colour=factor(depth)))+
@@ -363,26 +370,29 @@ enddate <- (max(SN_wide_save$date_time))
 qaqc.path<- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/QAQC/", sep="")
 setwd(qaqc.path)
 
-# FOR INCOMPLETE YEARS
-write.table(SN_wide_save,
-            paste("WSN_L2_",year(startdate),sprintf("%02d",(month(startdate))),sprintf("%02d",(day(startdate))),
-                  sprintf("%02d",(hour(startdate))),sprintf("%02d",(minute(startdate))),
-                  sprintf("%02d",(second(startdate))),
-                  "_",
-                  year(enddate),sprintf("%02d",(month(enddate))),sprintf("%02d",(day(enddate))),
-                  sprintf("%02d",(hour(enddate))),sprintf("%02d",(minute(enddate))),
-                  sprintf("%02d",(second(enddate))), ".csv",sep=""),
-            sep=",", dec=".", row.names=FALSE)
+# # FOR INCOMPLETE YEARS
+# write.table(SN_wide_save,
+#             paste("WSN_L2_",year(startdate),sprintf("%02d",(month(startdate))),sprintf("%02d",(day(startdate))),
+#                   sprintf("%02d",(hour(startdate))),sprintf("%02d",(minute(startdate))),
+#                   sprintf("%02d",(second(startdate))),
+#                   "_",
+#                   year(enddate),sprintf("%02d",(month(enddate))),sprintf("%02d",(day(enddate))),
+#                   sprintf("%02d",(hour(enddate))),sprintf("%02d",(minute(enddate))),
+#                   sprintf("%02d",(second(enddate))), ".csv",sep=""),
+#             sep=",", dec=".", row.names=FALSE)
 
 
-# IF year is complete, save with only year name
-difftime(startdate,enddate)
-
-
+# save data with year in name to QAQC together with text file of date range
 write.table(SN_wide_save,
             paste("WSN_L2_",year_file, ".csv",sep=""),
             sep=",", dec=".", row.names=FALSE)
 
+# save a text file that says date that code was run (system time), start and end date of data
+run.info <- data.frame(info=c("Data_start","Data_end","Date_processed"),
+                       date_time=c(startdate,enddate,ymd_hms(Sys.time(),tz="UTC")))
+
+write.table(run.info, "WSN_L2__DateRange.csv",
+            sep=",", dec=".", row.names=FALSE)
 
 
 # save the R script that went along with creating the file to have a record of QA/QC
@@ -409,6 +419,7 @@ file.copy(from = rstudioapi::getActiveDocumentContext()$path,
                          #to = file.path("~/Desktop",                
                          paste("Data_QAQC_Code_",year_file, ".csv",sep="")))
 
+# If response: [TRUE] the code save worked. If [FALSE], the file already exists. Remove and run again. 
 
 
  
