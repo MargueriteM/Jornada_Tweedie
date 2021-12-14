@@ -290,7 +290,7 @@ setwd(qaqc.path)
 #             sep=",", dec=".", row.names=FALSE)
 ##########################################################################################
 
-# IF year is complete, also save to Combined folder with only year name
+# Save to QAQC folder with only year name
 # difftime(startdate,enddate)
 
 write.table(flux_wide_save,

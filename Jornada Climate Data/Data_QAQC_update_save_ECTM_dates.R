@@ -151,20 +151,33 @@ enddate <- (max(ectm_wide_save$date_time))
 qaqc.path<- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_ECTM/",year_file,"/QAQC/", sep="")
 setwd(qaqc.path)
 
+###################### with start and end date in the file name ##################
+# write.table(ectm_wide_save,
+#             paste("dataL2_ECTM_",year(startdate),sprintf("%02d",(month(startdate))),sprintf("%02d",(day(startdate))),
+#                   sprintf("%02d",(hour(startdate))),sprintf("%02d",(minute(startdate))),
+#                   sprintf("%02d",(second(startdate))),
+#                   "_",
+#                   year(enddate),sprintf("%02d",(month(enddate))),sprintf("%02d",(day(enddate))),
+#                   sprintf("%02d",(hour(enddate))),sprintf("%02d",(minute(enddate))),
+#                   sprintf("%02d",(second(enddate))), ".csv",sep=""),
+#             sep=",", dec=".", row.names=FALSE)
+########################################################################################
 
+# save to QAQC folder
 write.table(ectm_wide_save,
-            paste("dataL2_ECTM_",year(startdate),sprintf("%02d",(month(startdate))),sprintf("%02d",(day(startdate))),
-                  sprintf("%02d",(hour(startdate))),sprintf("%02d",(minute(startdate))),
-                  sprintf("%02d",(second(startdate))),
-                  "_",
-                  year(enddate),sprintf("%02d",(month(enddate))),sprintf("%02d",(day(enddate))),
-                  sprintf("%02d",(hour(enddate))),sprintf("%02d",(minute(enddate))),
-                  sprintf("%02d",(second(enddate))), ".csv",sep=""),
+            paste("dataL2_ECTM_",year_file, ".csv",sep=""),
+            sep=",", dec=".", row.names=FALSE)
+
+# save a text file that says date that code was run (system time), start and end date of data
+run.info <- data.frame(info=c("Data_start","Data_end","Date_processed"),
+                       date_time=c(startdate,enddate,ymd_hms(Sys.time(),tz="UTC")))
+
+write.table(run.info, "dataL2_ECTM_DateRange.csv",
             sep=",", dec=".", row.names=FALSE)
 
 
-# IF year is complete, also save to Combined folder with only year name
-difftime(startdate,enddate)
+# save to Combined folder with only year name
+# difftime(startdate,enddate)
 
 setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_ECTM/Combined")
 
@@ -195,6 +208,7 @@ file.copy(from = rstudioapi::getActiveDocumentContext()$path,
                          #to = file.path("~/Desktop",                
                          paste("Data_QAQC_Code_",year_file, ".csv",sep="")))
 
+# If response: [TRUE] the code save worked. If [FALSE], the file already exists. Remove and run again. 
 
 
 
