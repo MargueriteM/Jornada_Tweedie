@@ -118,7 +118,6 @@ library(corrplot)
 # IMPORT DATA
 #############
 year_file <- 2021
-year_file <- "20210101000000_20211117100000"
 # Sensor network data:
 SN_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
@@ -129,7 +128,7 @@ SN_30min <- melt.data.table(SN_wide,c("date_time"))
 SN_30min[, ':=' (mean.val = value,
                  date_time = ymd_hms(date_time),
                  variable = as.character(variable),
-                 datastream = "SN", location = "SN")][, ':=' (value=NULL, unit=NULL)]
+                 datastream = "SN", location = "SN")][, ':=' (value=NULL)]
 
 # split variable Id column into: SN, variable, unit, veg, depth
 SN_30min[,':=' (SN = sapply(strsplit(variable,"_"), getElement, 1),
