@@ -29,13 +29,22 @@ library(zoo)
 
 # read the data in fluxnet format that you want to append to other data
 # or read demofile instead
-# in 2021 IRGA diag column was added on 15 June 2021. From 16 June 2021 onward chance EddyPro metadata to use IRGA diag value
-# there were also some problems with CSAT and IRGA 1 May - 11 Jun 2021!!
-flux_add1 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/eddypro_JER_2021_Jan_Nov_fluxnet_2021-12-14T175546_adv.csv",
+# in 2020 the data was run in 2 batches because the processing got interrupted
+# Jan - May
+flux_add1 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2020/EddyPro_Out/eddypro_JER_2020_Jan_May_fluxnet_2021-12-09T170831_adv.csv",
               sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
 
+# May - Dec
+flux_add2 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2020/EddyPro_Out/eddypro_JER_2020_May_Dec_fluxnet_2021-12-08T174700_adv.csv",
+                   sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
+
+
+# combine
+flux_add <- rbind(flux_add1, flux_add2)
+
 # remove duplicate data
-flux_add1 <- (flux_add1[!(duplicated(flux_add, by=c("TIMESTAMP_START")))])
+flux_add <- (flux_add[!(duplicated(flux_add, by=c("TIMESTAMP_START")))])
+
 
 # make sure the data are ordered:
 flux_add <- flux_add[order(TIMESTAMP_START),]
@@ -58,23 +67,18 @@ flux_add[FC<(-30)|FC>30, filter_fc := 1L]
 
 
 # look at the fluxes by month for each year
-ggplot(flux_add[filter_fc !=1&month==4,],
+ggplot(flux_add[filter_fc !=1,],
                  aes(date_time,FC))+
   geom_point(aes(colour=factor(FC_SSITC_TEST)))+
   geom_line()+
-  geom_hline(yintercept=c(-5,5))+
-  #ylim(c(-5,5))+
-  facet_grid(year~.,scales="free_y")
-
+  geom_hline(yintercept=c(-5,5))
 
 ###### H ######
 # look at H  by month for each year
 ggplot(flux_add,
        aes(DOY_START,H,colour=factor(H_SSITC_TEST)))+
   geom_point()+
-  geom_line()+
-  #ylim(c(-30,30))+
-  facet_grid(year~.,scales="free_y")
+  geom_line()
 
 # remove QC >1 and AGC > 50
 flux_add[,filter_H := 0L]
@@ -82,27 +86,20 @@ flux_add[,filter_H := 0L]
 flux_add[H_SSITC_TEST>1 | CUSTOM_AGC_MEAN>50, filter_H := 1L]
 # remove H < -120 and > 560, these are not typical values.
 flux_add[H < (-120) | H > 560, filter_H := 1L]
-# in 2015 March there's one H > 400 that's an outlier
-flux_add[year==2015 & month==3 & H>400, filter_H := 1L]
-# in 2018 Jan there's one H>400 that's an outlier
-flux_add[year==2018 & month==1 & H>400, filter_H := 1L]
 
 
 # look at all filtered H
 ggplot(flux_add[filter_H!=1,],
-       aes(DOY_START,H))+
-  geom_line()+
-  #ylim(c(-30,30))+
-  facet_grid(year~.,scales="free_y")
+       aes(DOY_START,H,colour=factor(H_SSITC_TEST)))+
+  geom_point()+
+  geom_line()
 
 
 ##### LE ####
 # look at LE  by month for each year
 ggplot(flux_add,
        aes(DOY_START,LE,colour=factor(LE_SSITC_TEST)))+
-  geom_point()+
-  #ylim(c(-30,30))+
-  facet_grid(year~.,scales="free_y")
+  geom_point()
 
 # remove QC >1 and AGC > 50
 flux_add[,filter_LE:= 0L]
@@ -118,12 +115,11 @@ flux_add[LE >1000, filter_LE := 1L]
 
 
 # look at LE  by month for each year
-ggplot(flux_add[filter_LE!=1&month==4,],
+ggplot(flux_add[filter_LE!=1,],
        aes(DOY_START,LE,colour=factor(LE_SSITC_TEST)))+
   geom_point()+
   geom_line()+
-  geom_hline(yintercept=c(-50,200))+
-  facet_grid(year~.,scales="free_y")
+  geom_hline(yintercept=c(-50,200))
 
 # Before the SD filter remove all fluxes that occur at the moment of a rain event
 ggplot()+
