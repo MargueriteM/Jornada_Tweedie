@@ -117,7 +117,7 @@ library(corrplot)
 #############
 # IMPORT DATA
 #############
-year_file <- 2021
+year_file <- 2020
 # Sensor network data:
 SN_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
@@ -385,22 +385,22 @@ biomet_mean_precip <- env_30min[variable %in% c("precip.tot") & veg=="BARE",
                              list(P_rain_1_1_1 = mean(mean.val, na.rm=TRUE)),
                            by="date_time"]
 
-ggplot(SN_30min[variable %in% c("precip.tot") & veg=="BARE" &year(date_time)==2021,],aes(date_time,mean.val,colour=veg))+geom_point()
-ggplot(env_30min[variable %in% c("precip.tot") & veg=="BARE" &year(date_time)==2021,],aes(date_time,mean.val,colour=datastream))+geom_point()
+ggplot(SN_30min[variable %in% c("precip.tot") & veg=="BARE" &year(date_time)==2020,],aes(date_time,mean.val,colour=veg))+geom_point()
+ggplot(env_30min[variable %in% c("precip.tot") & veg=="BARE" &year(date_time)==2020,],aes(date_time,mean.val,colour=datastream))+geom_point()
 
-ggplot(biomet_mean_precip[year(date_time)==2021,],aes(date_time,P_rain_1_1_1))+geom_point()
+ggplot(biomet_mean_precip[year(date_time)==2020,],aes(date_time,P_rain_1_1_1))+geom_point()
 
 # soilmoisture & soiltemp: average from tower and SN regardless of depth or veg
 # soil moisture = soil water content
 
-biomet_mean_soilM <- copy(env_30min[variable %in% c("soilmoisture"),])
+biomet_mean_soilM <- copy(env_30min[variable %in% c("soilmoisture")&mean.val>=0,])
 
 # for biomet soil moisture averaging look at data
 ggplot(biomet_mean_soilM[year>2019], aes(date_time,mean.val, colour=factor(depth)))+
   geom_line()+
   facet_grid(paste(location,veg)~.)
 
-# calculate average across depths and veg for biomet
+# remove values <0 and calculate average across depths and veg for biomet
 biomet_mean_soilM <- biomet_mean_soilM[,list(SWC_1_1_1 = mean(mean.val, na.rm=TRUE)),
             by="date_time"]
 
