@@ -29,22 +29,11 @@ library(zoo)
 
 # read the data in fluxnet format that you want to append to other data
 # or read demofile instead
-# in 2020 the data was run in 2 batches because the processing got interrupted
-# Jan - May
-flux_add1 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2020/EddyPro_Out/eddypro_JER_2020_Jan_May_fluxnet_2021-12-09T170831_adv.csv",
+flux_add <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2020/EddyPro_Out/eddypro_JER_2020_Jan_Dec_fluxnet_2021-12-21T142949_adv.csv",
               sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
-
-# May - Dec
-flux_add2 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2020/EddyPro_Out/eddypro_JER_2020_May_Dec_fluxnet_2021-12-08T174700_adv.csv",
-                   sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
-
-
-# combine
-flux_add <- rbind(flux_add1, flux_add2)
 
 # remove duplicate data
 flux_add <- (flux_add[!(duplicated(flux_add, by=c("TIMESTAMP_START")))])
-
 
 # make sure the data are ordered:
 flux_add <- flux_add[order(TIMESTAMP_START),]
@@ -56,6 +45,7 @@ flux_add[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
 # make some plots
 # graph some met variables
 ggplot(flux_add,aes(date_time,P_RAIN_1_1_1))+geom_line()
+
 
 # create a column for filtering CO2 flux
 # filter_fc = 1 to remove and = 0 to keep
