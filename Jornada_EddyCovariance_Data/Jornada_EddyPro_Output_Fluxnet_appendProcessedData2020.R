@@ -46,6 +46,28 @@ flux_add[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
 # graph some met variables
 ggplot(flux_add,aes(date_time,P_RAIN_1_1_1))+geom_line()
 
+# The biomet data is processing weirdly but I am not sure why. 
+# cut out biomet columns and append from the biomet import data
+flux_add[,':='(TA_1_1_1=NULL, RH_1_1_1=NULL, PA_1_1_1=NULL, WD_1_1_1=NULL, MWS_1_1_1=NULL,
+               PPFD_IN_1_1_1=NULL, PPFD_OUT_1_1_1=NULL, P_RAIN_1_1_1=NULL, SWC_1_1_1=NULL, 
+               TS_1_1_1=NULL, G_1_1_1=NULL, G_1_2_1=NULL, G_2_1_1=NULL, G_2_2_1=NULL, 
+               LW_IN_1_1_1=NULL, LW_OUT_1_1_1=NULL, SW_OUT_1_1_1=NULL, SW_IN_1_1_1=NULL,
+               NETRAD_1_1_1=NULL)]
+
+flux_add <- merge(flux_add, biomet2020[,c("Ta_1_1_1","RH_1_1_1","Pa_1_1_1","WD_1_1_1","MWS_1_1_1",
+                                          "PPFD_1_1_1","PPFDr_1_1_1","P_rain_1_1_1","SWC_1_1_1",
+                                          "Ts_1_1_1","SHF_1_1_1","SHF_1_2_1","SHF_2_1_1","SHF_2_2_1",
+                                          "LWin_1_1_1","LWout_1_1_1","SWout_1_1_1","Rg_1_1_1",
+                                          "Rn_1_1_1","date_time")],by="date_time")
+
+setnames(flux_add, c("Ta_1_1_1","Pa_1_1_1","PPFD_1_1_1","PPFDr_1_1_1","P_rain_1_1_1",
+                      "Ts_1_1_1","SHF_1_1_1","SHF_1_2_1","SHF_2_1_1","SHF_2_2_1",
+                      "LWin_1_1_1","LWout_1_1_1","SWout_1_1_1","Rg_1_1_1",
+                      "Rn_1_1_1"),
+         c("TA_1_1_1", "PA_1_1_1","PPFD_IN_1_1_1", "PPFD_OUT_1_1_1", "P_RAIN_1_1_1",
+           "TS_1_1_1", "G_1_1_1", "G_1_2_1", "G_2_1_1", "G_2_2_1", 
+           "LW_IN_1_1_1", "LW_OUT_1_1_1", "SW_OUT_1_1_1", "SW_IN_1_1_1",
+           "NETRAD_1_1_1"))
 
 # create a column for filtering CO2 flux
 # filter_fc = 1 to remove and = 0 to keep
@@ -112,10 +134,22 @@ ggplot(flux_add[filter_LE!=1,],
   geom_hline(yintercept=c(-50,200))
 
 # Before the SD filter remove all fluxes that occur at the moment of a rain event
-ggplot()+
+# FC
+f.fc <- ggplot()+
   geom_line(data=flux_add[filter_fc !=1], aes(DOY_START,FC),alpha=0.5)+
-  geom_point(data=flux_add[filter_fc !=1&P_RAIN_1_1_1>0], aes(DOY_START,FC), colour="red",size=0.25)+
-  facet_grid(year~.)
+  geom_point(data=flux_add[filter_fc !=1&P_RAIN_1_1_1>0], aes(DOY_START,FC), colour="red",size=0.25)
+
+#LE
+f.le <- ggplot()+
+  geom_line(data=flux_add[filter_LE !=1], aes(DOY_START,LE),alpha=0.5)+
+  geom_point(data=flux_add[filter_LE !=1&P_RAIN_1_1_1>0], aes(DOY_START,LE), colour="red",size=0.25)
+
+#H
+f.h <- ggplot()+
+  geom_line(data=flux_add[filter_H !=1], aes(DOY_START,H),alpha=0.5)+
+  geom_point(data=flux_add[filter_H !=1&P_RAIN_1_1_1>0], aes(DOY_START,H), colour="red",size=0.25)
+
+grid.arrange(f.fc, f.le, f.h)
 
 flux_add[P_RAIN_1_1_1>0, ':=' (filter_fc = 1L, filter_LE = 1L, filter_H = 1L)]
 
@@ -146,14 +180,12 @@ flux_add[filter_fc !=1, ':=' (FC_rollmean3_daynight = rollapply(FC, width=(24/0.
 
 threshold <- 3
 
-# graph the 3 and 5 day SD ribbons around measured flux_add
+# graph the 3 (grey) and 5 (blue) day SD ribbons around measured flux_add
 ggplot(flux_add[filter_fc!=1,])+
   geom_line(aes(DOY_START, FC))+
   #geom_line(aes(DOY_START, FC_rollmean), colour="green")+
   geom_ribbon(aes(x=DOY_START, ymin=FC_rollmean3-threshold*FC_rollsd3, ymax=FC_rollmean3+threshold*FC_rollsd3), alpha=0.5)+
-  geom_ribbon(aes(x=DOY_START, ymin=FC_rollmean7-threshold*FC_rollsd7, ymax=FC_rollmean7+threshold*FC_rollsd7), colour="blue",alpha=0.3)+
-  
-  facet_grid(year~.)
+  geom_ribbon(aes(x=DOY_START, ymin=FC_rollmean5-threshold*FC_rollsd5, ymax=FC_rollmean7+threshold*FC_rollsd5), colour="blue",alpha=0.3)
 
 # graph the 3 day SD ribbons around measured flux_add by day/night
 ggplot(flux_add[filter_fc!=1,])+
@@ -178,7 +210,7 @@ flux_add[FC>FC_rollmean3_daynight+threshold*FC_rollsd3_daynight|
        FC<FC_rollmean3_daynight-threshold*FC_rollsd3_daynight, filter_fc_roll_daynight := 2L]
 
 # view the marked fluxes in ~25 day chunks
-ggplot(flux_add[filter_fc_roll!=1&DOY_START>=1&DOY_START<=60,], aes(DOY_START, FC, colour=factor(filter_fc_roll)))+
+ggplot(flux_add[filter_fc_roll!=1&DOY_START>=300&DOY_START<=365,], aes(DOY_START, FC, colour=factor(filter_fc_roll)))+
   geom_point()+
   facet_grid(year_orig~.)
 
@@ -189,8 +221,7 @@ ggplot(flux_add[filter_fc_roll_daynight!=1&DOY_START>=1&DOY_START<=31,], aes(DOY
 
 # graph with the fluxes from the 3SD 3day day/night filter removed
 ggplot(flux_add[filter_fc_roll_daynight==0,], aes(DOY_START, FC))+
-  geom_line()+
-  facet_grid(year_orig~.)
+  geom_line()
 
 
 # SD filter for LE
@@ -218,9 +249,7 @@ ggplot(flux_add[filter_LE!=1,])+
   geom_line(aes(DOY_START, LE))+
   #geom_line(aes(DOY_START, LE_rollmean), colour="green")+
   geom_ribbon(aes(x=DOY_START, ymin=LE_rollmean3-threshold*LE_rollsd3, ymax=LE_rollmean3+threshold*LE_rollsd3), alpha=0.5)+
-  geom_ribbon(aes(x=DOY_START, ymin=LE_rollmean7-threshold*LE_rollsd7, ymax=LE_rollmean7+threshold*LE_rollsd7), colour="blue",alpha=0.3)+
-  
-  facet_grid(year_orig~.)
+  geom_ribbon(aes(x=DOY_START, ymin=LE_rollmean7-threshold*LE_rollsd7, ymax=LE_rollmean7+threshold*LE_rollsd7), colour="blue",alpha=0.3)
 
 # graph the 3 day SD ribbons around measured flux_add by day/night
 ggplot(flux_add[filter_LE!=1,])+
@@ -254,16 +283,14 @@ ggplot(flux_add[filter_le_roll_daynight!=1&DOY_START>=1&DOY_START<=100,], aes(DO
 
 # graph with the flux_addes from the 3SD 3day day/night filter removed
 ggplot(flux_add[filter_le_roll_daynight==0,], aes(DOY_START, LE))+
-  geom_line()+
-  facet_grid(year_orig~.)
+  geom_line()
 
 # graph fluxes with the 3SD 3day day/night filter removed and with my manual filter
 # HERE THIS DOESN'T REALLY APPLY, I HAVE DONE LESS MANUAL FILTERING AND AM RELYING ON THE RUNNING MEAN SMOOTH
 # this comparison was for previous years. It's nice to have the code handy, if needed
 ggplot()+
   geom_line(data=flux_add[filter_LE==0], aes(DOY_START, LE, colour="manual"), colour="blue")+
-  geom_line(data=flux_add[filter_le_roll_daynight==0], aes(DOY_START, LE, colour="SD day/night"), colour="green")+
-  facet_grid(year_orig~.)
+  geom_line(data=flux_add[filter_le_roll_daynight==0], aes(DOY_START, LE, colour="SD day/night"), colour="green")
 
 
 # SD filter for H
@@ -291,9 +318,7 @@ ggplot(flux_add[filter_H!=1,])+
   geom_line(aes(DOY_START, H))+
   #geom_line(aes(DOY_START, H_rollmean), colour="green")+
   geom_ribbon(aes(x=DOY_START, ymin=H_rollmean3-threshold*H_rollsd3, ymax=H_rollmean3+threshold*H_rollsd3), alpha=0.5)+
-  geom_ribbon(aes(x=DOY_START, ymin=H_rollmean7-threshold*H_rollsd7, ymax=H_rollmean7+threshold*H_rollsd7), colour="blue",alpha=0.3)+
-  
-  facet_grid(year~.)
+  geom_ribbon(aes(x=DOY_START, ymin=H_rollmean7-threshold*H_rollsd7, ymax=H_rollmean7+threshold*H_rollsd7), colour="blue",alpha=0.3)
 
 # graph the 3 day SD ribbons around measured flux_add by day/night
 ggplot(flux_add[filter_H!=1,])+
@@ -338,7 +363,8 @@ ggplot(flux_add[filter_h_roll_daynight==0,], aes(DOY_START, H))+
 # Prior to saving, filter data and remove unnecessary columns
 # c("date_time_orig","TIMESTAMP_START","TIMESTAMP_END","DOY_START","DOY_END","time_diff","SW_IN_POT_AF") 
 # date_time_orig, time_diff and SW_IN_POT_AF probably won't be in files after 2019 because they were used for the timestamp corrections needed prior to 2019
-flux_add_filter_sd <- copy(flux_add[date_time>=as.Date("2020-01-01"),!(c("date","month","year","TIMESTAMP_START","TIMESTAMP_END","DOY_START","DOY_END")),with=FALSE])
+flux_add_filter_sd <- copy(flux_add[date_time>=as.Date("2020-01-01"),
+                                    !(c("date","month","year","TIMESTAMP_START","TIMESTAMP_END","DOY_START","DOY_END")),with=FALSE])
 flux_add_filter_sd[filter_fc_roll_daynight!=0, FC := NA]
 flux_add_filter_sd[filter_h_roll_daynight!=0, H := NA]
 flux_add_filter_sd[filter_le_roll_daynight!=0, LE := NA]
@@ -348,11 +374,26 @@ ggplot(flux_add_filter_sd,aes(date_time, FC))+geom_point()
 summary(flux_add_filter_sd$date_time)
 
 # append new data to previous
-flux_filter_sd_all <- rbind(flux_filter_sd, flux_add_filter_sd)
+flux_filter_sd_all <- rbind(flux_filter_sd, flux_add_filter_sd,fill=TRUE)
  
-# save filtered data with SD filter
-setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
 
+# 20211229
+# save 2020 data with biomet data from input biomet2020, not EddyPro output
+# save to server
+setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2020/EddyPro_Out/")
+ 
+write.table(flux_add_filter_sd,
+ file="JER_flux_2020_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
+ row.names=FALSE)
+
+ # save filtered data with SD filter
+ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
+ 
+ # 20211229
+ save(flux_filter_sd_all,
+ file="JER_flux_2010_EddyPro_Output_filtered_SD_20211229.Rdata")
+ 
+ 
 # 20201114
 # save(flux_filter_sd_all,
 # file="JER_flux_2010_20200131_EddyPro_Output_filtered_SD_TIMEcorr_20201114.Rdata")
