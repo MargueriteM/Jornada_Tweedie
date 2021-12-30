@@ -117,7 +117,7 @@ library(corrplot)
 #############
 # IMPORT DATA
 #############
-year_file <- 2021
+year_file <- 2020
 # Sensor network data:
 SN_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
@@ -507,7 +507,7 @@ biomet2[variable %in% c("par") & veg=="UP" & location=="SN",
 # SN8 PRGL: 12_1_1
 
 
-ggplot(biomet2[variable %in% c("par") & veg %in% c("LATR","PRGL","DAPU","MUPO","BARE")&year==2012],
+ggplot(biomet2[variable %in% c("par") & veg %in% c("LATR","PRGL","DAPU","MUPO","BARE")],
                aes(date_time, mean.val))+geom_line()+facet_grid(SN+veg~.)
 
 
@@ -550,7 +550,7 @@ biomet2[variable %in% c("par") & SN=="SN8" & veg %in% c("PRGL") ,
 # precip: BARE from tower and SN = P_rain
 # tower == 1, SN2 == 2, SN6 == 3
 # tower: P_rain_1_1_1, SN: P_rain_2_1_1
-ggplot(env_30min[variable %in% c("precip.tot") & veg=="BARE" & year==2015], aes(date_time, mean.val))+
+ggplot(env_30min[variable %in% c("precip.tot") & veg=="BARE" ], aes(date_time, mean.val))+
   geom_line()+
   facet_grid(location+veg~.)
                                 
@@ -568,8 +568,7 @@ biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN" & SN=="SN6"
 # Soil moisture
 # report SWC seperately for each depth and veg type only from SN
 # because I do not know depth of tower sensors
-ggplot(biomet2[variable %in% c("soilmoisture") & veg %in% c("LATR","PRGL","MUPO","SHRUB", "BARE") & location=="SN" &
-                year==2018,],
+ggplot(biomet2[variable %in% c("soilmoisture") & veg %in% c("LATR","PRGL","MUPO","SHRUB", "BARE") & location=="SN",],
        aes(date_time, mean.val))+
   geom_line()+
   facet_grid(veg+height~.)
@@ -582,6 +581,9 @@ ggplot(biomet2[variable %in% c("soilmoisture") & veg %in% c("LATR","PRGL","MUPO"
 
 # 2020-04-14: convert all VWC to % soil moisture, requested by Ameriflux QA/QC check.
 biomet2[variable %in% c("soilmoisture"), mean.val := mean.val*100]
+
+# make sure all SWC are >0
+biomet2[variable %in% c("soilmoisture") & mean.val<0, mean.val := NA]
 
 
  # Bare: 1
@@ -641,8 +643,7 @@ biomet2[variable %in% c("soilmoisture") & (veg == "PRGL" & location =="SN" & hei
 # calculate average 'surface': 5-15cm Ts_1
 #           average 'deep': 20cm Ts_2
 # then merge the wide format biomet2 with the Ts_1 and Ts_2 dataframes
-ggplot(biomet2[variable %in% c("soiltemp") &
-                 year==2020,],
+ggplot(biomet2[variable %in% c("soiltemp") ,],
        aes(date_time, mean.val))+
   geom_line()+
   facet_grid(veg+height~.)
@@ -666,7 +667,7 @@ biomet2_ts2 <- biomet2[!is.na(mean.val) & variable %in% c("soiltemp") & height %
 # bare = 2 10cm SHF_2_1_1
 # bare = 2 15cm SHF_2_2_1
 
-ggplot(biomet2[variable %in% c("hfp")&year==2011], aes(date_time, mean.val))+geom_line()+
+ggplot(biomet2[variable %in% c("hfp")], aes(date_time, mean.val))+geom_line()+
   facet_grid(veg~height)
 
 # remove SHF values less than -50
@@ -690,7 +691,7 @@ biomet2[variable %in% c("hfp") & (veg == "BARE" & height=="-15"),
 # pressure: SN and tower
 # tower == 1, SN == 2
 # tower: Pa_1_1_1, SN: Pa_2_1_1
-ggplot(biomet2[variable %in% c("atm_press")&year==2011], aes(date_time, mean.val))+geom_line()+
+ggplot(biomet2[variable %in% c("atm_press")], aes(date_time, mean.val))+geom_line()+
   facet_grid(location~.)
 
 
@@ -701,7 +702,7 @@ biomet2[variable %in% c("atm_press") & location=="SN",
         ameriflux.id := "PA_2_1_1"]
 
 # leaf wetness 
-ggplot(biomet2[variable %in% c("lws","lws_5m")&year==2018], aes(date_time, mean.val,colour=veg))+geom_line()+
+ggplot(biomet2[variable %in% c("lws","lws_5m")], aes(date_time, mean.val,colour=veg))+geom_line()+
   facet_grid(SN~.)
 
 # Graph only for tower (lws and lws_5m) to check rescale between 0-100
@@ -769,7 +770,7 @@ setnames(biomet_other2,c("Rl_down","Rl_up","Rn_nr_Avg","Rs_down","Rs_up","airtem
 # ##################
 
 # graph
-ggplot(biomet2[!is.na(ameriflux.id) & year==2019,], aes(date_time, mean.val))+
+ggplot(biomet2[!is.na(ameriflux.id) ,], aes(date_time, mean.val))+
   geom_line()+
   facet_wrap(ameriflux.id~.)
 
@@ -802,8 +803,6 @@ biomet2_wide[, names(biomet2_wide[,!date_time_exclude,with=FALSE]) := lapply(.SD
 # update 27 Dec 2020 with Ameriflux QA/QC changes
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/Biomet2_20201227")
 
-# write.table(biomet2_wide, file="Biomet_USJo1_wide_2010_2019_20200218.csv", sep=",", dec=".", row.names=FALSE)
-
 # 15 Apr 2020: save by year!
 # 27 Dec 2020: save updated by year. 
 
@@ -817,8 +816,8 @@ saveyears <- function(data,startyear,endyear) {
                  sep =',', dec='.', row.names=FALSE,quote=FALSE)
   }}
 
-
-# saveyears(biomet2_wide,2010,2020)
+ 
+# saveyears(biomet2_wide,2020,2020)
 
 ### GAPFILL ENV Data for internal use #### 
 
