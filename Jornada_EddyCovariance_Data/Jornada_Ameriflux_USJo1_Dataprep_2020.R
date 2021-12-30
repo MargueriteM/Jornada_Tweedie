@@ -31,30 +31,26 @@ setnames(flux_filter_sd,c("TIMESTAMP_START_correct","TIMESTAMP_END_correct"),
 flux_filter_sd[,date_time := NULL]
 flux_filter_sd[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))]
 
-# there's duplicated data in 2012 DOY 138
-flux <- (flux_filter_sd[!(duplicated(flux_filter_sd, by=c("date_time")))])
+# find duplicated rows based on timestamp 20211229: SOMETHING IS GOING WRONG WITH TIMESTAMPS!!
+flux <- (flux_filter_sd[(duplicated(flux_filter_sd, by=c("date_time")))])
+# dataL1_ts_20191231_0000.csv
+# dataL1_ts_20200101_0000.csv
 
+# remove dataL1_ts_20191231_0000.csv row. That's the last timestamp of 2019 and shouldn't be in 2020
+flux <- flux_filter_sd[!(FILENAME_HF == "dataL1_ts_20191231_0000.csv")]
 
 # import biomet2 which contains all sensors as individual datastreams
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/Biomet2_20201227")
 
-biometfiles <- list.files(path="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/Biomet2_20201227",
-                          full.names=TRUE, pattern="_wide_") 
+biomet_all <- fread("Biomet_USJo1_wide_2020_.csv", sep=",",dec=".", header=TRUE)
 
-# read files and bind them into one file. fill=TRUE because of the missing columns in 2011
-biomet_all <- do.call("rbind", lapply(biometfiles, header = TRUE, fread, sep=",",fill=FALSE))
-
-biomet_all <- (biomet_all[!(duplicated(biomet_all, by=c("date_time")))])
-
-                                   
 biomet_all[,':=' (date_time = parse_date_time(date_time,"Ymd HMS",tz="UTC"))]
 
 # merge the flux data and biomet2 data
 # first remove the biomet columns from the flux data
 exclude_cols <- c("TA_1_1_1", "RH_1_1_1", "PA_1_1_1", "WD_1_1_1", "MWS_1_1_1", "PPFD_IN_1_1_1", "PPFD_OUT_1_1_1", 
                   "P_RAIN_1_1_1", "SWC_1_1_1", "TS_1_1_1", "G_1_1_1", "G_1_2_1", "G_2_1_1", "G_2_2_1",
-                  "LW_IN_1_1_1", "LW_OUT_1_1_1", "SW_OUT_1_1_1", "SW_IN_1_1_1", "NETRAD_1_1_1", "date_orig",
-                  "month_orig","year_orig") 
+                  "LW_IN_1_1_1", "LW_OUT_1_1_1", "SW_OUT_1_1_1", "SW_IN_1_1_1", "NETRAD_1_1_1") 
 
 flux <- flux[,!c(exclude_cols),with=FALSE]
 
@@ -67,13 +63,13 @@ names_output <- c("TIMESTAMP_START","TIMESTAMP_END",names_all)
 
 setcolorder(flux.biomet,names_output)
 
-# save to upload to ameriflux: 
+# save to upload to ameriflux, save to server: 
 # <SITE_ID>_<RESOLUTION>_<TS-START>_<TS-END>_<OPTIONAL>.csv
-setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/Ameriflux/20201227")
+setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Ameriflux_USJo1")
 
-# Don't save this version. Just takes up space.
-#write.table(flux.biomet[,!c("date_time"),with=FALSE], paste("USJo1_HH",min(flux.biomet$TIMESTAMP_END),max(flux.biomet$TIMESTAMP_END),
-#                               "20200514submit.csv",sep="_"), sep=',', dec='.', row.names=FALSE)
+# save file in Ameriflux format
+write.table(flux.biomet[,!c("date_time"),with=FALSE], paste("USJo1_HH",min(flux.biomet$TIMESTAMP_END),max(flux.biomet$TIMESTAMP_END),
+                               ".csv",sep="_"), sep=',', dec='.', row.names=FALSE)
 
 
 # save by years
