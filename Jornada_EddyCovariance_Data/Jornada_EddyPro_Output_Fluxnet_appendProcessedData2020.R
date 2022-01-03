@@ -47,7 +47,24 @@ flux_add[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
 ggplot(flux_add,aes(date_time,P_RAIN_1_1_1))+geom_line()
 
 # The biomet data is processing weirdly but I am not sure why. 
-# cut out biomet columns and append from the biomet import data
+# load biomet data
+#2020
+biomet2020.names <- colnames(fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2020.csv",
+                                   header=TRUE))
+
+
+biomet2020 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2020.csv",
+                    skip=2, header=FALSE, col.names=biomet2020.names, na.strings=c("-9999"))
+
+
+biomet2020 <- biomet2020[,':='
+                         (date_time=ymd_hm(paste(timestamp_1,timestamp_2,timestamp_3,timestamp_4,timestamp_5, sep=" ")))]
+
+ggplot(biomet2020, aes(date_time,P_rain_1_1_1))+
+  geom_line()
+
+
+# cut out biomet columns from eddypro fluxnet data and append from the biomet import data
 flux_add[,':='(TA_1_1_1=NULL, RH_1_1_1=NULL, PA_1_1_1=NULL, WD_1_1_1=NULL, MWS_1_1_1=NULL,
                PPFD_IN_1_1_1=NULL, PPFD_OUT_1_1_1=NULL, P_RAIN_1_1_1=NULL, SWC_1_1_1=NULL, 
                TS_1_1_1=NULL, G_1_1_1=NULL, G_1_2_1=NULL, G_2_1_1=NULL, G_2_2_1=NULL, 
@@ -134,6 +151,7 @@ ggplot(flux_add[filter_LE!=1,],
   geom_hline(yintercept=c(-50,200))
 
 # Before the SD filter remove all fluxes that occur at the moment of a rain event
+# first look at all fluxes with rain events marked
 # FC
 f.fc <- ggplot()+
   geom_line(data=flux_add[filter_fc !=1], aes(DOY_START,FC),alpha=0.5)+
@@ -151,9 +169,18 @@ f.h <- ggplot()+
 
 grid.arrange(f.fc, f.le, f.h)
 
+# remove FC, LE, H DURING rain
 flux_add[P_RAIN_1_1_1>0, ':=' (filter_fc = 1L, filter_LE = 1L, filter_H = 1L)]
 
 # Before the rolling mean, add two weeks of prior data
+# flux_filter_sd has TIMESTAMP_START_correct and TIMESTAMP_END_correct
+# change to TIMESTAMP_START and TIMESTAMP_END to match newly processed data in flux_add
+setnames(flux_filter_sd, c("TIMESTAMP_START_correct", "TIMESTAMP_END_correct"),
+         c("TIMESTAMP_START", "TIMESTAMP_END"))
+
+# and set as integer64
+flux_filter_sd[,':=' (TIMESTAMP_START = bit64::as.integer64(TIMESTAMP_START),
+                      TIMESTAMP_END = bit64::as.integer64(TIMESTAMP_END))]
 
 flux_add <- rbind(flux_filter_sd[date_time > as.Date("2019-12-15")],
                   flux_add, fill=TRUE)
@@ -352,8 +379,7 @@ ggplot(flux_add[filter_h_roll_daynight!=1&DOY_START>=1&DOY_START<=100,], aes(DOY
 
 # graph with the fluxes from the 3SD 3day day/night filter removed
 ggplot(flux_add[filter_h_roll_daynight==0,], aes(DOY_START, H))+
-  geom_line()+
-  facet_grid(year~.)
+  geom_line()
 
 
 #########
