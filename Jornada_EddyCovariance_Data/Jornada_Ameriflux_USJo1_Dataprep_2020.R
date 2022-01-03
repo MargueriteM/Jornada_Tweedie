@@ -20,21 +20,21 @@ flux_filter_sd <- fread("JER_flux_2020_EddyPro_Output_filtered_SD.csv",sep=",", 
             header = TRUE)
 
 
-# rename columns
+# rename columns (only up to 2019 that had a timestamp/daylight savings issue)
 # TIMESTAMP_START = TIMESTAMP_START_correct
 # TIMESTAMP_END = TIMESTAMP_END_correct
-setnames(flux_filter_sd,c("TIMESTAMP_START_correct","TIMESTAMP_END_correct"),
-         c("TIMESTAMP_START","TIMESTAMP_END"))
+# setnames(flux_filter_sd,c("TIMESTAMP_START_correct","TIMESTAMP_END_correct"),
+#         c("TIMESTAMP_START","TIMESTAMP_END"))
 
+# don't need for 2020: date_time already = TIMESTAMP_END and fread imports as POSIXct
 # convert date to POSIXct and get a year, day, hour column
 # if this step doesn't work, make sure bit64 library is loaded otherwise the timestamps import in a non-sensical format
-flux_filter_sd[,date_time := NULL]
-flux_filter_sd[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))]
+# flux_filter_sd[,date_time := NULL]
+# flux_filter_sd[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))]
 
-# find duplicated rows based on timestamp 20211229: SOMETHING IS GOING WRONG WITH TIMESTAMPS!!
+# find duplicated rows based on timestamp 
 flux <- (flux_filter_sd[(duplicated(flux_filter_sd, by=c("date_time")))])
-# dataL1_ts_20191231_0000.csv
-# dataL1_ts_20200101_0000.csv
+
 
 # remove dataL1_ts_20191231_0000.csv row. That's the last timestamp of 2019 and shouldn't be in 2020
 flux <- flux_filter_sd[!(FILENAME_HF == "dataL1_ts_20191231_0000.csv")]
@@ -45,6 +45,10 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/Biom
 biomet_all <- fread("Biomet_USJo1_wide_2020_.csv", sep=",",dec=".", header=TRUE)
 
 biomet_all[,':=' (date_time = parse_date_time(date_time,"Ymd HMS",tz="UTC"))]
+
+# graph
+ggplot(biomet_all, aes(date_time,P_RAIN_1_1_1))+
+  geom_line()
 
 # merge the flux data and biomet2 data
 # first remove the biomet columns from the flux data
@@ -63,6 +67,9 @@ names_output <- c("TIMESTAMP_START","TIMESTAMP_END",names_all)
 
 setcolorder(flux.biomet,names_output)
 
+# graph to check
+ggplot(flux.biomet, aes(date_time, LE))+geom_line()
+
 # save to upload to ameriflux, save to server: 
 # <SITE_ID>_<RESOLUTION>_<TS-START>_<TS-END>_<OPTIONAL>.csv
 setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Ameriflux_USJo1")
@@ -72,15 +79,15 @@ write.table(flux.biomet[,!c("date_time"),with=FALSE], paste("USJo1_HH",min(flux.
                                ".csv",sep="_"), sep=',', dec='.', row.names=FALSE)
 
 
-# save by years
-for (i in 2010:2019){
-  # subset each year
-  dat.save <- flux.biomet[year(date_time)==i,]
-  
-  write.table (dat.save[,!c("date_time"),with=FALSE],
-             file= paste("US-Jo1_HH",min(dat.save$TIMESTAMP_END),max(dat.save$TIMESTAMP_END),
-                         "20200514submit.csv",sep="_"),
-             sep =',', dec='.', row.names=FALSE, na="-9999", quote=FALSE)
-}
+# # save by years
+# for (i in 2010:2019){
+#   # subset each year
+#   dat.save <- flux.biomet[year(date_time)==i,]
+#   
+#   write.table (dat.save[,!c("date_time"),with=FALSE],
+#              file= paste("US-Jo1_HH",min(dat.save$TIMESTAMP_END),max(dat.save$TIMESTAMP_END),
+#                          "20200514submit.csv",sep="_"),
+#              sep =',', dec='.', row.names=FALSE, na="-9999", quote=FALSE)
+# }
 
 
