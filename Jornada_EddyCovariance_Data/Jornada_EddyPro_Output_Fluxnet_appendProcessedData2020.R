@@ -390,7 +390,7 @@ ggplot(flux_add[filter_h_roll_daynight==0,], aes(DOY_START, H))+
 # c("date_time_orig","TIMESTAMP_START","TIMESTAMP_END","DOY_START","DOY_END","time_diff","SW_IN_POT_AF") 
 # date_time_orig, time_diff and SW_IN_POT_AF probably won't be in files after 2019 because they were used for the timestamp corrections needed prior to 2019
 flux_add_filter_sd <- copy(flux_add[date_time>=as.Date("2020-01-01"),
-                                    !(c("date","month","year","TIMESTAMP_START","TIMESTAMP_END","DOY_START","DOY_END")),with=FALSE])
+                                    !(c("date","month","year","DOY_START","DOY_END")),with=FALSE])
 flux_add_filter_sd[filter_fc_roll_daynight!=0, FC := NA]
 flux_add_filter_sd[filter_h_roll_daynight!=0, H := NA]
 flux_add_filter_sd[filter_le_roll_daynight!=0, LE := NA]
@@ -403,7 +403,7 @@ summary(flux_add_filter_sd$date_time)
 flux_filter_sd_all <- rbind(flux_filter_sd, flux_add_filter_sd,fill=TRUE)
  
 
-# 20211229
+# 20211229 (redo on 20220103 with TIMESTAMP_START and TIMESTAMP_END included)
 # save 2020 data with biomet data from input biomet2020, not EddyPro output
 # save to server
 setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2020/EddyPro_Out/")
@@ -412,10 +412,10 @@ write.table(flux_add_filter_sd,
  file="JER_flux_2020_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
  row.names=FALSE)
 
- # save filtered data with SD filter
+ # save filtered data with SD filter for all years 2010-current
  setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
  
- # 20211229
+ # 20211229 (redo on 20220103 with TIMESTAMP_START and TIMESTAMP_END included)
  save(flux_filter_sd_all,
  file="JER_flux_2010_EddyPro_Output_filtered_SD_20211229.Rdata")
  
