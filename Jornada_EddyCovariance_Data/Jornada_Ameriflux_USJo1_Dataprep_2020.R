@@ -33,8 +33,11 @@ flux_filter_sd <- fread("JER_flux_2020_EddyPro_Output_filtered_SD.csv",sep=",", 
 # flux_filter_sd[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))]
 
 # find duplicated rows based on timestamp 
-flux <- (flux_filter_sd[(duplicated(flux_filter_sd, by=c("date_time")))])
+flux_dup <- (flux_filter_sd[(duplicated(flux_filter_sd, by=c("date_time")))])
 
+# look at start and end
+summary(flux_filter_sd$date_time)
+head(flux_filter_sd$FILENAME_HF)
 
 # remove dataL1_ts_20191231_0000.csv row. That's the last timestamp of 2019 and shouldn't be in 2020
 flux <- flux_filter_sd[!(FILENAME_HF == "dataL1_ts_20191231_0000.csv")]
@@ -75,8 +78,10 @@ ggplot(flux.biomet, aes(date_time, LE))+geom_line()
 setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Ameriflux_USJo1")
 
 # save file in Ameriflux format
-write.table(flux.biomet[,!c("date_time"),with=FALSE], paste("USJo1_HH",min(flux.biomet$TIMESTAMP_END),max(flux.biomet$TIMESTAMP_END),
-                               ".csv",sep="_"), sep=',', dec='.', row.names=FALSE)
+write.table(flux.biomet[,!c("date_time"),with=FALSE],
+            file = paste("US-Jo1_HH",min(flux.biomet$TIMESTAMP_START),max(flux.biomet$TIMESTAMP_START),
+                  ".csv",sep="_"),
+            sep=',', dec='.', row.names=FALSE, na="-9999", quote=FALSE)
 
 
 # # save by years
