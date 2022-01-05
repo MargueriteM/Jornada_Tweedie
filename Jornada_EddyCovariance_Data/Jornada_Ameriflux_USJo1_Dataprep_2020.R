@@ -17,7 +17,7 @@ library(bit64)
 setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2020/EddyPro_Out/")
 
 flux_filter_sd <- fread("JER_flux_2020_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
-            header = TRUE)
+            header = TRUE, na.strings=c("na","NA","","-9999"))
 
 
 # rename columns (only up to 2019 that had a timestamp/daylight savings issue)
@@ -38,6 +38,11 @@ flux_dup <- (flux_filter_sd[(duplicated(flux_filter_sd, by=c("date_time")))])
 # look at start and end
 summary(flux_filter_sd$date_time)
 head(flux_filter_sd$FILENAME_HF)
+
+# BADM_INST_SA_GILL_ALIGN is showing up as 'na' and for some reason na.strings will not convert it to NA
+levels(as.factor(flux_filter_sd$BADM_INST_SA_GILL_ALIGN))
+# force NA
+flux_filter_sd[,BADM_INST_SA_GILL_ALIGN:=NA]
 
 # remove dataL1_ts_20191231_0000.csv row. That's the last timestamp of 2019 and shouldn't be in 2020
 flux <- flux_filter_sd[!(FILENAME_HF == "dataL1_ts_20191231_0000.csv")]
