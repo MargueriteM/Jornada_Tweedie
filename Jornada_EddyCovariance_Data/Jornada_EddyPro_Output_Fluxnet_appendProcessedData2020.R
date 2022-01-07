@@ -44,9 +44,12 @@ flux_add[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
 
 # make some plots
 # graph some met variables
-ggplot(flux_add,aes(date_time,P_RAIN_1_1_1))+geom_line()
+ggplot(flux_add[!(FILENAME_HF %in% ("not_enough_data")),],aes(date_time,P_RAIN_1_1_1))+geom_line()
 
 # The biomet data is processing weirdly but I am not sure why. 
+# after emailing with Jiahong, the issue appears to be a bug that causes biomet columns to shift or 
+# erroneous data insertion when ts files have not_enough_data
+
 # load biomet data
 #2020
 biomet2020.names <- colnames(fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2020.csv",
