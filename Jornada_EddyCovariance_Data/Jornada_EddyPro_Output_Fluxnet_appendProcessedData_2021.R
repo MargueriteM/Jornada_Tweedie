@@ -323,11 +323,11 @@ flux_add[LE>LE_rollmean3_daynight+threshold*LE_rollsd3_daynight|
 
 
 # view the marked flux_addes in ~25 day chunks
-ggplot(flux_add[filter_le_roll!=1&DOY_START>=1&DOY_START<=50,], aes(DOY_START, LE, colour=factor(filter_le_roll)))+
+ggplot(flux_add[filter_le_roll!=1&DOY_START>=100&DOY_START<=300,], aes(DOY_START, LE, colour=factor(filter_le_roll)))+
   geom_point()
 
 # view the marked flux_addes in ~25 day chunks for day/night
-ggplot(flux_add[filter_le_roll_daynight!=1&DOY_START>=1&DOY_START<=100,], aes(DOY_START, LE, colour=factor(filter_le_roll_daynight)))+
+ggplot(flux_add[filter_le_roll_daynight!=1&DOY_START>=100&DOY_START<=300,], aes(DOY_START, LE, colour=factor(filter_le_roll_daynight)))+
   geom_point()
 
 # graph with the flux_addes from the 3SD 3day day/night filter removed
@@ -373,7 +373,9 @@ ggplot(flux_add[filter_H!=1,])+
   geom_line(aes(DOY_START, H))+
   #geom_line(aes(DOY_START, H_rollmean), colour="green")+
   geom_ribbon(aes(x=DOY_START, ymin=H_rollmean3_daynight-threshold*H_rollsd3_daynight,
-                  ymax=H_rollmean3_daynight+threshold*H_rollsd3_daynight, fill=factor(NIGHT)), alpha=0.5)
+                  ymax=H_rollmean3_daynight+threshold*H_rollsd3_daynight, fill=factor(NIGHT)), alpha=0.5)+
+  facet_grid(NIGHT~.)
+
 
 # mark any H>3*Hrollsd3 (3 day moving SD) for removal
 flux_add[,filter_h_roll := 0L]
@@ -435,5 +437,5 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filt
 
 # 20211229 (redo on 20220103 with TIMESTAMP_START and TIMESTAMP_END included)
 save(flux_filter_sd_all,
-     file="JER_flux_2010_EddyPro_Output_filtered_SD_20220110.Rdata")
+     file="JER_flux_2010_EddyPro_Output_filtered_SD_20220124.Rdata")
 
