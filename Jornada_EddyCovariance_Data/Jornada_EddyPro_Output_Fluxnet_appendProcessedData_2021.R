@@ -34,7 +34,7 @@ rm(flux_filter_sd_all)
 # or read demofile instead
 # in 2021 IRGA diag column was added on 15 June 2021. From 16 June 2021 onward change EddyPro metadata to use IRGA diag value
 # there were also some problems with CSAT and IRGA 1 May - 11 Jun 2021!!
-flux_add1 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/.csv",
+flux_add1 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/eddypro_JER_2021_Jan_Jun_fluxnet_2022-01-18T173841_adv.csv",
               sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
 
 flux_add2 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/eddypro_JER_2021_Jul_Nov_fluxnet_2022-01-07T113327_adv.csv",
@@ -48,7 +48,7 @@ flux_add2[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
   ,':='(date=as.Date.POSIXct(date_time),month=month(date_time),year=year(date_time))]
 
 # remove data from Jan - Dec data set that comes after the start of flux_add2
-flux_add1 <- copy(flux_add1[date_time<min(flux_add2$date_time),])
+# flux_add1 <- copy(flux_add1[date_time<min(flux_add2$date_time),])
 
 # combine flux_add1 and flux_add2
 flux_add <- rbind(flux_add1,flux_add2, fill=TRUE)
@@ -118,6 +118,9 @@ flux_add[FC_SSITC_TEST>1 | CUSTOM_AGC_MEAN>50, filter_fc := 1L]
 # fluxes outside 30 umol/m2/s are unrealistic
 flux_add[FC<(-30)|FC>30, filter_fc := 1L]
 
+# IRGA was behaving badly from 20 Apr to  11 Jun ~7am MDT
+# due to issues with connection and sensor head power reset
+flux_add[as.Date(date_time)>as.Date("2021-04-20") & ymd_hms(date_time)<ymd_hms("2021-07-01 07:00:00"), filter_fc := 1L]
 
 # look at the fluxes by month for each year
 ggplot(flux_add[filter_fc !=1,],
@@ -149,6 +152,10 @@ flux_add[year==2015 & month==3 & H>400, filter_H := 1L]
 # in 2018 Jan there's one H>400 that's an outlier
 flux_add[year==2018 & month==1 & H>400, filter_H := 1L]
 
+# IRGA was behaving badly from 20 Apr to  11 Jun ~7am MDT
+# due to issues with connection and sensor head power reset
+flux_add[as.Date(date_time)>as.Date("2021-04-20") & ymd_hms(date_time)<ymd_hms("2021-07-01 07:00:00"), filter_H := 1L]
+
 
 # look at all filtered H
 ggplot(flux_add[filter_H!=1,],
@@ -178,6 +185,9 @@ flux_add[LE < (-50), filter_LE := 1L]
 # remove LE >1000 this is a generally outlying value
 flux_add[LE >1000, filter_LE := 1L]
 
+# IRGA was behaving badly from 20 Apr to  11 Jun ~7am MDT 2021
+# due to issues with connection and sensor head power reset
+flux_add[as.Date(date_time)>as.Date("2021-04-20") & ymd_hms(date_time)<ymd_hms("2021-07-01 07:00:00"), filter_LE := 1L]
 
 # look at LE  by month for each year
 ggplot(flux_add[filter_LE!=1,],
