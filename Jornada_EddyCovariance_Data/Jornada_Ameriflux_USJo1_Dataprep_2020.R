@@ -14,9 +14,9 @@ library(ggplot2)
 library(bit64)
 
 # import filtered flux data file from Eddy Pro as data table
-setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2020/EddyPro_Out/")
+setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/")
 
-flux_filter_sd <- fread("JER_flux_2020_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
+flux_filter_sd <- fread("JER_flux_2021_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
             header = TRUE, na.strings=c("na","NA","","-9999"))
 
 
@@ -44,13 +44,14 @@ levels(as.factor(flux_filter_sd$BADM_INST_SA_GILL_ALIGN))
 # force NA
 flux_filter_sd[,BADM_INST_SA_GILL_ALIGN:=NA]
 
+# for 2020 data
 # remove dataL1_ts_20191231_0000.csv row. That's the last timestamp of 2019 and shouldn't be in 2020
-flux <- flux_filter_sd[!(FILENAME_HF == "dataL1_ts_20191231_0000.csv")]
+# flux <- flux_filter_sd[!(FILENAME_HF == "dataL1_ts_20191231_0000.csv")]
 
 # import biomet2 which contains all sensors as individual datastreams
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/Biomet2_20201227")
 
-biomet_all <- fread("Biomet_USJo1_wide_2020_.csv", sep=",",dec=".", header=TRUE)
+biomet_all <- fread("Biomet_USJo1_wide_2021_.csv", sep=",",dec=".", header=TRUE)
 
 biomet_all[,':=' (date_time = parse_date_time(date_time,"Ymd HMS",tz="UTC"))]
 
