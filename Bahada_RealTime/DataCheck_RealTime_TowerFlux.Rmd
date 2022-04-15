@@ -16,7 +16,7 @@ library(lubridate)
 library(plotly)
 
 # ENTER YEAR TO CHECK HERE
-yeartocheck <- 2021
+yeartocheck <- 2022
 
 # import data directly from SEL Data Archive
 flux_colnames <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/",yeartocheck,"/Raw_Data/ASCII/dataL1_flux_",yeartocheck,".csv",sep=""),
