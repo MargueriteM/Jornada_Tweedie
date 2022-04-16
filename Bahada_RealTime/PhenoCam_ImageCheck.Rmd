@@ -1,0 +1,116 @@
+---
+title: "Test_PhenoImages"
+author: "Marguerite Mauritz"
+date: "4/15/2022"
+output:
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: inline
+---
+
+DO NOT RUN AS RMD, RUN ONLY INLINE
+SPACE IN FILE NAMES CREATES ISSUES WITH knitr:include_graphics. 
+HAVE NOT BEEN ABLE TO FIND A WORK-AROUND
+
+```{r setup, include=FALSE}
+# load libraries
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(stringr)
+library(data.table)
+```
+
+```{r, load info for camera 1}
+yeartocheck <- 2022
+
+cam1_wd <- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Phenocam/TwrPhenocam/Cam1_Tram/",yeartocheck,"/",sep="")
+
+cam1files <- list.files(path=cam1_wd)
+
+cam1_latest <- max(cam1files)
+
+
+cam1_date <- ymd(paste(str_split_n(cam1_latest,"_",3),str_split_n(cam1_latest,"_",4)))
+
+print(cam1_date)
+ 
+setwd(cam1_wd)
+
+cam1_latest
+
+knitr::include_graphics(cam1_latest)
+
+getwd()
+```
+
+```{r, load info for camera 2}
+yeartocheck <- 2022
+
+cam2_wd <- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Phenocam/TwrPhenocam/Cam2_West/",yeartocheck,"/",sep="")
+
+cam2files <- list.files(path=cam2_wd)
+
+cam2_latest <- max(cam2files)
+
+
+cam2_date <- ymd(paste(str_split_n(cam2_latest,"_",3),str_split_n(cam1_latest,"_",4)))
+
+print(cam2_date)
+ 
+setwd(cam2_wd)
+
+cam1_latest
+
+knitr::include_graphics(cam2_latest)
+
+getwd()
+```
+
+```{r, load info for camera 3}
+yeartocheck <- 2022
+
+cam3_wd <- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Phenocam/TwrPhenocam/cam3_SouthWest/",yeartocheck,"/",sep="")
+
+cam3files <- list.files(path=cam3_wd)
+
+cam3_latest <- max(cam3files)
+
+
+cam3_date <- ymd(paste(str_split_n(cam3_latest,"_",3),str_split_n(cam1_latest,"_",4)))
+
+print(cam3_date)
+ 
+setwd(cam3_wd)
+
+cam1_latest
+
+knitr::include_graphics(cam3_latest)
+
+getwd()
+```
+
+```{r, load info for camera 4}
+yeartocheck <- 2022
+
+cam4_wd <- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Phenocam/TwrPhenocam/cam4_South/",yeartocheck,"/",sep="")
+
+cam4files <- list.files(path=cam4_wd)
+
+cam4_latest <- max(cam4files)
+
+
+cam4_date <- ymd(paste(str_split_n(cam4_latest,"_",3),str_split_n(cam1_latest,"_",4)))
+
+print(cam4_date)
+ 
+setwd(cam4_wd)
+
+cam1_latest
+
+knitr::include_graphics(cam4_latest)
+
+getwd()
+```
