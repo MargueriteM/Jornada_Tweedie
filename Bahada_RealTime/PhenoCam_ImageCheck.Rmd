@@ -8,6 +8,7 @@ output:
 editor_options:
   chunk_output_type: inline
 ---
+Code to easily check latest phenocam images from Bajada Tower
 
 DO NOT RUN AS RMD, RUN ONLY INLINE
 SPACE IN FILE NAMES CREATES ISSUES WITH knitr:include_graphics. 
