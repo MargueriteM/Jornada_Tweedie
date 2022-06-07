@@ -47,6 +47,8 @@ source("~/Desktop/R/R_programs/Functions/plot.windrose.R")
 
 year_file <- 2021
 
+# Based on data checks, no data form Met and CS650 from 16 Dec 17:30 to 17 Jan 2022
+
 # import most recent file
 climate.loggerinfo <-fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/",year_file,"/Raw_Data/ASCII/dataL1_met_",year_file,".csv",sep=""),
                          header = FALSE, sep=",", skip = 0,fill=TRUE,

@@ -39,6 +39,8 @@ library(ggplot2)
 
 year_file <- 2021
 
+# Based on data checks, no data form Met and CS650 from 16 Dec 17:30 to 17 Jan 2022
+
 # set working directory to server
 setwd(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_CS650/",year_file,"/Raw_Data/ASCII",sep=""))
 
@@ -133,18 +135,36 @@ qaqc.path<- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada
 setwd(qaqc.path)
 
 
+# write.table(cs650.save,
+#             paste("dataL2_Soil_",year(startdate),sprintf("%02d",(month(startdate))),sprintf("%02d",(day(startdate))),
+#                   sprintf("%02d",(hour(startdate))),sprintf("%02d",(minute(startdate))),
+#                   sprintf("%02d",(second(startdate))),
+#                   "_",
+#                   year(enddate),sprintf("%02d",(month(enddate))),sprintf("%02d",(day(enddate))),
+#                   sprintf("%02d",(hour(enddate))),sprintf("%02d",(minute(enddate))),
+#                   sprintf("%02d",(second(enddate))), ".csv",sep=""),
+#             sep=",", dec=".", row.names=FALSE)
+
+# save file with only year in name to QAQC file along with date range info in seperate file
 write.table(cs650.save,
-            paste("dataL2_Soil_",year(startdate),sprintf("%02d",(month(startdate))),sprintf("%02d",(day(startdate))),
-                  sprintf("%02d",(hour(startdate))),sprintf("%02d",(minute(startdate))),
-                  sprintf("%02d",(second(startdate))),
-                  "_",
-                  year(enddate),sprintf("%02d",(month(enddate))),sprintf("%02d",(day(enddate))),
-                  sprintf("%02d",(hour(enddate))),sprintf("%02d",(minute(enddate))),
-                  sprintf("%02d",(second(enddate))), ".csv",sep=""),
+            paste("dataL2_Soil_",year_file, ".csv",sep=""),
             sep=",", dec=".", row.names=FALSE)
 
 
-# IF year is complete, also save to Combined folder with only year name
+
+# save file range to QAQC folder on data archive
+startdate <- (min(cs650$date_time))
+enddate <- (max(cs650$date_time))
+
+# save a text file that says date that code was run (system time), start and end date of data
+run.info <- data.frame(info=c("Data_start","Data_end","Date_processed"),
+                       date_time=c(startdate,enddate,ymd_hms(Sys.time(),tz="UTC")))
+
+write.table(run.info, "dataL2_Soil_DateRange.csv",
+            sep=",", dec=".", row.names=FALSE)
+
+
+# Save data and run info to Combined folder with only year name
 difftime(startdate,enddate)
 
 setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_CS650/Combined")
@@ -152,6 +172,10 @@ setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilS
 write.table(cs650.save,
             paste("dataL2_Soil_",year_file, ".csv",sep=""),
             sep=",", dec=".", row.names=FALSE)
+
+write.table(run.info, "dataL2_met_DateRange.csv",
+            sep=",", dec=".", row.names=FALSE)
+
 
 # save the R script that went along with creating the file to have a record of QA/QC
 # use rstudioapi to get the path of the current script and then copy it to the 

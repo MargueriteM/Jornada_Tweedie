@@ -131,6 +131,11 @@ SN_long <- melt.data.table(SN_fx_data,c("Date"))
 # descriptors are: sensor, SN, veg, depth
 SN_long <- merge(SN_long, colnames2019, by="variable")
 
+# check start and end dates of data
+startdate.check <- (min(SN_long$Date))
+enddate.check <- (max(SN_long$Date))
+
+
 # calculate half-hour means using ceiling date which takes each time to the next half-hour,
 # ie: 15:00:01 goes to 15:30, etc. 
 SN_30min <- SN_long[sensor!="rain", list(mean.val = mean(value, na.rm=TRUE),
@@ -198,12 +203,20 @@ SN_30min[sensor=="rain" & (mean.val<0 | mean.val>50), mean.val := NA]
 SN_30min[sensor=="rain" & date(date_time) == as.Date("2021-11-12") & veg=="PRGL" & mean.val>0 , mean.val := NA]
 
 
-# graph lws and rain
+# graph lws and rain, by cover type
 ggplot(SN_30min[sensor=="rain" | sensor =="lws",], aes(date_time, mean.val, colour=SN))+
   geom_point()+
   geom_line()+
   labs(title="Leaf wetness and Rain") +
   facet_grid(sensor~veg, scales="free_y")
+
+# graph lws and rain, grouped for all covers
+ggplot(SN_30min[sensor=="rain" | sensor =="lws",], aes(date_time, mean.val, colour=SN))+
+  geom_point()+
+  geom_line()+
+  labs(title="Leaf wetness and Rain") +
+  facet_grid(sensor~., scales="free_y")
+
 
 # moisture
 # remove periods when the sensors are bad. 
@@ -248,7 +261,7 @@ SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
            date_time <= as.Date("2021-10-15"), mean.val := NA]
 
 
-# plot soil moisture
+# plot soil moisture after corrections/filters
 ggplot(SN_30min[sensor=="moisture",],
        aes(date_time, mean.val, colour=factor(depth)))+
   geom_line(aes(linetype=factor(depth)))+
@@ -391,7 +404,7 @@ write.table(SN_wide_save,
 run.info <- data.frame(info=c("Data_start","Data_end","Date_processed"),
                        date_time=c(startdate,enddate,ymd_hms(Sys.time(),tz="UTC")))
 
-write.table(run.info, "WSN_L2__DateRange.csv",
+write.table(run.info, "WSN_L2_DateRange.csv",
             sep=",", dec=".", row.names=FALSE)
 
 
