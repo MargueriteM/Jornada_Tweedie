@@ -44,7 +44,7 @@ library(lattice)
 # Get sensor network data from server, using compiled files
 setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/")
 
-year_file <- 2021
+year_file <- 2022
 
 SN <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/WSN_",year_file,".csv",sep=""),
               header = TRUE, sep=",",
@@ -170,6 +170,14 @@ SN_30min1 <- copy(SN_30min)
 # to fix errors:
 # SN_30min <- copy(SN_30min1)
 
+# battery voltage: that will tell me which networks are completely out.
+ggplot(SN_30min[sensor=="battery",], aes(date_time, mean.val, colour=SN))+
+  geom_line()+
+  labs(title="Battery Voltage") +
+  facet_grid(SN~., scales="free_y")
+
+# 2022 (June 6): no voltage on SN5, SN6, SN7
+
 # REMOVE OBVIOUSLY BAD DATA POINTS
 # lws values should be between 0-100
 # lws: remove values <0 and >100
@@ -200,8 +208,9 @@ SN_30min[sensor=="rain" & (mean.val<0 | mean.val>50), mean.val := NA]
 
 # on Nov 12th 2021 ~10:15 cleaned rain bucket under PRGl and move tipping scale. 
 # remove "rain" on this day
-SN_30min[sensor=="rain" & date(date_time) == as.Date("2021-11-12") & veg=="PRGL" & mean.val>0 , mean.val := NA]
+# SN_30min[sensor=="rain" & date(date_time) == as.Date("2021-11-12") & veg=="PRGL" & mean.val>0 , mean.val := NA]
 
+# 2022: max value filter removes value ~800 in PRGL.
 
 # graph lws and rain, by cover type
 ggplot(SN_30min[sensor=="rain" | sensor =="lws",], aes(date_time, mean.val, colour=SN))+
@@ -227,38 +236,43 @@ ggplot(SN_30min[sensor=="moisture",],
   labs(title="Soil Moisture") +
   facet_grid(veg~., scales="free_y")
 
+# 2022: only BARE has soil moisture (SN4)
+# LATR: SN5, SN data logger not working
+# MUPO: SN7, , SN data logger not working
+# PRGL: SN3, sensors got moved on ~19 June 2019
+
 # MUPO 10cm: 13 July 2021 there was a baseline shift! Remove after this.
-SN_30min[sensor=="moisture"&veg=="MUPO"&depth==10&date_time>as.Date("2021-07-13"), mean.val := NA]
+# SN_30min[sensor=="moisture"&veg=="MUPO"&depth==10&date_time>as.Date("2021-07-13"), mean.val := NA]
 
 # MUPO 20cm: in October 2018 there was a baseline shift! Remove after this.
-SN_30min[sensor=="moisture"&veg=="MUPO"&depth==20, mean.val := NA]
+# SN_30min[sensor=="moisture"&veg=="MUPO"&depth==20, mean.val := NA]
 
 # MUPO 30cm: 11 July 2021 there was a baseline shift! Remove after this.
-SN_30min[sensor=="moisture"&veg=="MUPO"&depth==30&date_time>as.Date("2021-07-11"), mean.val := NA]
+# SN_30min[sensor=="moisture"&veg=="MUPO"&depth==30&date_time>as.Date("2021-07-11"), mean.val := NA]
 
 
 # PRGL remove all after January 2019 (sensors got moved on ~19 June 2019)
-SN_30min[sensor=="moisture"&veg=="PRGL"&date_time>=as.Date("2019-01-01"),
-         mean.val := NA]
+# SN_30min[sensor=="moisture"&veg=="PRGL"&date_time>=as.Date("2019-01-01"),
+#         mean.val := NA]
 
 
 # LATR 5cm: probe goes bad after 12 Feb 2017
-SN_30min[sensor=="moisture"&veg=="LATR"&depth==5&
-           date_time >= as.Date("2017-02-12"), mean.val := NA]
+# SN_30min[sensor=="moisture"&veg=="LATR"&depth==5&
+#           date_time >= as.Date("2017-02-12"), mean.val := NA]
 
 # LATR 10cm: probe had a baseline shift 14 Feb 2019 at 23:30. Remove values after this.
-SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&
-           (date_time>=as.POSIXct("2019-02-14 23:00:00", tz="UTC")), mean.val := NA]
+# SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&#
+#           (date_time>=as.POSIXct("2019-02-14 23:00:00", tz="UTC")), mean.val := NA]
 
 # LATR 20cm: had baseline shift after 28 Feb 2019 18:00 , remove
-SN_30min[sensor=="moisture"&veg=="LATR"&depth==20&
-           date_time >= as.POSIXct("2019-02-28 18:00:00", tz="UTC"), mean.val := NA]
+# SN_30min[sensor=="moisture"&veg=="LATR"&depth==20&
+#           date_time >= as.POSIXct("2019-02-28 18:00:00", tz="UTC"), mean.val := NA]
 
 # BARE 5cm: drifts after July 2021 rain event then looks Ok again. Remove between dates
 # 1 July and 15 October
-SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
-           date_time >= as.Date("2021-07-01") & 
-           date_time <= as.Date("2021-10-15"), mean.val := NA]
+# SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
+#           date_time >= as.Date("2021-07-01") & 
+#           date_time <= as.Date("2021-10-15"), mean.val := NA]
 
 
 # plot soil moisture after corrections/filters
@@ -283,9 +297,9 @@ SN_30min[sensor=="par" & mean.val<0, mean.val := NA]
 SN_30min[sensor=="par" & veg!="UP" & mean.val>1000, mean.val := NA]
 
 # 2021 downward-facing sensors had sporadic outlying values >600. remove
-SN_30min[sensor=="par" & veg!="UP" & mean.val>500, mean.val := NA]
+# SN_30min[sensor=="par" & veg!="UP" & mean.val>500, mean.val := NA]
 # In May 2021 FLCE high value was not removed by >500 but if I use a lower cutoff then I'll remove January high values that could be real due to snow
-SN_30min[sensor=="par" & veg=="FLCE" & month==5 & mean.val>400, mean.val := NA]
+# SN_30min[sensor=="par" & veg=="FLCE" & month==5 & mean.val>400, mean.val := NA]
 
 # graph
 ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
@@ -297,6 +311,8 @@ ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
 # can't be negative
 # pressure: can't be <0
 SN_30min[sensor=="pressure" & mean.val<0, mean.val := NA]
+
+# 2022: pressure on SN5 which isn't working
 
 ggplot(SN_30min[sensor=="pressure",], aes(date_time, mean.val, colour=SN))+
   geom_line()+
@@ -404,7 +420,7 @@ write.table(SN_wide_save,
 run.info <- data.frame(info=c("Data_start","Data_end","Date_processed"),
                        date_time=c(startdate,enddate,ymd_hms(Sys.time(),tz="UTC")))
 
-write.table(run.info, "WSN_L2_DateRange.csv",
+write.table(run.info, paste("WSN_L2_DateRange_",year_file,"..csv",sep=""),
             sep=",", dec=".", row.names=FALSE)
 
 
