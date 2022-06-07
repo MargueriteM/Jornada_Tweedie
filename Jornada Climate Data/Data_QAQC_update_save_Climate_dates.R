@@ -45,7 +45,7 @@ source("~/Desktop/R/R_programs/Functions/plot.windrose.R")
 # CO2_raw: mmol/m3
 # H2O_raw: mmol/m3
 
-year_file <- 2021
+year_file <- 2022
 
 # Based on data checks, no data form Met and CS650 from 16 Dec 17:30 to 17 Jan 2022
 
@@ -95,8 +95,13 @@ climate_30min[,':=' (date_time=ceiling_date,
 climate_30min <- merge(climate_30min, precip_tot_30min, by="date_time")
 
 
+# check file start and end date
+startdate.check <- (min(climate_30min$date_time))
+enddate.check <- (max(climate_30min$date_time))
+
+
 # select the date on and after which you want to see the data
-date_select <- as.POSIXct("2021-01-01 00:00:00", ("%Y-%m-%d %H:%M:%S"), tz="UTC")
+date_select <- as.POSIXct("2022-01-01 00:00:00", ("%Y-%m-%d %H:%M:%S"), tz="UTC")
 
 climate_30min <- climate_30min[date_time >= date_select,]
 
@@ -121,9 +126,9 @@ ggplot(climate_30min, aes(date_time, par))+geom_line()
 ggplot(climate_30min, aes(date_time, albedo))+geom_line()
 
 # selected net Rs and Rl
-ggplot(climate_30min[date_time>as.Date("2021-10-29") & date_time<as.Date("2021-10-30"),])+
-  geom_line(aes(date_time, net_rs, colour="net_rs"))+
-  geom_line(aes(date_time, net_ri, colour="net_rl"))
+#ggplot(climate_30min[date_time>as.Date("2021-10-29") & date_time<as.Date("2021-10-30"),])+
+#  geom_line(aes(date_time, net_rs, colour="net_rs"))+
+#  geom_line(aes(date_time, net_ri, colour="net_rl"))
 
 # all net Rs and Rl  
 ggplot(climate_30min)+
@@ -193,14 +198,15 @@ ggplot(met30_long[variable%in% c("up_tot", "dn_tot")], aes(date_time, value, col
   labs(title="Total up and down")
 
 # 2021 Net Rl and up_tot is bad from 27 Aug 2021 to 29 Oct 2021 19:30 due to broken upward looking Rl sensor						
-met30_long[variable%in% c("net_ri","up_tot") &
-             (date_time > as.POSIXct("2021-08-27 00:00", tz="UTC") &
-                date_time < as.POSIXct("2021-10-29 19:30", tz="UTC")),
-           value := NA]
+# met30_long[variable%in% c("net_ri","up_tot") &
+#             (date_time > as.POSIXct("2021-08-27 00:00", tz="UTC") &
+#                date_time < as.POSIXct("2021-10-29 19:30", tz="UTC")),
+#           value := NA]
 
 ggplot(met30_long[variable%in% c("net_rs", "net_ri")], aes(date_time, value, colour=variable))+geom_point()+
   labs(title="net_rs and net_rl")
 
+# 2022 looks good up to "2022-06-01 11:30:00 UTC"
 
 # if up or dn is NA then albedo and net are also NA
 dn_tot_na <- copy(met30_long[variable == "dn_tot" & is.na(value), (date_time)])
