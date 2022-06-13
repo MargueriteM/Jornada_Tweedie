@@ -94,6 +94,30 @@
 # Rl_downwell_Avg	W/m^2
 # Rl_upwell_Avg	W/m^2
 
+
+############
+# CS 650 data
+###########
+# Numbers in variable names, eg: T_1, P_1, T_2, P_2 follow the SDI address of each sensor. 
+# 
+# All read 1.9-2.2% VWC at same location
+# 
+# SDI, SN, Depth (cm) of sensors, Location relative to Caliche
+# SDI 1 SN 46381 Depth 100.5cm Caliche inside/below
+# SDI 2 SN 46371 Depth 42.5cm Caliche above
+# SDI 3 SN 46374 Depth 25.5 cm Caliche above
+# SDI 4 SN 46416 Depth 17.5 cm Caliche above
+# SDI 5 SN 46414 Depth 11.5 cm Caliche above
+# 
+# Data logging starts 2021-05-04 12:44:00
+
+# T soiltemp Celsius
+# VWC soilmoisture proportion
+# EC soilconductivity dS/m
+# P soilpermittivity not sure
+# PA soilperiodaverage uS
+# VR soilvoltratio ratio
+
 ######## NRCS Solar Radiation Data
 # import hourly data from NRCS for gapfilling SW In (Rg in EddyPro) for 2010 and 2011
 # recored in MST (no daylight savings)
@@ -235,8 +259,9 @@ cs650[measurement == "T", variable := "soiltemp"]
 cs650[measurement == "VWC", variable := "soilmoisture"]
 cs650[measurement == "EC", variable := "soilconductivity"]
 cs650[measurement == "P", variable := "soilpermittivity"]
+cs650[measurement == "PA", variable := "soilperiodaverage"]
 cs650[measurement == "VR", variable := "soilvoltratio"]
-
+cs650[,variable := droplevels(factor(variable))]
 
 setnames(cs650, c('value'), c('mean.val'))
 
@@ -313,10 +338,20 @@ levels(factor(env_30min$variable))
 # [10] "airtemp"      "rh"           "e_hmp"        "wnd_spd"      "wnd_dir"      "albedo"       "lws_2"        "NetRs"        "Net_Rl"      
 # [19] "UpTot"        "DnTot"        "Rn_nr_Avg"    "hfp"          "Rs_down"      "Rs_up"        "Rl_down"      "Rl_up"        "soiltemp"    
 
+# cs650 adds:
+# "soilconductivity"  "soilperiodaverage" "soilpermittivity"     
+# [31] "soilvoltratio"   
+ 
+
 # check the levels of height and order them
 levels(factor(env_30min$height))
 
-env_30min[,height := factor(height,levels=c("-30","-20","-15","-10","-5","-2","50","500"))]
+# with ECTM
+# env_30min[,height := factor(height,levels=c("-30","-20","-15","-10","-5","-2","50","500"))]
+# with CS650:
+ env_30min[,height := factor(height,levels=c("-100.5","-42.5","-30","-25.5","-20","-17.5","-15","-11.5",
+                                             "-10","-5","50","500"))]
+
 
 # create a variable to show data coverage =1 with data 
 env_30min[!is.na(mean.val), coverage := 1]
@@ -348,7 +383,7 @@ precip[SN2==0 & (SN6!=0 | tower!=0), SN2 := NA]
 precip[SN6==0 & (SN2!=0 | tower!=0), SN6 := NA]
 precip[tower==0 & (SN2!=0 | SN6!=0), tower := NA]
 
-# in 2021 SN6 was not working, make all SN6 precip NA
+# in 2021 and 2022 SN6 was not working, make all SN6 precip NA
 precip[, SN6 := NA]
 
 # now join the fixed precip data back to the env_30min
@@ -694,6 +729,13 @@ biomet2[variable %in% c("soilmoisture") & (veg == "PRGL" & location =="SN" & hei
 biomet2[variable %in% c("soilmoisture") & (veg == "PRGL" & location =="SN" & height=="-30"),
         ameriflux.id := "SWC_4_4_1"]
 
+
+# add tower data from CSS650 sensors: 5
+biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="tower" & height=="-11.5"),
+        ameriflux.id := "SWC_5_1_1"]
+
+biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="tower" & height=="-11.5"),
+        ameriflux.id := "SWC_5_1_1"]
 
 # soil temperature = Ts
 # calculate average 'surface': 5-15cm Ts_1
