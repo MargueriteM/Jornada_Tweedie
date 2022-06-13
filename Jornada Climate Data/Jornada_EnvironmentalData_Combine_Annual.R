@@ -117,7 +117,7 @@ library(corrplot)
 #############
 # IMPORT DATA
 #############
-year_file <- 2020
+year_file <- 2022
 # Sensor network data:
 SN_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
@@ -207,44 +207,100 @@ flux_30min[variable == "Rl_upwell_Avg", variable := "Rl_up"]
 # get rid of flux_wide
 rm(flux_wide)
 
-# Tower soil temperature and moisture data (ECTM)
-soil_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_ECTM/Combined/dataL2_ectm_",year_file,".csv",sep=""),
+# ECTM stopped March 2021. After this have CS650 probes in a profile with data since May
+# Numbers in variable names, eg: T_1, P_1, T_2, P_2 follow the SDI address of each sensor. 
+# 
+# All read 1.9-2.2% VWC at same location
+# 
+# SDI, SN, Depth (cm) of sensors, Location relative to Caliche
+# SDI 1 SN 46381 Depth 100.5cm Caliche inside/below
+# SDI 2 SN 46371 Depth 42.5cm Caliche above
+# SDI 3 SN 46374 Depth 25.5 cm Caliche above
+# SDI 4 SN 46416 Depth 17.5 cm Caliche above
+# SDI 5 SN 46414 Depth 11.5 cm Caliche above
+# 
+# Data logging starts 2021-05-04 12:44:00 
+
+cs650_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_CS650/Combined/dataL2_Soil_",year_file,".csv",sep=""),
                     sep=",", header=TRUE)
 
-# format date and add column to deginate the data stream, get rid or uneccessary columns
-soil_30min <- melt(soil_wide,c("date_time"))
+cs650 <- melt(cs650_wide,c("TIMESTAMP"))
+
 
 # extract info on measurent and rep from variable
-soil_30min[,variable := as.character(variable)][,':=' (measurement = sapply(strsplit(variable,"_"), getElement, 1),
-                rep = sapply(strsplit(variable,"_"), getElement, 2))]
+cs650[,variable := as.character(variable)][,':=' (measurement = sapply(strsplit(variable,"_"), getElement, 2),
+                rep = sapply(strsplit(variable,"_"), getElement, 3))]
 
-soil_30min[measurement == "t", variable := "soiltemp"]
-soil_30min[measurement == "vwc", variable := "soilmoisture"]
+cs650[measurement == "T", variable := "soiltemp"]
+cs650[measurement == "VWC", variable := "soilmoisture"]
+cs650[measurement == "EC", variable := "soilconductivity"]
+cs650[measurement == "P", variable := "soilpermittivity"]
+cs650[measurement == "VR", variable := "soilvoltratio"]
 
-setnames(soil_30min, c('value'), c('mean.val'))
+
+setnames(cs650, c('value'), c('mean.val'))
 
 # make a guess at depths
-soil_30min[rep%in% c(6,7), height := "-2"] 
-soil_30min[rep%in% c(1,8), height := "-10"] 
-soil_30min[rep%in% c(3,5), height := "-15"] 
-soil_30min[rep%in% c(2,4), height := "-20"]
+cs650[rep==1, height := "-100.5"]
+cs650[rep==2, height := "-42.5"]
+cs650[rep==3, height := "-25.5"]
+cs650[rep==4, height := "-17.5"]
+cs650[rep==5, height := "-11.5"]
 
 
 # assign veg type (should be shrub/bare, once I know.)
 # for now assign best guess
-soil_30min[rep %in% c(1,3,7,4), veg := "BARE"]
-soil_30min[rep %in% c(2,5,6,8), veg := "SHRUB"]
+cs650[, veg := "BARE"]
 
 # modify columns to match other datastreams and get rid of redundant ones
-soil_30min[, ':=' (date_time = ymd_hms(date_time),
-                   datastream = "ectm",location = "tower",
-                    rep=NULL, measurement=NULL)]
+cs650[, ':=' (date_time = ymd_hms(TIMESTAMP),
+                   datastream = "cs650",location = "tower",
+                    rep=NULL, measurement=NULL, TIMESTAMP=NULL)]
 
 # remove soil_wide
-rm(soil_wide)
+rm(cs650_wide)
+
+############################################
+# # Tower soil temperature and moisture data (ECTM)
+############################################
+# soil_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_ECTM/Combined/dataL2_ectm_",year_file,".csv",sep=""),
+#                     sep=",", header=TRUE)
+# 
+# # format date and add column to deginate the data stream, get rid or uneccessary columns
+# soil_30min <- melt(soil_wide,c("date_time"))
+# 
+# # extract info on measurent and rep from variable
+# soil_30min[,variable := as.character(variable)][,':=' (measurement = sapply(strsplit(variable,"_"), getElement, 1),
+#                 rep = sapply(strsplit(variable,"_"), getElement, 2))]
+# 
+# soil_30min[measurement == "t", variable := "soiltemp"]
+# soil_30min[measurement == "vwc", variable := "soilmoisture"]
+# 
+# setnames(soil_30min, c('value'), c('mean.val'))
+# 
+# # make a guess at depths
+# soil_30min[rep%in% c(6,7), height := "-2"] 
+# soil_30min[rep%in% c(1,8), height := "-10"] 
+# soil_30min[rep%in% c(3,5), height := "-15"] 
+# soil_30min[rep%in% c(2,4), height := "-20"]
+# 
+# 
+# # assign veg type (should be shrub/bare, once I know.)
+# # for now assign best guess
+# soil_30min[rep %in% c(1,3,7,4), veg := "BARE"]
+# soil_30min[rep %in% c(2,5,6,8), veg := "SHRUB"]
+# 
+# # modify columns to match other datastreams and get rid of redundant ones
+# soil_30min[, ':=' (date_time = ymd_hms(date_time),
+#                    datastream = "ectm",location = "tower",
+#                     rep=NULL, measurement=NULL)]
+# 
+# # remove soil_wide
+# rm(soil_wide)
+##################################
 
 # combine all three SEL data streams 
-env_30min <- rbind(SN_30min,met_30min,flux_30min,soil_30min,fill=TRUE)
+env_30min <- rbind(SN_30min,met_30min,flux_30min,cs650,fill=TRUE)
 
 # some datastreams don't have all the time stamp columns. Create
 env_30min[,':=' (year = year(date_time),
