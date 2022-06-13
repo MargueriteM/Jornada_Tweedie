@@ -734,8 +734,17 @@ biomet2[variable %in% c("soilmoisture") & (veg == "PRGL" & location =="SN" & hei
 biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="tower" & height=="-11.5"),
         ameriflux.id := "SWC_5_1_1"]
 
-biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="tower" & height=="-11.5"),
-        ameriflux.id := "SWC_5_1_1"]
+biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="tower" & height=="-17.5"),
+        ameriflux.id := "SWC_5_2_1"]
+
+biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="tower" & height=="-25.5"),
+        ameriflux.id := "SWC_5_3_1"]
+
+biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="tower" & height=="-42.5"),
+        ameriflux.id := "SWC_5_4_1"]
+
+biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="tower" & height=="-100.5"),
+        ameriflux.id := "SWC_5_5_1"]
 
 # soil temperature = Ts
 # calculate average 'surface': 5-15cm Ts_1
@@ -915,7 +924,7 @@ saveyears <- function(data,startyear,endyear) {
   }}
 
  
-# saveyears(biomet2_wide,2020,2020)
+# saveyears(biomet2_wide,2022,2022)
 
 ### GAPFILL ENV Data for internal use #### 
 
