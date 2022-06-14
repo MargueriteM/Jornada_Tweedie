@@ -959,6 +959,11 @@ saveyears <- function(data,startyear,endyear) {
 # save 
 # saveyears(biomet2_wide,year_file,year_file)
 
+## also save to Biomet One Drive preliminary folder
+# setwd("~/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Biomet/Preliminary")
+
+# saveyears(biomet2_wide,year_file,year_file)
+
 ### GAPFILL ENV Data for internal use #### 
 
 # From ReddyProc FAQ: 
