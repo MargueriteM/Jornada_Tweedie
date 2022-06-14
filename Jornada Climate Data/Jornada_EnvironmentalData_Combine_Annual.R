@@ -141,7 +141,7 @@ library(corrplot)
 #############
 # IMPORT DATA
 #############
-year_file <- 2021
+year_file <- 2022
 # Sensor network data:
 SN_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
@@ -265,7 +265,7 @@ cs650[,variable := droplevels(factor(variable))]
 
 setnames(cs650, c('value'), c('mean.val'))
 
-# make a guess at depths
+# add depths
 cs650[rep==1, height := "-100.5"]
 cs650[rep==2, height := "-42.5"]
 cs650[rep==3, height := "-25.5"]
