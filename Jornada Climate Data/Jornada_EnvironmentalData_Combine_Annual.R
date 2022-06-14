@@ -287,44 +287,44 @@ rm(cs650_wide)
 ############################################
 # # Tower soil temperature and moisture data (ECTM)
 ############################################
-soil_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_ECTM/Combined/dataL2_ectm_",year_file,".csv",sep=""),
-                    sep=",", header=TRUE)
-
-# format date and add column to deginate the data stream, get rid or uneccessary columns
-soil_30min <- melt(soil_wide,c("date_time"))
-
-# extract info on measurent and rep from variable
-soil_30min[,variable := as.character(variable)][,':=' (measurement = sapply(strsplit(variable,"_"), getElement, 1),
-                rep = sapply(strsplit(variable,"_"), getElement, 2))]
-
-soil_30min[measurement == "t", variable := "soiltemp"]
-soil_30min[measurement == "vwc", variable := "soilmoisture"]
-
-setnames(soil_30min, c('value'), c('mean.val'))
-
-# make a guess at depths
-soil_30min[rep%in% c(6,7), height := "-2"]
-soil_30min[rep%in% c(1,8), height := "-10"]
-soil_30min[rep%in% c(3,5), height := "-15"]
-soil_30min[rep%in% c(2,4), height := "-20"]
-
-
-# assign veg type (should be shrub/bare, once I know.)
-# for now assign best guess
-soil_30min[rep %in% c(1,3,7,4), veg := "BARE"]
-soil_30min[rep %in% c(2,5,6,8), veg := "SHRUB"]
-
-# modify columns to match other datastreams and get rid of redundant ones
-soil_30min[, ':=' (date_time = ymd_hms(date_time),
-                   datastream = "ectm",location = "tower",
-                    rep=NULL, measurement=NULL)]
-
-# remove soil_wide
-rm(soil_wide)
+# soil_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_ECTM/Combined/dataL2_ectm_",year_file,".csv",sep=""),
+#                     sep=",", header=TRUE)
+# 
+# # format date and add column to deginate the data stream, get rid or uneccessary columns
+# soil_30min <- melt(soil_wide,c("date_time"))
+# 
+# # extract info on measurent and rep from variable
+# soil_30min[,variable := as.character(variable)][,':=' (measurement = sapply(strsplit(variable,"_"), getElement, 1),
+#                 rep = sapply(strsplit(variable,"_"), getElement, 2))]
+# 
+# soil_30min[measurement == "t", variable := "soiltemp"]
+# soil_30min[measurement == "vwc", variable := "soilmoisture"]
+# 
+# setnames(soil_30min, c('value'), c('mean.val'))
+# 
+# # make a guess at depths
+# soil_30min[rep%in% c(6,7), height := "-2"]
+# soil_30min[rep%in% c(1,8), height := "-10"]
+# soil_30min[rep%in% c(3,5), height := "-15"]
+# soil_30min[rep%in% c(2,4), height := "-20"]
+# 
+# 
+# # assign veg type (should be shrub/bare, once I know.)
+# # for now assign best guess
+# soil_30min[rep %in% c(1,3,7,4), veg := "BARE"]
+# soil_30min[rep %in% c(2,5,6,8), veg := "SHRUB"]
+# 
+# # modify columns to match other datastreams and get rid of redundant ones
+# soil_30min[, ':=' (date_time = ymd_hms(date_time),
+#                    datastream = "ectm",location = "tower",
+#                     rep=NULL, measurement=NULL)]
+# 
+# # remove soil_wide
+# rm(soil_wide)
 ##################################
 
 # combine all three SEL data streams 
-env_30min <- rbind(SN_30min,met_30min,flux_30min,soil_30min, cs650,fill=TRUE)
+env_30min <- rbind(SN_30min,met_30min,flux_30min, cs650,fill=TRUE)
 
 # some datastreams don't have all the time stamp columns. Create
 env_30min[,':=' (year = year(date_time),
@@ -650,7 +650,7 @@ biomet2[variable %in% c("par") & SN=="SN8" & veg %in% c("PRGL") ,
 # precip: BARE from tower and SN = P_rain
 # tower == 1, SN2 == 2, SN6 == 3
 # tower: P_rain_1_1_1, SN: P_rain_2_1_1
-ggplot(env_30min[variable %in% c("precip.tot") & veg=="BARE" ], aes(date_time, mean.val))+
+ggplot(env_30min[variable %in% c("precip.tot") & veg=="BARE" ], aes(date_time, mean.val, colour=SN))+
   geom_line()+
   facet_grid(location+veg~.)
                                 
@@ -664,6 +664,8 @@ biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN" & SN=="SN2"
 biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN" & SN=="SN6",
         ameriflux.id := "P_RAIN_3_1_1"]
 
+ggplot(biomet2[variable %in% c("precip.tot"),], aes(date_time, mean.val))+
+  geom_line()+facet_grid(ameriflux.id~.)
 
 # Soil moisture
 # report SWC seperately for each depth and veg type only from SN (2021 and 2022 add CS650, see below for SWC_5)
@@ -754,6 +756,10 @@ biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="tower" & 
 
 biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="tower" & height=="-100.5"),
         ameriflux.id := "SWC_5_5_1"]
+
+ggplot(biomet2[variable %in% c("soilmoisture"),], aes(date_time, mean.val))+
+  geom_line()+
+  facet_grid(ameriflux.id~.)
 
 # soil temperature = Ts
 # calculate average 'surface': 5-15cm Ts_1
