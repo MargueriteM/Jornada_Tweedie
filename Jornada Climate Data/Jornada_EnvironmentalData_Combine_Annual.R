@@ -273,8 +273,7 @@ cs650[rep==4, height := "-17.5"]
 cs650[rep==5, height := "-11.5"]
 
 
-# assign veg type (should be shrub/bare, once I know.)
-# for now assign best guess
+# assign veg type 
 cs650[, veg := "BARE"]
 
 # modify columns to match other datastreams and get rid of redundant ones
