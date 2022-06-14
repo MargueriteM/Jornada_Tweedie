@@ -141,7 +141,7 @@ library(corrplot)
 #############
 # IMPORT DATA
 #############
-year_file <- 2022
+year_file <- 2021
 # Sensor network data:
 SN_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
@@ -288,44 +288,44 @@ rm(cs650_wide)
 ############################################
 # # Tower soil temperature and moisture data (ECTM)
 ############################################
-# soil_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_ECTM/Combined/dataL2_ectm_",year_file,".csv",sep=""),
-#                     sep=",", header=TRUE)
-# 
-# # format date and add column to deginate the data stream, get rid or uneccessary columns
-# soil_30min <- melt(soil_wide,c("date_time"))
-# 
-# # extract info on measurent and rep from variable
-# soil_30min[,variable := as.character(variable)][,':=' (measurement = sapply(strsplit(variable,"_"), getElement, 1),
-#                 rep = sapply(strsplit(variable,"_"), getElement, 2))]
-# 
-# soil_30min[measurement == "t", variable := "soiltemp"]
-# soil_30min[measurement == "vwc", variable := "soilmoisture"]
-# 
-# setnames(soil_30min, c('value'), c('mean.val'))
-# 
-# # make a guess at depths
-# soil_30min[rep%in% c(6,7), height := "-2"] 
-# soil_30min[rep%in% c(1,8), height := "-10"] 
-# soil_30min[rep%in% c(3,5), height := "-15"] 
-# soil_30min[rep%in% c(2,4), height := "-20"]
-# 
-# 
-# # assign veg type (should be shrub/bare, once I know.)
-# # for now assign best guess
-# soil_30min[rep %in% c(1,3,7,4), veg := "BARE"]
-# soil_30min[rep %in% c(2,5,6,8), veg := "SHRUB"]
-# 
-# # modify columns to match other datastreams and get rid of redundant ones
-# soil_30min[, ':=' (date_time = ymd_hms(date_time),
-#                    datastream = "ectm",location = "tower",
-#                     rep=NULL, measurement=NULL)]
-# 
-# # remove soil_wide
-# rm(soil_wide)
+soil_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_ECTM/Combined/dataL2_ectm_",year_file,".csv",sep=""),
+                    sep=",", header=TRUE)
+
+# format date and add column to deginate the data stream, get rid or uneccessary columns
+soil_30min <- melt(soil_wide,c("date_time"))
+
+# extract info on measurent and rep from variable
+soil_30min[,variable := as.character(variable)][,':=' (measurement = sapply(strsplit(variable,"_"), getElement, 1),
+                rep = sapply(strsplit(variable,"_"), getElement, 2))]
+
+soil_30min[measurement == "t", variable := "soiltemp"]
+soil_30min[measurement == "vwc", variable := "soilmoisture"]
+
+setnames(soil_30min, c('value'), c('mean.val'))
+
+# make a guess at depths
+soil_30min[rep%in% c(6,7), height := "-2"]
+soil_30min[rep%in% c(1,8), height := "-10"]
+soil_30min[rep%in% c(3,5), height := "-15"]
+soil_30min[rep%in% c(2,4), height := "-20"]
+
+
+# assign veg type (should be shrub/bare, once I know.)
+# for now assign best guess
+soil_30min[rep %in% c(1,3,7,4), veg := "BARE"]
+soil_30min[rep %in% c(2,5,6,8), veg := "SHRUB"]
+
+# modify columns to match other datastreams and get rid of redundant ones
+soil_30min[, ':=' (date_time = ymd_hms(date_time),
+                   datastream = "ectm",location = "tower",
+                    rep=NULL, measurement=NULL)]
+
+# remove soil_wide
+rm(soil_wide)
 ##################################
 
 # combine all three SEL data streams 
-env_30min <- rbind(SN_30min,met_30min,flux_30min,cs650,fill=TRUE)
+env_30min <- rbind(SN_30min,met_30min,flux_30min,soil_30min, cs650,fill=TRUE)
 
 # some datastreams don't have all the time stamp columns. Create
 env_30min[,':=' (year = year(date_time),
@@ -348,11 +348,15 @@ levels(factor(env_30min$height))
 
 # with ECTM
 # env_30min[,height := factor(height,levels=c("-30","-20","-15","-10","-5","-2","50","500"))]
-# with CS650:
+# with CS650, SN, and ECTM:
  env_30min[,height := factor(height,levels=c("-100.5","-42.5","-30","-25.5","-20","-17.5","-15","-11.5",
-                                             "-10","-5","50","500"))]
+                                             "-10","-5","-2","50","500"))]
 
 
+ # with CS650 and SN 
+ # env_30min[,height := factor(height,levels=c("-100.5","-42.5","-30","-25.5","-20","-17.5","-15","-11.5",
+ #                                             "-10","-5","50","500"))]
+ 
 # create a variable to show data coverage =1 with data 
 env_30min[!is.na(mean.val), coverage := 1]
 
@@ -495,12 +499,15 @@ ggplot(biomet_mean_soilM[year>2019], aes(date_time,mean.val, colour=factor(depth
 biomet_mean_soilM <- biomet_mean_soilM[,list(SWC_1_1_1 = mean(mean.val, na.rm=TRUE)),
             by="date_time"]
 
+ggplot(biomet_mean_soilM, aes(date_time, SWC_1_1_1))+geom_line()
 
 
 # soil temperature = Ts
 biomet_mean_soilT <- env_30min[variable %in% c("soiltemp"),
                            list(Ts_1_1_1 = mean(mean.val, na.rm=TRUE)),
                            by="date_time"]
+
+ggplot(biomet_mean_soilT, aes(date_time, Ts_1_1_1))+geom_line()
 
 
 # soil heat flux plates: soil heat flux, average across depths, separate by veg types
@@ -557,6 +564,7 @@ setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyC
 
 source("~/Desktop/R/R_programs/Functions/SaveFiles_Biomet_EddyPro.R")
 
+# save
 savebiomet(biomet,year_file,year_file)
 
 
@@ -566,6 +574,8 @@ savebiomet(biomet,year_file,year_file)
 # 2020-02-14: for biomet2 to merge after EddyPro processing (and data filtering, no u*)
 #             report all individual sensorns for Ameriflux 
 # 2020-04-14: date_time is the adjusted timestamp to make all data match MST
+
+# 2021-05-04 12:44:00 start CS650 soil moisture and temperature inclusion from -100 to -11 cm
 
 biomet2 <- copy(env_30min)
 
@@ -657,7 +667,7 @@ biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN" & SN=="SN6"
 
 
 # Soil moisture
-# report SWC seperately for each depth and veg type only from SN
+# report SWC seperately for each depth and veg type only from SN (2021 and 2022 add CS650, see below for SWC_5)
 # because I do not know depth of tower sensors
 ggplot(biomet2[variable %in% c("soilmoisture") & veg %in% c("LATR","PRGL","MUPO","SHRUB", "BARE") & location=="SN",],
        aes(date_time, mean.val))+
@@ -750,6 +760,8 @@ biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="tower" & 
 # calculate average 'surface': 5-15cm Ts_1
 #           average 'deep': 20cm Ts_2
 # then merge the wide format biomet2 with the Ts_1 and Ts_2 dataframes
+# from 2021 onward: report CS650 probes as depth-specific temperature measurements
+
 ggplot(biomet2[variable %in% c("soiltemp") ,],
        aes(date_time, mean.val))+
   geom_line()+
@@ -767,6 +779,27 @@ biomet2_ts2 <- biomet2[!is.na(mean.val) & variable %in% c("soiltemp") & height %
                             TS_2_SD = sd(mean.val),
                             TS_2_N = length(mean.val)),
                        by="date_time"]
+
+# add tower data from CSS650 sensors: 5
+biomet2[variable %in% c("soiltemp") & (veg == "BARE" & location =="tower" & height=="-11.5"),
+        ameriflux.id := "TS_1_1_1"]
+
+biomet2[variable %in% c("soiltemp") & (veg == "BARE" & location =="tower" & height=="-17.5"),
+        ameriflux.id := "TS_1_2_1"]
+
+biomet2[variable %in% c("soiltemp") & (veg == "BARE" & location =="tower" & height=="-25.5"),
+        ameriflux.id := "TS_1_3_1"]
+
+biomet2[variable %in% c("soiltemp") & (veg == "BARE" & location =="tower" & height=="-42.5"),
+        ameriflux.id := "TS_1_4_1"]
+
+biomet2[variable %in% c("soiltemp") & (veg == "BARE" & location =="tower" & height=="-100.5"),
+        ameriflux.id := "TS_1_5_1"]
+
+ggplot(biomet2[variable %in% c("soiltemp") ,],
+       aes(date_time, mean.val))+
+  geom_line()+
+  facet_grid(ameriflux.id~.)
 
 # soil heat flux plates: separate by depth and veg types
 # shrub = 1 10cm SHF_1_1_1
@@ -923,8 +956,8 @@ saveyears <- function(data,startyear,endyear) {
                  sep =',', dec='.', row.names=FALSE,quote=FALSE)
   }}
 
- 
-# saveyears(biomet2_wide,2022,2022)
+# save 
+# saveyears(biomet2_wide,year_file,year_file)
 
 ### GAPFILL ENV Data for internal use #### 
 
