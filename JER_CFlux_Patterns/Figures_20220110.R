@@ -14,8 +14,11 @@
 # * timestamp shift in tower and SN data (can be fixed: "~/Desktop/R/R_programs/Tweedie/Jornada/Jornada_Tweedie/Jornada Climate Data/test_fixingTimestamps.R")
 # * 2010 flux gap-fill missing because Rs data is missing. Gap-fill with NRCS data!! (can be done, got derailed by time-stamps)
 
-# 14 May 2021: 
+# 14 May 2022: 
 # added graphs for CZ presentation to carbon group
+
+# 20 May 2022:
+# added graphs for CZ All Hands
 
 # load libraries
 library(REddyProc)
@@ -182,7 +185,7 @@ ggplot(precip_monthly, aes(month,precip.tot,fill=factor(month)))+
   labs(y="Total Rainfall (mm)", x="Month")+
   scale_x_continuous(breaks=c(seq(1,12,1)),
                      labels=c("J","F","M","A","M","J","J","A","S","O","N","D"))+
-  scale_fill_viridis_d()+
+  scale_fill_viridis_d(option="plasma")+
   theme_bw()+
   theme(legend.position="none")
 
@@ -484,7 +487,82 @@ p5 <- ggplot(daily_cum_sum, aes(DoY,NEE_cum,colour=factor(Year)))+
 p5
 dev.off()
 
+# dailly cumsum of ET
+p6 <- ggplot(daily_cum_sum, aes(DoY,ET_cum,colour=factor(Year)))+
+  geom_line()+
+  geom_point()+
+  geom_label(aes(label=year_lab), size=10, label.size=2)+
+  labs(y=expression("Annual cumulative ET (mm" *m^-2*")"),x="Month")+
+  scale_colour_viridis_d()+
+  scale_x_continuous(breaks =c(31,61,91,121,151,181,211,241,271,301,331,361),limits=c(1,385),
+                     labels=c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"),
+                     expand=c(0,0))+
+  theme_bw(base_size=26)+
+  theme(legend.position="none")
 
+#png(file="~/Desktop/TweedieLab/AGU/2020/ETcummulative.png",
+ #  width=800,height=540)
+p6
+dev.off()
+
+# cumulative sum of Reco and GPP
+p7 <- ggplot(daily_cum_sum, aes(DoY,GPP_cum,colour=factor(Year)))+
+  geom_line()+
+  geom_point()+
+  geom_label(aes(label=year_lab), size=10, label.size=2)+
+  labs(y=expression("Annual cumulative GPP (gC" *m^-2*")"))+
+  scale_colour_viridis_d()+
+  theme_bw(base_size=26)+
+  theme(legend.position="none")
+
+p7
+
+p8 <- ggplot(daily_cum_sum, aes(DoY,Reco_cum,colour=factor(Year)))+
+  geom_line()+
+  geom_point()+
+  geom_label(aes(label=year_lab), size=10, label.size=2)+
+  labs(y=expression("Annual cumulative Reco (gC" *m^-2*")"))+
+  scale_colour_viridis_d()+
+  theme_bw(base_size=26)+
+  theme(legend.position="none")
+
+p8
+
+# Calculate monthly sums
+monthly_sum <- daily_sum[,list(NEE_annual = sum(NEE_daily),
+                              GPP_annual = sum(GPP_daily),
+                              Reco_annual = sum(Reco_daily),
+                              ET_annual = sum(ET_daily)),
+                        by="month,Year"]
+
+
+# NEE
+ggplot(monthly_sum[Year<2020,], aes(factor(month),NEE_annual,fill=factor(Year)))+
+  geom_col()+
+  labs(y=expression("Monthly cumulative NEE (gC" *m^-2*")"),x="Year")+
+  scale_fill_viridis_d()+
+  theme_bw()+
+  theme(legend.position="none")+
+  facet_grid(.~Year)
+
+
+# GPP
+ggplot(monthly_sum[Year<2020,], aes(factor(month),GPP_annual,fill=factor(Year)))+
+  geom_col()+
+  labs(y=expression("Monthly cumulative GPP (gC" *m^-2*")"),x="Year")+
+  scale_fill_viridis_d()+
+  theme_bw()+
+  theme(legend.position="none")+
+  facet_grid(.~Year)
+
+# Reco
+ggplot(monthly_sum[Year<2020,], aes(factor(month),Reco_annual,fill=factor(Year)))+
+  geom_col()+
+  labs(y=expression("Monthly cumulative Reco (gC" *m^-2*")"),x="Year")+
+  scale_fill_viridis_d()+
+  theme_bw()+
+  theme(legend.position="none")+
+  facet_grid(.~Year)
 
 
 ### As Annual Sum
@@ -508,6 +586,22 @@ ggplot(annual_sum, aes(factor(Year),NEE_annual,fill=factor(Year)))+
 ggplot(annual_sum, aes(factor(Year),ET_annual,fill=factor(Year)))+
   geom_col()+
   labs(y="Annual cumulative ET (mm)",x="Year")+
+  scale_fill_viridis_d()+
+  theme_bw()+
+  theme(legend.position="none")
+
+# GPP
+ggplot(annual_sum, aes(factor(Year),GPP_annual,fill=factor(Year)))+
+  geom_col()+
+  labs(y=expression("Annual cumulative GPP (gC" *m^-2*")"),x="Year")+
+  scale_fill_viridis_d()+
+  theme_bw()+
+  theme(legend.position="none")
+
+# Reco
+ggplot(annual_sum, aes(factor(Year),Reco_annual,fill=factor(Year)))+
+  geom_col()+
+  labs(y=expression("Annual cumulative Reco (gC" *m^-2*")"),x="Year")+
   scale_fill_viridis_d()+
   theme_bw()+
   theme(legend.position="none")
