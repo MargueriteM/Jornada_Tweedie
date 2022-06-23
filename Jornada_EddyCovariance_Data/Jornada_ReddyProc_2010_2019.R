@@ -75,9 +75,14 @@ edata <- edata[,.(Year,
                  SW_IN_1_1_1,
                  TA_1_1_1,
                  RH_1_1_1,
-                 USTAR)]
+                 USTAR,
+                 P_RAIN_1_1_1)] # 23 June 2022: include P_RAIN to allow data processing with/without rain event split
 
 ggplot(edata, aes(DoY,FC))+
+  geom_line()+
+  facet_grid(Year~.)
+
+ggplot(edata, aes(DoY,P_RAIN_1_1_1))+
   geom_line()+
   facet_grid(Year~.)
 
@@ -90,6 +95,7 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
  # remove 2019 because that belongs to the following year
  # edata <- edata[Year!=2019,]
  
+ # 
  
  # create a grid of full dates and times
  filled <- expand.grid(date=seq(as.Date("2010-01-01"),as.Date("2019-12-31"), "days"),
@@ -119,22 +125,59 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
 edata$VPD <- fCalcVPDfromRHandTair(edata$rH, edata$Tair)
 
 # remove the first 8 days of 2010 which have NA data
-edata2010 <- subset(edata,Year==2010&DoY>=9)
-edata2011 <- subset(edata, Year>=2011)
+edata2010 <- edata %>%
+  filter(Year==2010&DoY>=9) %>%
+  select(Year,
+                                          DoY,
+                                          Hour,
+                                          NEE,
+                                           LE,
+                                           H,
+                                           Rg,
+                                           Tair,
+                                          rH,
+                                            Ustar)
+edata2011 <- edata %>%
+  filter(Year>=2011) %>%
+  select(Year,
+         DoY,
+         Hour,
+         NEE,
+         LE,
+         H,
+         Rg,
+         Tair,
+         rH,
+         Ustar)
 
 edata1 <- rbind(edata2010,edata2011)
 # online tool says missing values must be -9999, convert all NA to -9999
 edata[is.na(edata)]=-9999
 
 # export data for online tool of ReddyProc,
+
+# subset data without rain splits
+edata.noRain <- edata[,.(Year,
+                                  DoY,
+                                  Hour,
+                                  NEE,
+                                  LE,
+                                  H,
+                                  Rg,
+                                  Tair,
+                                  rH,
+                                  Ustar)]
+
 # with timesstamp corrected
-# write.table(edata, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200427/JER_ReddyProc_Input_2011_2019_20200427.txt", sep=" ", dec=".",row.names=FALSE)
+# write.table(edata.noRain, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200427/JER_ReddyProc_Input_2011_2019_20200427.txt", sep=" ", dec=".",row.names=FALSE)
 
 
-#write.table(edata, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20203001/JER_ReddyProc_Input_2011_2019_20200131.txt", sep=" ", dec=".",row.names=FALSE)
+#write.table(edata.noRain, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20203001/JER_ReddyProc_Input_2011_2019_20200131.txt", sep=" ", dec=".",row.names=FALSE)
+# saved before rain/no rain split was created
 #write.table(edata2011, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200212/JER_ReddyProc_Input_2011_2019_20200212.txt", sep=" ", dec=".",row.names=FALSE)
 
 # Process with all the SSITC_TEST==1 removed
+# saved before rain/no rain split was created
 #write.table(edata2011, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200220/JER_ReddyProc_Input_2011_2019_20200220.txt", sep=" ", dec=".",row.names=FALSE)
 
 # Run ReddyProc
