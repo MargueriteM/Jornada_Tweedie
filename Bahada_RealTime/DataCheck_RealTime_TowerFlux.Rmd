@@ -14,6 +14,8 @@ library(ggplot2)
 library(gridExtra)
 library(lubridate)
 library(plotly)
+library(tidyr)
+library(dplyr)
 
 # ENTER YEAR TO CHECK HERE
 yeartocheck <- 2022
@@ -42,6 +44,49 @@ flux[,':=' (year = year(date_time), doy = yday(date_time), date = date(date_time
 # calculate CO2 ppm from CO2_mean (mg/m^3) 
 # https://www.teesing.com/en/page/library/tools/ppm-mg3-converter
 flux[,CO2_ppm := (CO2_mean/0.0409)/44.01]
+
+# import soil CS650 data
+
+# Notes on CS650 12cm Installation at US-Jo1 for Dryland CZ Project
+# 27 Mar 2021
+
+# Probes installed (Lin Ma, Mark Engle, Nohemi Garay Valenzuela, Christian L Leach)
+
+# Installation start~11:05am 
+# Installation and testing end: ~5pm
+
+# All read 1.9-2.2% VWC at same location
+
+# SDI, SN, Depth (cm) of sensors, Location relative to Caliche
+# SDI 1 SN 46381 Depth 100.5cm Caliche inside/below
+# SDI 2 SN 46371 Depth 42.5cm Caliche above
+# SDI 3 SN 46374 Depth 25.5 cm Caliche above
+# SDI 4 SN 46416 Depth 17.5 cm Caliche above
+# SDI 5 SN 46414 Depth 11.5 cm Caliche above
+
+
+# set working directory to server
+setwd(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_CS650/",yeartocheck,"/Raw_Data/ASCII",sep=""))
+
+# load headers of file and data
+cs650names <- colnames(read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=1,heade=TRUE))
+cs650wide <- read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=4, col.names = cs650names, na.strings="-9999")
+
+# convert to long format
+cs650 <- cs650wide %>%
+  pivot_longer(-c(TIMESTAMP,RECORD),names_to="IDcol") %>%
+  separate(IDcol, c(NA,"metric","probe",NA), sep="_")
+
+# format date/time and create depth labels for probes
+cs650 <- cs650 %>%
+  mutate(date_time = ymd_hms(TIMESTAMP),
+         date = as.Date(date_time)) %>%
+  mutate(probe_depth = case_when(probe %in% "1" ~ 100.5,
+                                 probe %in% "2" ~ 42.5,
+                                 probe %in% "3" ~ 25.5,
+                                 probe %in% "4" ~ 17.5,
+                                 probe %in% "5" ~ 11.5))
+
 
 ```
 # Plot Tower Flux and Met Data
@@ -262,51 +307,116 @@ renderPlot({
 Column {.sidebar}
 ---------------------------------------
 
-###Select Date Range and variables
+#### Last timestamp when data sent to server:
 
-<!-- #### Last timestamp when data sent to server: -->
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 
-<!-- ```{r, echo=FALSE, warning=FALSE, message=FALSE} -->
-
-<!-- print(max(flux$TIMESTAMP)) -->
-<!-- ``` -->
+print(max(cs650$date_time))
+```
 
 
-<!-- ```{r, echo=FALSE, warning=FALSE, message=FALSE} -->
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 
-<!-- dateRangeInput("daterange", "Date range:", -->
-<!--                  start = min(flux$date), -->
-<!--                  end   = max(flux$date), -->
-<!--                  min = min(flux$date), -->
-<!--                  max = max(flux$date)) -->
+dateRangeInput("daterange3", "Date range:",
+                 start = min(cs650$date),
+                 end   = max(cs650$date),
+                 min = min(cs650$date),
+                 max = max(cs650$date))
 
+radioButtons("variable1_3", "Soil variables:",
+             c("Temperature (C)" = "T",
+               "Volumetric Water Content m3/m3)" = "VWC",
+               "P" = "P",
+               "PA" = "PA",
+               "VR" = "VR",
+               "EC" = "EC"))
 
-<!-- radioButtons("variable1_1", "Biomet variables:", -->
-<!--              c("Air temperature, hmp (C)" = "t_hmp_mean", -->
-<!--                "Air temperature, sonic (C)" = "Ts_mean", -->
-<!--                "Air temperature, fine wire (C)" = "fw_Avg", -->
-<!--                "Atmospheric pressure (kPa)" = "atm_press_mean", -->
-<!--                "Precipitation (mm)" = "precip_Tot", -->
-<!--                "Leaf wetness, 5m (mV)" = "lws_1_Avg", -->
-<!--                "Leaf wetness, shrub (mV)" = "lws_2_Avg", -->
-<!--                "PAR (umol/m2/s)" = "par_Avg", -->
-<!--                "Short Wave IN (W/m2)" = "Rs_upwell_Avg", -->
-<!--                "Short Wave OUT (W/m2)" = "Rs_downwell_Avg", -->
-<!--                "Long Wave IN (W/m2)" = "Rl_upwell_Avg", -->
-<!--                "Long Wave OUT (W/m2)" = "Rl_downwell_Avg", -->
-<!--                "Soil Heat Flux 1 (W/m2)" = "hfp01_1_Avg", -->
-<!--                "Soil Heat Flux 2 (W/m2)" = "hfp01_2_Avg", -->
-<!--                "Soil Heat Flux 3 (W/m2)" = "hfp01_3_Avg", -->
-<!--               "Soil Heat Flux 4 (W/m2)" = "hfp01_4_Avg")) -->
+ 
+radioButtons("variable2_3", "Soil Probe Depth (cm):",
+             c("11.5" = "5",
+               "17.5" = "4",
+               "25.5" = "3",
+               "42.5" = "2",
+               "100.5" = "1"))
 
+radioButtons("variable3_3", "Biomet variables:",
+             c("Air temperature, hmp (C)" = "t_hmp_mean",
+               "Air temperature, sonic (C)" = "Ts_mean",
+               "Air temperature, fine wire (C)" = "fw_Avg",
+               "Atmospheric pressure (kPa)" = "atm_press_mean",
+               "Precipitation (mm)" = "precip_Tot",
+               "Leaf wetness, 5m (mV)" = "lws_1_Avg",
+               "Leaf wetness, shrub (mV)" = "lws_2_Avg",
+               "PAR (umol/m2/s)" = "par_Avg",
+               "Short Wave IN (W/m2)" = "Rs_upwell_Avg",
+               "Short Wave OUT (W/m2)" = "Rs_downwell_Avg",
+               "Long Wave IN (W/m2)" = "Rl_upwell_Avg",
+               "Long Wave OUT (W/m2)" = "Rl_downwell_Avg",
+               "Soil Heat Flux 1 (W/m2)" = "hfp01_1_Avg",
+               "Soil Heat Flux 2 (W/m2)" = "hfp01_2_Avg",
+               "Soil Heat Flux 3 (W/m2)" = "hfp01_3_Avg",
+              "Soil Heat Flux 4 (W/m2)" = "hfp01_4_Avg"))
 
-<!-- radioButtons("variable2_1", "Soil Variables:", -->
-<!--              c()) -->
+```
 
-<!-- radioButtons("variable3_1", "Instrument variables:", -->
-<!--              c("Battery (V)" = "batt_volt_Avg", -->
-<!--                "AGC/signal strength (unitless)" = "agc_Avg", -->
-<!--                "Datalogger Panel Temperature (C)" = "panel_temp_Avg")) -->
+Column 
+---------------------------------------
 
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 
-<!-- ``` -->
+# Soil Plot, All depths faceted 
+renderPlot({
+    cs650 %>%
+      filter((date >= input$daterange3[[1]] & date <= input$daterange3[[2]]) & 
+    metric==input$variable1_3) %>%
+    
+   ggplot(., aes(date_time, value, colour=factor(probe_depth)))+
+     geom_line()+
+     facet_grid(probe_depth~., scales="free_y")+
+    labs(title = "All Depths with Facet and free y-axis", y=input$variable1_3)+
+ theme_bw()+
+    theme(legend.position="bottom")
+  })
+
+# # Soil Plot, All depths in one 
+# renderPlot({
+#     cs650 %>%
+#       filter((date >= input$daterange3[[1]] & date <= input$daterange3[[2]]) & 
+#     metric==input$variable1_3) %>%
+#     
+#    ggplot(., aes(date_time, value, colour=factor(probe_depth)))+
+#      geom_line()+
+#     labs(title = "All Depths", y=input$variable1_3)+
+#  theme_bw()+
+#     theme(legend.position="bottom")
+#   })
+
+# Soil Plot, select single depth
+renderPlot({
+    cs650 %>%
+      filter((date >= input$daterange3[[1]] & date <= input$daterange3[[2]]) & 
+    metric==input$variable1_3 &
+      probe==input$variable2_3) %>%
+    
+   ggplot(., aes(date_time, value, colour=factor(probe_depth)))+
+     geom_line()+
+    labs(title = "Selected Depth", y=input$variable1_3)+
+         facet_grid(probe_depth~., scales="free_y")+
+ theme_bw()+
+    theme(legend.position="bottom")
+  })
+
+# biomet variable plot
+renderPlot({
+    c <- flux[date >= input$daterange3[[1]] & date <= input$daterange3[[2]],.SD,.SDcols=c("date","date_time",input$variable3_3)]
+  
+    setnames(c,input$variable3_3,"selected")
+  
+  # plot_ly(c,x=~date_time,y=~airtemp, type="scatter")},
+  # ggplot(c[selected>=input$range_met_min & selected<=input$range_met_max,], aes(date_time, selected))+
+   ggplot(c, aes(date_time, selected))+
+     geom_line()+
+    labs(title = "Biomet variables", y=input$variable3_3)+
+ theme_bw()})
+
+```
