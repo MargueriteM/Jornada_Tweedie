@@ -14,9 +14,9 @@ library(ggplot2)
 library(bit64)
 
 # import filtered flux data file from Eddy Pro as data table
-setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/")
+setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/")
 
-flux_filter_sd <- fread("JER_flux_2021_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
+flux_filter_sd <- fread("JER_flux_2022_EddyPro_Output_filtered_SD_PRELIMINARY.csv",sep=",", dec=".",
             header = TRUE, na.strings=c("na","NA","","-9999"))
 
 
@@ -51,7 +51,7 @@ flux_filter_sd[,BADM_INST_SA_GILL_ALIGN:=NA]
 # import biomet2 which contains all sensors as individual datastreams
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/Biomet2_20201227")
 
-biomet_all <- fread("Biomet_USJo1_wide_2021_.csv", sep=",",dec=".", header=TRUE)
+biomet_all <- fread("Biomet_USJo1_wide_2022_.csv", sep=",",dec=".", header=TRUE)
 
 biomet_all[,':=' (date_time = parse_date_time(date_time,"Ymd HMS",tz="UTC"))]
 
@@ -65,7 +65,7 @@ exclude_cols <- c("TA_1_1_1", "RH_1_1_1", "PA_1_1_1", "WD_1_1_1", "MWS_1_1_1", "
                   "P_RAIN_1_1_1", "SWC_1_1_1", "TS_1_1_1", "G_1_1_1", "G_1_2_1", "G_2_1_1", "G_2_2_1",
                   "LW_IN_1_1_1", "LW_OUT_1_1_1", "SW_OUT_1_1_1", "SW_IN_1_1_1", "NETRAD_1_1_1") 
 
-flux <- flux[,!c(exclude_cols),with=FALSE]
+flux <- flux_filter_sd[,!c(exclude_cols),with=FALSE]
 
 flux.biomet <- merge(flux,biomet_all, by="date_time", all.x=TRUE)
 
@@ -77,7 +77,7 @@ names_output <- c("TIMESTAMP_START","TIMESTAMP_END",names_all)
 setcolorder(flux.biomet,names_output)
 
 # graph to check
-ggplot(flux.biomet, aes(date_time, LE))+geom_line()
+ggplot(flux.biomet, aes(date_time, FC))+geom_line()
 
 # save to upload to ameriflux, save to server: 
 # <SITE_ID>_<RESOLUTION>_<TS-START>_<TS-END>_<OPTIONAL>.csv
@@ -86,7 +86,7 @@ setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Ameri
 # save file in Ameriflux format
 write.table(flux.biomet[,!c("date_time"),with=FALSE],
             file = paste("US-Jo1_HH_",min(flux.biomet$TIMESTAMP_START),"_",max(flux.biomet$TIMESTAMP_END),
-                  ".csv",sep=""),
+                  "_PRELIM.csv",sep=""),
             sep=',', dec='.', row.names=FALSE, na="-9999", quote=FALSE)
 
 
