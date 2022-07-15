@@ -18,6 +18,10 @@ library(plotly)
 # ENTER YEAR TO CHECK HERE
 yeartocheck <- 2022
 
+# get windrose function, source directly from Github
+#source("~/Desktop/R/R_programs/Functions/plot.windrose.R")
+source(paste0("https://raw.githubusercontent.com/MargueriteM/R_functions/master/plot.windrose.R"))
+
 # import data directly from SEL Data Archive
 flux_colnames <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/",yeartocheck,"/Raw_Data/ASCII/dataL1_flux_",yeartocheck,".csv",sep=""),
                   header = TRUE, skip=1,sep=",", fill=TRUE,
@@ -40,6 +44,7 @@ flux[,':=' (year = year(date_time), doy = yday(date_time), date = date(date_time
 flux[,CO2_ppm := (CO2_mean/0.0409)/44.01]
 
 ```
+# Plot Tower Flux and Met Data
 
 Column {.sidebar}
 ---------------------------------------
@@ -185,3 +190,123 @@ renderPlot({
     labs(title = "Instrument variables", y=input$variable3)+
  theme_bw()})
 ```
+
+
+# Show Windroses {data-orientation=rows}
+
+Row {data-height=75}
+-------------------------------------------------------------
+Select Date Range for Wind Rose
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+dateRangeInput("daterange2", "Date range:",
+                 start = min(flux$date),
+                 end   = max(flux$date),
+                 min = min(flux$date),
+                 max = max(flux$date))
+
+```
+
+Row {data-height=450}
+-------------------------------------------------------------
+Wind Roses in Compass direction
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+# Wind direction from Sonic Anemometer
+ renderPlot({
+ wind.data <-  flux %>%
+   filter((date >= input$daterange2[[1]] & date <= input$daterange2[[2]])) 
+ # plot wind variables in windrose
+   plot.windrose(wind.data,wind.data$wnd_spd,wind.data$wnd_dir_compass)+
+   labs(title="Sonic Anemometer")
+ })
+
+renderPlot({
+wind.data <-  flux %>%
+ filter((date >= input$daterange2[[1]] & date <= input$daterange2[[2]]))
+# plot wind variables in windrose
+  plot.windrose(wind.data,wind.data$hor_wnd_spd_mean_rslt,wind.data$hor_wnd_dir_mean_rslt)+
+  labs(title="2-D Anemometer")
+})
+
+```
+
+Row {data-height=250}
+-------------------------------------------------------------
+Correlation between Sonic and 2-D Anemometer Measurements
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# Wind Speed
+renderPlot({
+ wind.data <-  flux %>%
+   filter((date >= input$daterange2[[1]] & date <= input$daterange2[[2]])) 
+ # Wind Direction from Sonic and 2-D
+ ggplot(wind.data, aes(wnd_dir_compass,hor_wnd_dir_mean_rslt))+
+   geom_point()+
+   geom_abline(intercept=0,slope=1)+
+   labs(x="Sonic Wind Direction",y="2-D Wind Direction", title="Wind Speed Comparison")
+})
+
+# Wind direction
+renderPlot({
+ wind.data <-  flux %>%
+   filter((date >= input$daterange2[[1]] & date <= input$daterange2[[2]])) 
+ # Wind Direction from Sonic and 2-D
+ ggplot(wind.data, aes(wnd_spd,hor_wnd_spd_mean_rslt))+
+   geom_point()+
+   geom_abline(intercept=0,slope=1)+
+   labs(x="Sonic Wind Speed (compass)",y="2-D Wind Speed", title="Wind Direction Comparison")
+})
+```
+
+# Tower Soil Moisture Profile and Met Data
+
+Column {.sidebar}
+---------------------------------------
+
+###Select Date Range and variables
+
+<!-- #### Last timestamp when data sent to server: -->
+
+<!-- ```{r, echo=FALSE, warning=FALSE, message=FALSE} -->
+
+<!-- print(max(flux$TIMESTAMP)) -->
+<!-- ``` -->
+
+
+<!-- ```{r, echo=FALSE, warning=FALSE, message=FALSE} -->
+
+<!-- dateRangeInput("daterange", "Date range:", -->
+<!--                  start = min(flux$date), -->
+<!--                  end   = max(flux$date), -->
+<!--                  min = min(flux$date), -->
+<!--                  max = max(flux$date)) -->
+
+
+<!-- radioButtons("variable1_1", "Biomet variables:", -->
+<!--              c("Air temperature, hmp (C)" = "t_hmp_mean", -->
+<!--                "Air temperature, sonic (C)" = "Ts_mean", -->
+<!--                "Air temperature, fine wire (C)" = "fw_Avg", -->
+<!--                "Atmospheric pressure (kPa)" = "atm_press_mean", -->
+<!--                "Precipitation (mm)" = "precip_Tot", -->
+<!--                "Leaf wetness, 5m (mV)" = "lws_1_Avg", -->
+<!--                "Leaf wetness, shrub (mV)" = "lws_2_Avg", -->
+<!--                "PAR (umol/m2/s)" = "par_Avg", -->
+<!--                "Short Wave IN (W/m2)" = "Rs_upwell_Avg", -->
+<!--                "Short Wave OUT (W/m2)" = "Rs_downwell_Avg", -->
+<!--                "Long Wave IN (W/m2)" = "Rl_upwell_Avg", -->
+<!--                "Long Wave OUT (W/m2)" = "Rl_downwell_Avg", -->
+<!--                "Soil Heat Flux 1 (W/m2)" = "hfp01_1_Avg", -->
+<!--                "Soil Heat Flux 2 (W/m2)" = "hfp01_2_Avg", -->
+<!--                "Soil Heat Flux 3 (W/m2)" = "hfp01_3_Avg", -->
+<!--               "Soil Heat Flux 4 (W/m2)" = "hfp01_4_Avg")) -->
+
+
+<!-- radioButtons("variable2_1", "Soil Variables:", -->
+<!--              c()) -->
+
+<!-- radioButtons("variable3_1", "Instrument variables:", -->
+<!--              c("Battery (V)" = "batt_volt_Avg", -->
+<!--                "AGC/signal strength (unitless)" = "agc_Avg", -->
+<!--                "Datalogger Panel Temperature (C)" = "panel_temp_Avg")) -->
+
+
+<!-- ``` -->
