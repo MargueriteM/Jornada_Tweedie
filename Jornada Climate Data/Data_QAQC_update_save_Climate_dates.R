@@ -21,8 +21,14 @@ library(gridExtra)
 library(lubridate)
 library(plotly)
 
-# windrose function
-source("~/Desktop/R/R_programs/Functions/plot.windrose.R")
+
+# get windrose function, source directly from Github
+#source("~/Desktop/R/R_programs/Functions/plot.windrose.R")
+source(paste0("https://raw.githubusercontent.com/MargueriteM/R_functions/master/plot.windrose.R"))
+
+## windrose function on Marguerite's local computer, in case internet doesn't work
+# source("~/Desktop/R/R_programs/Functions/plot.windrose.R")
+
 
 # CLIMATE DATA
 
