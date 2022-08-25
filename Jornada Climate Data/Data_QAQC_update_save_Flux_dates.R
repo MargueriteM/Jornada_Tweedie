@@ -196,15 +196,31 @@ ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "h
 #            date_time<as.POSIXct("2021-08-28 00:00", tz="UTC"), value := NA]
 
 # 2022: looks good until "2022-06-01 11:30:00 UTC"
+# 2022 low value in August in HFP 3 and 4: both under shrub
+# align with a rain event - leave these values in. 
 
-ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg"),],
+#zoom to understand low point
+ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg") &
+                    date_time>as.Date("2022-08-04") &date_time<as.Date("2022-08-06"),],
        aes(date_time, value))+
-  geom_line()+
+  geom_point()+
   facet_grid(variable~.,scales="free_y")
+
+# graph with rain to see if change in HFP aligns with rain
+  ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg","precip_Tot") &
+                     date_time>as.Date("2022-08-04") &date_time<as.Date("2022-08-06"),],
+         aes(date_time, value))+
+    geom_point()+
+    facet_grid(variable~.,scales="free_y")
 
 # LWS 
 # lws_1 (shrub) and lws_2 (5m)
 # lws_2 is also in climate data
+# graph lws data
+ggplot(flux_long[variable %in% c("lws_1_Avg", "lws_2_Avg"),],
+       aes(date_time, value))+geom_line()+
+  facet_grid(variable~.,scales="free_y")
+
 # lws_1 appears to be working only intermitently
 # rescale LWS between 0-100
 # remove values <250
@@ -244,7 +260,7 @@ ggplot(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Av
 #                 date_time < as.POSIXct("2021-10-29 19:30",	 tz="UTC")),
 #            value := NA]	
 
-# 2022 looks good until "2022-06-01 11:30:00 UTC"
+# 2022 looks good until "2022-08-25 13:00:00 UTC"
 
 # plot all radiation variables
 ggplot(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
