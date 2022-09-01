@@ -274,6 +274,8 @@ ggplot(SN_30min[sensor=="moisture",],
 #           date_time >= as.Date("2021-07-01") & 
 #           date_time <= as.Date("2021-10-15"), mean.val := NA]
 
+# 01-09-2022 all bare look OK, remove values below zero
+SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&mean.val<0, mean.val := NA]
 
 # plot soil moisture after corrections/filters
 ggplot(SN_30min[sensor=="moisture",],
@@ -306,6 +308,9 @@ ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
   geom_line()+
   labs(title="PAR") +
   facet_grid(veg~., scales="free_y")
+
+# 2022 PAR MUPO on SN8 is no longer good. remove all
+SN_30min[sensor=="par" & veg=="MUPO" & SN=="SN8", mean.val := NA]
 
 # pressure
 # can't be negative
@@ -360,7 +365,7 @@ ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
 
 # pressure
 # can't be negative
-# looks reasonable!! 
+# not logged in 2022 because SN5 is down
 ggplot(SN_30min[sensor=="pressure",], aes(date_time, mean.val, colour=SN))+
   geom_line()+
   labs(title="Pressure") +
