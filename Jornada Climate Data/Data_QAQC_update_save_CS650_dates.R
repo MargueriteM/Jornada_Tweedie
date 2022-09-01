@@ -37,7 +37,7 @@ library(tidyverse)
 library(lubridate)
 library(ggplot2)
 
-year_file <- 2021
+year_file <- 2022
 
 # Based on data checks, no data form Met and CS650 from 16 Dec 17:30 to 17 Jan 2022
 
@@ -63,10 +63,15 @@ cs650 <- cs650 %>%
                                  probe %in% "5" ~ 11.5))
 
 
+# check file start and end date
+startdate.check <- (min(cs650$date_time))
+enddate.check <- (max(cs650$date_time))
+
+
 # graph different metrics: "EC"  "P"   "PA"  "T"   "VR"  "VWC"
 # graph all metrics
 cs650 %>%
-  filter( !is.na(value) & value>0) %>%
+ # filter( !is.na(value) & value>0) %>%
   ggplot(., aes(date_time, value, colour=factor(probe_depth)))+
   geom_line()+
   facet_grid(metric~., scales="free_y")
@@ -82,7 +87,7 @@ cs650 %>%
 
 # graph T and VWC
 cs650 %>%
-  filter(metric %in% c("T","VWC") & !is.na(value)&date_time < as.Date("2021-05-06")) %>%
+  filter(metric %in% c("T","VWC") & !is.na(value)) %>%
   ggplot(., aes(date_time, value, colour=factor(probe_depth)))+
   geom_line()+
   labs(title = "Soil Temperature")+
@@ -93,8 +98,8 @@ cs650 %>%
 # Data starts 2021-05-04 12:44:00 Temperature blipped to 0 in all probes on 2021-05-05
 # remove this row
 
-cs650 <- cs650 %>%
-  filter(!(as.Date(date_time) == as.Date("2021-05-05") & value == 0))
+# cs650 <- cs650 %>%
+#  filter(!(as.Date(date_time) == as.Date("2021-05-05") & value == 0))
 
 # graph T and VWC
 cs650 %>%
@@ -108,11 +113,12 @@ cs650 %>%
 
 # graph all metrics
 cs650 %>%
-  filter( !is.na(value) & value>0) %>%
+  #filter( !is.na(value) & value>0) %>%
   ggplot(., aes(date_time, value, colour=factor(probe_depth)))+
   geom_line()+
   facet_grid(metric~., scales="free_y")
 
+# 2022 data looks good until "2022-06-01 11:30:00 UTC"
 
 # prepare for saving for L2 tables and combination with other data
 
@@ -164,7 +170,7 @@ write.table(run.info, "dataL2_Soil_DateRange.csv",
             sep=",", dec=".", row.names=FALSE)
 
 
-# Save data and run info to Combined folder with only year name
+# Save data to Combined folder with only year name
 difftime(startdate,enddate)
 
 setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_CS650/Combined")
@@ -173,7 +179,8 @@ write.table(cs650.save,
             paste("dataL2_Soil_",year_file, ".csv",sep=""),
             sep=",", dec=".", row.names=FALSE)
 
-write.table(run.info, "dataL2_met_DateRange.csv",
+write.table(run.info,
+            paste("dataL2_Soil_DateRange_",year_file,".csv",sep=""),
             sep=",", dec=".", row.names=FALSE)
 
 
