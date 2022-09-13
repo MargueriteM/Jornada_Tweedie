@@ -50,7 +50,7 @@ source(paste0("https://raw.githubusercontent.com/MargueriteM/R_functions/master/
 # CO2_raw: mmol/m3
 # H2O_raw: mmol/m3
 
-year_file <- 2022
+year_file <- 2021
 
 # Based on data checks, no data form Met and CS650 from 16 Dec 17:30 to 17 Jan 2022
 
@@ -106,7 +106,7 @@ enddate.check <- (max(climate_30min$date_time))
 
 
 # select the date on and after which you want to see the data
-date_select <- as.POSIXct("2022-01-01 00:00:00", ("%Y-%m-%d %H:%M:%S"), tz="UTC")
+date_select <- as.POSIXct("2021-01-01 00:00:00", ("%Y-%m-%d %H:%M:%S"), tz="UTC")
 
 climate_30min <- climate_30min[date_time >= date_select,]
 
@@ -205,9 +205,9 @@ ggplot(met30_long[variable%in% c("up_tot", "dn_tot")], aes(date_time, value, col
 
 # 2021 Net Rl and up_tot is bad from 27 Aug 2021 to 29 Oct 2021 19:30 due to broken upward looking Rl sensor						
 # met30_long[variable%in% c("net_ri","up_tot") &
-#             (date_time > as.POSIXct("2021-08-27 00:00", tz="UTC") &
-#                date_time < as.POSIXct("2021-10-29 19:30", tz="UTC")),
-#           value := NA]
+ #            (date_time > as.POSIXct("2021-08-27 00:00", tz="UTC") &
+  #             date_time < as.POSIXct("2021-10-29 19:30", tz="UTC")),
+   #        value := NA]
 
 ggplot(met30_long[variable%in% c("net_rs", "net_ri")], aes(date_time, value, colour=variable))+geom_point()+
   labs(title="net_rs and net_rl")
