@@ -317,7 +317,7 @@ ggplot(flux_add[filter_le_roll_daynight==0,], aes(DOY_START, LE))+
 
 # graph fluxes with the 3SD 3day day/night filter removed and with my manual filter
 # HERE THIS DOESN'T REALLY APPLY, I HAVE DONE LESS MANUAL FILTERING AND AM RELYING ON THE RUNNING MEAN SMOOTH
-# this comparison was for previous years. It's nice to have the code handy, if needed
+# this comparison was for previous years (2010-2019). It's nice to have the code handy, if needed
 ggplot()+
   geom_line(data=flux_add[filter_LE==0], aes(DOY_START, LE, colour="manual"), colour="blue")+
   geom_line(data=flux_add[filter_le_roll_daynight==0], aes(DOY_START, LE, colour="SD day/night"), colour="green")
@@ -405,6 +405,9 @@ summary(flux_add_filter_sd$date_time)
 # append new data to previous
 flux_filter_sd_all <- rbind(flux_filter_sd, flux_add_filter_sd,fill=TRUE)
  
+# make sure there are no duplicates
+flux_filter_sd_all <- (flux_filter_sd_all[!(duplicated(flux_filter_sd_all, by=c("date_time")))])
+
 
 # 20211229 (redo on 20220103 with TIMESTAMP_START and TIMESTAMP_END included)
 # save 2020 data with biomet data from input biomet2020, not EddyPro output
@@ -418,9 +421,10 @@ write.table(flux_add_filter_sd,
  # save filtered data with SD filter for all years 2010-current
  setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
  
+ # 20220913 save with entire year of 2020
  # 20211229 (redo on 20220103 with TIMESTAMP_START and TIMESTAMP_END included)
  save(flux_filter_sd_all,
- file="JER_flux_2010_EddyPro_Output_filtered_SD_20211229.Rdata")
+ file="JER_flux_2010_EddyPro_Output_filtered_SD_20220913.Rdata")
  
  
 # 20201114
