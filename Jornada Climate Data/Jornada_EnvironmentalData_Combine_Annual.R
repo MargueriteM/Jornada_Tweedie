@@ -141,7 +141,7 @@ library(corrplot)
 #############
 # IMPORT DATA
 #############
-year_file <- 2022
+year_file <- 2021
 # Sensor network data:
 SN_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
@@ -324,7 +324,7 @@ rm(cs650_wide)
 ##################################
 
 # combine all three SEL data streams 
-env_30min <- rbind(SN_30min,met_30min,flux_30min, cs650,fill=TRUE)
+env_30min <- rbind(SN_30min,met_30min,flux_30min, soil_30min, cs650,fill=TRUE)
 
 # some datastreams don't have all the time stamp columns. Create
 env_30min[,':=' (year = year(date_time),
@@ -345,14 +345,14 @@ levels(factor(env_30min$variable))
 # check the levels of height and order them
 levels(factor(env_30min$height))
 
-# with ECTM
+# with ECTM and SN only 
 # env_30min[,height := factor(height,levels=c("-30","-20","-15","-10","-5","-2","50","500"))]
 # with CS650, SN, and ECTM:
  env_30min[,height := factor(height,levels=c("-100.5","-42.5","-30","-25.5","-20","-17.5","-15","-11.5",
                                              "-10","-5","-2","50","500"))]
 
 
- # with CS650 and SN 
+ # with CS650 and SN only
  # env_30min[,height := factor(height,levels=c("-100.5","-42.5","-30","-25.5","-20","-17.5","-15","-11.5",
  #                                             "-10","-5","50","500"))]
  
@@ -664,6 +664,7 @@ biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN" & SN=="SN2"
 biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN" & SN=="SN6",
         ameriflux.id := "P_RAIN_3_1_1"]
 
+# NA in ameriflux.id are the rainbuckets underneath shrubs
 ggplot(biomet2[variable %in% c("precip.tot"),], aes(date_time, mean.val))+
   geom_line()+facet_grid(ameriflux.id~.)
 
@@ -869,10 +870,10 @@ ggplot(biomet2[variable %in% c("lws","lws_5m")], aes(date_time, mean.val,colour=
 # SN7 FLCE (LEAF_WET_7_1_1)
 # SN8 PRGL (LEAF_WET_8_1_1)
 
-biomet2[variable %in% c("lws_5m") & location=="Tower" ,
+biomet2[variable %in% c("lws_5m") & location=="tower" ,
         ameriflux.id := "LEAF_WET_1_1_1"]
 
-biomet2[variable %in% c("lws") & location=="Tower",
+biomet2[variable %in% c("lws") & location=="tower",
         ameriflux.id := "LEAF_WET_1_2_1"]
 
 biomet2[variable %in% c("lws") & SN=="SN1" & (veg == "LATR"),
