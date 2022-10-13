@@ -118,7 +118,10 @@ cs650 %>%
   geom_line()+
   facet_grid(metric~., scales="free_y")
 
+# print that data looks good/has been checked up to enddata.check:
+print(paste("#",year(enddate.check), "data looks good until",enddate.check,sep=" "))
 # 2022 data looks good until "2022-06-01 11:30:00 UTC"
+# 2022 data looks good until 2022-10-13 10:30:00
 
 # prepare for saving for L2 tables and combination with other data
 
