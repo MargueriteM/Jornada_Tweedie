@@ -50,7 +50,7 @@ source(paste0("https://raw.githubusercontent.com/MargueriteM/R_functions/master/
 # CO2_raw: mmol/m3
 # H2O_raw: mmol/m3
 
-year_file <- 2021
+year_file <- 2022
 
 # Based on data checks, no data form Met and CS650 from 16 Dec 17:30 to 17 Jan 2022
 
@@ -106,7 +106,7 @@ enddate.check <- (max(climate_30min$date_time))
 
 
 # select the date on and after which you want to see the data
-date_select <- as.POSIXct("2021-01-01 00:00:00", ("%Y-%m-%d %H:%M:%S"), tz="UTC")
+date_select <- as.POSIXct("2022-01-01 00:00:00", ("%Y-%m-%d %H:%M:%S"), tz="UTC")
 
 climate_30min <- climate_30min[date_time >= date_select,]
 
@@ -213,6 +213,7 @@ ggplot(met30_long[variable%in% c("net_rs", "net_ri")], aes(date_time, value, col
   labs(title="net_rs and net_rl")
 
 # 2022 looks good up to "2022-08-25 12:00:00 UTC"
+# 2022 looks good up to "2022-10-13 08:00:00 UTC"
 
 # if up or dn is NA then albedo and net are also NA
 dn_tot_na <- copy(met30_long[variable == "dn_tot" & is.na(value), (date_time)])
