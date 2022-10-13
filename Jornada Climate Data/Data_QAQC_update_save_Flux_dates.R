@@ -213,6 +213,8 @@ ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "h
     geom_point()+
     facet_grid(variable~.,scales="free_y")
 
+# align with rain and HFP 3 and 4: both under shrub. Leave these in. 
+  
 # LWS 
 # lws_1 (shrub) and lws_2 (5m)
 # lws_2 is also in climate data
