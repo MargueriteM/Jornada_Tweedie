@@ -141,7 +141,7 @@ library(corrplot)
 #############
 # IMPORT DATA
 #############
-year_file <- 2021
+year_file <- 2022
 # Sensor network data:
 SN_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
@@ -323,8 +323,9 @@ rm(cs650_wide)
 # rm(soil_wide)
 ##################################
 
-# combine all three SEL data streams 
-env_30min <- rbind(SN_30min,met_30min,flux_30min, soil_30min, cs650,fill=TRUE)
+# combine all four SEL data streams 
+# soil_30min is for ECTM
+env_30min <- rbind(SN_30min,met_30min,flux_30min, cs650,fill=TRUE)
 
 # some datastreams don't have all the time stamp columns. Create
 env_30min[,':=' (year = year(date_time),
@@ -969,6 +970,10 @@ saveyears <- function(data,startyear,endyear) {
 # setwd("~/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Biomet/Preliminary")
 
 # saveyears(biomet2_wide,year_file,year_file)
+
+#### End of routine processing ####
+
+
 
 ### GAPFILL ENV Data for internal use #### 
 
