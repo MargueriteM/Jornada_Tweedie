@@ -226,6 +226,18 @@ ggplot(SN_30min[sensor=="rain" | sensor =="lws",], aes(date_time, mean.val, colo
   labs(title="Leaf wetness and Rain") +
   facet_grid(sensor~., scales="free_y")
 
+# lws should be between 0-100.
+# 2022 has some values>100 in Aug/Sep
+SN_30min[sensor=="lws" & (mean.val<0 | mean.val>100), mean.val := NA]
+
+# graph again:  lws and rain, grouped for all covers
+ggplot(SN_30min[sensor=="rain" | sensor =="lws",], aes(date_time, mean.val, colour=SN))+
+  geom_point()+
+  geom_line()+
+  labs(title="Leaf wetness and Rain") +
+  facet_grid(sensor~., scales="free_y")
+
+
 
 # moisture
 # remove periods when the sensors are bad. 
@@ -236,10 +248,26 @@ ggplot(SN_30min[sensor=="moisture",],
   labs(title="Soil Moisture") +
   facet_grid(veg~., scales="free_y")
 
+# plot soil moisture with rain
+ggplot(SN_30min[sensor%in%c("moisture","rain"),], aes(date_time, mean.val, colour=factor(depth)))+
+  geom_point(size=0.1)+
+  labs(title="Soil Moisture, and Rain") +
+  facet_grid(sensor+veg~., scales="free_y")+
+  theme_bw()
+
 # 2022: only BARE has soil moisture (SN4)
 # LATR: SN5, SN data logger not working
 # MUPO: SN7, , SN data logger not working
 # PRGL: SN3, sensors got moved on ~19 June 2019
+
+# 2022 Bare 10cm is very highin September 15 - 19 2022
+# comes after some heavy rain but does not directly coincide with rain.
+# other depths do not show the pattern.
+# remove
+SN_30min[sensor=="moisture"&veg=="BARE"&depth==10&
+date_time >ymd_hms("2022-09-14 22:30:00") &
+  date_time <ymd_hms("2022-09-19 02:30:00"), mean.val := NA]
+
 
 # MUPO 10cm: 13 July 2021 there was a baseline shift! Remove after this.
 # SN_30min[sensor=="moisture"&veg=="MUPO"&depth==10&date_time>as.Date("2021-07-13"), mean.val := NA]
@@ -399,6 +427,10 @@ SN_wide_save <- data.table:: dcast(SN_save[!is.na(date_time),
 # save to QAQC folder on data archive
 startdate <- (min(SN_wide_save$date_time))
 enddate <- (max(SN_wide_save$date_time))
+
+# add comment about processing
+print(paste("#",year(enddate.check), "data processed until",enddate.check,sep=" "))
+# 2022 data processed until 2022-10-13 10:35:00
 
 # # save in QAQC folder with start and end date in the file name
 qaqc.path<- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/QAQC/", sep="")
