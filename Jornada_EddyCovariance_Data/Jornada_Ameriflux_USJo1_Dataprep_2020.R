@@ -16,7 +16,7 @@ library(bit64)
 # import filtered flux data file from Eddy Pro as data table
 setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/")
 
-flux_filter_sd <- fread("JER_flux_2022_EddyPro_Output_filtered_SD_PRELIMINARY.csv",sep=",", dec=".",
+flux_filter_sd <- fread("JER_flux_2022_EddyPro_Output_filtered_SD_JanSep.csv",sep=",", dec=".",
             header = TRUE, na.strings=c("na","NA","","-9999"))
 
 
@@ -49,7 +49,7 @@ flux_filter_sd[,BADM_INST_SA_GILL_ALIGN:=NA]
 # flux <- flux_filter_sd[!(FILENAME_HF == "dataL1_ts_20191231_0000.csv")]
 
 # import biomet2 which contains all sensors as individual datastreams
-setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/Biomet2_20201227")
+setwd("~/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Biomet/Preliminary")
 
 biomet_all <- fread("Biomet_USJo1_wide_2022_.csv", sep=",",dec=".", header=TRUE)
 
@@ -78,6 +78,10 @@ setcolorder(flux.biomet,names_output)
 
 # graph to check
 ggplot(flux.biomet, aes(date_time, FC))+geom_line()
+ggplot(flux.biomet, aes(date_time, TA_1_1_1))+geom_line()
+ggplot(flux.biomet, aes(date_time, LE))+geom_line()
+ggplot(flux.biomet, aes(date_time, SW_OUT_1_1_1))+geom_line()
+ggplot(flux.biomet, aes(date_time, SW_IN_1_1_1))+geom_line()
 
 # save to upload to ameriflux, save to server: 
 # <SITE_ID>_<RESOLUTION>_<TS-START>_<TS-END>_<OPTIONAL>.csv
