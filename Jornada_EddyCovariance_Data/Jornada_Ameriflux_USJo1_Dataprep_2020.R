@@ -89,7 +89,7 @@ setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Ameri
 
 # save file in Ameriflux format
 write.table(flux.biomet[,!c("date_time"),with=FALSE],
-            file = paste("US-Jo1_HH_",min(flux.biomet$TIMESTAMP_START),"_",max(flux.biomet$TIMESTAMP_END),
+            file = paste("US-Jo1_HH_",min(flux.biomet$TIMESTAMP_END),"_",max(flux.biomet$TIMESTAMP_END),
                   "_PRELIM.csv",sep=""),
             sep=',', dec='.', row.names=FALSE, na="-9999", quote=FALSE)
 
