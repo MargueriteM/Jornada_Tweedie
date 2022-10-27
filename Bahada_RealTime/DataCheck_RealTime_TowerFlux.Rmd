@@ -24,15 +24,28 @@ yeartocheck <- 2022
 #source("~/Desktop/R/R_programs/Functions/plot.windrose.R")
 source(paste0("https://raw.githubusercontent.com/MargueriteM/R_functions/master/plot.windrose.R"))
 
-# import data directly from SEL Data Archive
-flux_colnames <- fread(cmd=paste('Z:/"Research Data"/Desert/Jornada/Bahada/Tower/Flux/',yeartocheck,'/Raw_Data/ASCII/dataL1_flux_',yeartocheck,'.csv',sep=""),
+# manually import files
+setwd("Z:/Research Data/Desert/Jornada/Bahada/Tower/Flux/2022/Raw_Data/ASCII")
+
+flux_colnames <- fread("dataL1_flux_2022.csv",
                   header = TRUE, skip=1,sep=",", fill=TRUE,
                  na.strings=c(-9999,"#NAME?"))[1,]
 
-flux <- fread(paste("Z:/Research Data/Desert/Jornada/Bahada/Tower/Flux/",yeartocheck,"/Raw_Data/ASCII/dataL1_flux_",yeartocheck,".csv",sep=""),
+flux <- fread("dataL1_flux_2022.csv",
                   header = FALSE, skip=4, sep=",", fill=TRUE,
                  na.strings=c(-9999,"#NAME?"),
               col.names=colnames(flux_colnames))
+
+
+# import data directly from SEL Data Archive
+# flux_colnames <- fread(cmd=paste('Z:/"Research Data"/Desert/Jornada/Bahada/Tower/Flux/',yeartocheck,'/Raw_Data/ASCII/dataL1_flux_',yeartocheck,'.csv',sep=""),
+#                   header = TRUE, skip=1,sep=",", fill=TRUE,
+#                  na.strings=c(-9999,"#NAME?"))[1,]
+# 
+# flux <- fread(paste("Z:/Research Data/Desert/Jornada/Bahada/Tower/Flux/",yeartocheck,"/Raw_Data/ASCII/dataL1_flux_",yeartocheck,".csv",sep=""),
+#                   header = FALSE, skip=4, sep=",", fill=TRUE,
+#                  na.strings=c(-9999,"#NAME?"),
+#               col.names=colnames(flux_colnames))
 
 # convert the time stamp to a posixct format
 flux[,date_time := parse_date_time(TIMESTAMP, c("%Y!-%m-%d %H:%M:%S",
@@ -66,11 +79,17 @@ flux[,CO2_ppm := (CO2_mean/0.0409)/44.01]
 
 
 # set working directory to server
-setwd(paste("Z:/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_CS650/",yeartocheck,"/Raw_Data/ASCII",sep=""))
+#setwd(paste("Z:/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_CS650/",yeartocheck,"/Raw_Data/ASCII",sep=""))
+
+setwd("Z:/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_CS650/2022/Raw_Data/ASCII")
 
 # load headers of file and data
-cs650names <- colnames(read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=1,heade=TRUE))
-cs650wide <- read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=4, col.names = cs650names, na.strings="-9999")
+cs650names <- colnames(read.table("dataL1_Soil_2022.csv", sep=",", skip=1,heade=TRUE))
+cs650wide <- read.table("dataL1_Soil_2022.csv", sep=",", skip=4, col.names = cs650names, na.strings="-9999")
+
+
+#cs650names <- colnames(read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=1,heade=TRUE))
+#cs650wide <- read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=4, col.names = cs650names, na.strings="-9999")
 
 # convert to long format
 cs650 <- cs650wide %>%
