@@ -20,23 +20,23 @@ library(bit64)
 # import filtered flux data file from Eddy Pro as data table
 # MINIMUM 3 MONTHS OF DATA
 # filtered in: Jornada_EddyPro_Output_Fluxnext_appendProcessedData.R
-setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
- load("JER_flux_20200131_EddyPro_Output_filtered_SD_TIMEcorr_20220913.Rdata")
+# setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
+# load("JER_flux_20200131_EddyPro_Output_filtered_SD_TIMEcorr_20220913.Rdata")
 
  # save to server
- setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/")
+ setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/")
  
- flux2021_filter_sd <- fread(file="JER_flux_2021_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
+ flux2022_filter_sd <- fread(file="JER_flux_2022_EddyPro_Output_filtered_SD_JanSep.csv",sep=",", dec=".",
              header = TRUE)
  
  
 # convert date to POSIXct and get a year, day, hour column
 # if this step doesn't work, make sure bit64 library is loaded otherwise the timestamps importa in a non-sensical format
-flux2021_filter_sd[,':='(Year=year(date_time),DoY=yday(date_time),
+flux2022_filter_sd[,':='(Year=year(date_time),DoY=yday(date_time),
         hours = hour(date_time), mins = minute(date_time))]
 
 # make sure there's no duplicated data
-flux_filter <- (flux2021_filter_sd[!(duplicated(flux2021_filter_sd, by=c("date_time")))])
+flux_filter <- (flux2022_filter_sd[!(duplicated(flux2022_filter_sd, by=c("date_time")))])
 
 # exclude FC, LE, H data where FC_SSITC_TEST==1 because that data should only be used for budgets, not gap-filling
 
@@ -90,7 +90,7 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
  
  
  # create a grid of full dates and times
- filled <- expand.grid(date=seq(as.Date("2021-01-01"),as.Date("2021-12-31"), "days"),
+ filled <- expand.grid(date=seq(as.Date("2022-01-01"),as.Date("2022-09-30"), "days"),
                        Hour=seq(0,23.5, by=0.5))
  filled$Year <- year(filled$date)
  filled$DoY <- yday(filled$date)
@@ -100,7 +100,7 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
  edata <- merge(edata,filled,by=c("Year","DoY","Hour"), all=TRUE)
 
   # if NEE in the first row is NA, remove it
- #  edata <- edata[!(Year==2021 & DoY == 1 & Hour == 0.0)]
+ #  edata <- edata[!(Year==2022 & DoY == 1 & Hour == 0.0)]
  
  
  # online tool says hours must be between 0.5 and 24.0 
@@ -123,5 +123,5 @@ edata[is.na(edata)]=-9999
 
 # export data for online tool of ReddyProc,
 # with timesstamp corrected
- write.table(edata, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/2021/JER_ReddyProc_Input_2021.txt", sep=" ", dec=".",row.names=FALSE)
+ write.table(edata, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/2022/JER_ReddyProc_Input_2022.txt", sep=" ", dec=".",row.names=FALSE)
 
