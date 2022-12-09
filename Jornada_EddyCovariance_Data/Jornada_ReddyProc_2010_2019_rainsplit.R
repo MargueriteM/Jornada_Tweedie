@@ -83,6 +83,10 @@ ggplot(edata, aes(DoY,FC))+
   geom_line()+
   facet_grid(Year~.)
 
+ggplot(edata, aes(DoY,LE))+
+  geom_line()+
+  facet_grid(Year~.)
+
 ggplot(edata, aes(DoY,P_RAIN_1_1_1))+
   geom_line()+
   facet_grid(Year~.)
@@ -119,6 +123,8 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
   # check that all days have 48 points
  daylength <- edata[,list(daylength=length(Hour)),by="Year,DoY"]
  
+ ggplot(daylength, aes(DoY, daylength))+geom_point()+facet_wrap(Year~.)
+ 
  # convert edata to data frame for ReddyProc
  edata <- as.data.frame(edata)
  
@@ -138,6 +144,7 @@ edata2010 <- edata %>%
                                            Tair,
                                           rH,
                                             Ustar)
+
 edata2011 <- edata %>%
   filter(Year>=2011) %>%
   select(Year,
@@ -183,7 +190,7 @@ plot_grid(edata %>%
 # determine rain events that last more than 6 hours (=12 rows)
 # https://stackoverflow.com/questions/51371155/r-select-rainfall-events-and-calculate-rainfall-event-total-from-time-series-da
   flags <- edata  %>% 
-  filter((Year==2010 & P_RAIN_1_1_1<39&(DoY>150&DoY<250)) | Year ==2011)%>%
+  filter(Year==2010 & P_RAIN_1_1_1<39&(DoY>150&DoY<250))%>%
   # Set a rain flag if there is rain registered on the gauge
   mutate(rainflag = ifelse(P_RAIN_1_1_1 > 0, 1, 0)) %>% 
   # Create a column that contains the number of consecutive times there was rain or not.
@@ -208,41 +215,22 @@ plot_grid(edata %>%
   # Correct for the case when the dataset starts with no rain for less than six consecutive times
   # If within the first six rows there is no rain registered, then the event flag should change to 0
   mutate(eventflag = ifelse(row_number() < 12 & rainflag == 0, 0, eventflag)) %>% 
-  group_by(Year)%>%
-      # Add an id to each event (rain or not), to group by on the pivot table
-  mutate(eventid = rep(seq(1,length(rle(eventflag)$lengths)), rle(eventflag)$lengths))
+  # Add an id to each event (rain or not), to group by on the pivot table
+  mutate(eventid = case_when(eventflag==1 ~rep(seq(1,length(rle(eventflag)$lengths)), rle(eventflag)$lengths)))
 
 
   # plot rain and NEE, aligned with rain events
   plot_grid(flags %>% 
+              filter(Year==2010 & P_RAIN_1_1_1<39&(DoY>150&DoY<250)) %>%
               ggplot(., aes(DoY+Hour/100,P_RAIN_1_1_1,color=factor(eventid)))+
               geom_line()+
               facet_grid(Year~.),
             flags %>% 
+              filter(Year==2010 & P_RAIN_1_1_1<39&(DoY>150&DoY<250)) %>%
               ggplot(., aes(DoY+Hour/100,NEE,color=factor(eventid)))+
               geom_line()+
               facet_grid(Year~.), 
             nrow=2,ncol=1)
-
-# calculate cumulative rain per event
-rainevents.rain <- flags %>%
- # select only rain events
-   filter(eventflag==1)%>%
-  # Group by id
-  group_by(eventid) %>% 
-  summarize(
-    eventRain = sum(P_RAIN_1_1_1),
-    eventStartYear = first(Year),
-    eventEndYear = last(Year),
-    eventStartDoY = first(DoY),
-    eventEndDoY = last(DoY),
-    eventStartHour = first(Hour),
-    eventEndHour = last(Hour)
-  )
-  
-# graph cumulative rain
-ggplot(rainevents.rain, aes(eventStartDoY+eventStartHour/100, eventRain))+
-  geom_col()
   
 # online tool says missing values must be -9999, convert all NA to -9999
 edata[is.na(edata)]=-9999

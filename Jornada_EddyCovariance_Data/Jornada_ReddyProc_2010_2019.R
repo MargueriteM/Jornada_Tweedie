@@ -14,6 +14,7 @@ library(gtable)
 library(grid)
 library(zoo)
 library(bit64)
+library(cowplot)
 
 # import filtered flux data file from Eddy Pro as data table
 # filtered in: Jornada_EddyPro_Output_Fluxnext_2010_2019.R
@@ -82,6 +83,10 @@ ggplot(edata, aes(DoY,FC))+
   geom_line()+
   facet_grid(Year~.)
 
+ggplot(edata, aes(DoY,LE))+
+  geom_line()+
+  facet_grid(Year~.)
+
 ggplot(edata, aes(DoY,P_RAIN_1_1_1))+
   geom_line()+
   facet_grid(Year~.)
@@ -92,10 +97,8 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
 # make all Rg<0 equal to 0 becuase ReddyProc won't accept values <0
  edata[Rg<0, Rg:=0]
 
- # remove 2019 because that belongs to the following year
- # edata <- edata[Year!=2019,]
- 
- # 
+ # remove max year because that belongs to the following year
+ edata <- edata[Year!=max(edata$Year),]
  
  # create a grid of full dates and times
  filled <- expand.grid(date=seq(as.Date("2010-01-01"),as.Date("2019-12-31"), "days"),
@@ -107,8 +110,6 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
  
  edata <- merge(edata,filled,by=c("Year","DoY","Hour"), all=TRUE)
 
-  # and remove the 00:00 first time point in 2010. It's all NA and Reddyproc is getting upset
- # edata <- edata[!(Year==2010 & DoY == 1 & Hour == 0.0)]
  
  
  # online tool says hours must be between 0.5 and 24.0 
@@ -118,67 +119,37 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
   # check that all days have 48 points
  daylength <- edata[,list(daylength=length(Hour)),by="Year,DoY"]
  
+ ggplot(daylength, aes(DoY, daylength))+geom_point()+facet_wrap(Year~.)
+ 
  # convert edata to data frame for ReddyProc
  edata <- as.data.frame(edata)
  
 # calculate VPD from rH and Tair in hPa (mbar), at > 10 hPa the light response curve parameters change
 edata$VPD <- fCalcVPDfromRHandTair(edata$rH, edata$Tair)
 
-# remove the first 8 days of 2010 which have NA data
-edata2010 <- edata %>%
-  filter(Year==2010&DoY>=9) %>%
-  select(Year,
-                                          DoY,
-                                          Hour,
-                                          NEE,
-                                           LE,
-                                           H,
-                                           Rg,
-                                           Tair,
-                                          rH,
-                                            Ustar)
-edata2011 <- edata %>%
-  filter(Year>=2011) %>%
-  select(Year,
-         DoY,
-         Hour,
-         NEE,
-         LE,
-         H,
-         Rg,
-         Tair,
-         rH,
-         Ustar)
+# set order: Year	DoY	Hour	NEE	LE	H	Rg	Tair	Tsoil	rH	VPD	Ustar (Tsoil is not required)
+edata <- edata %>% 
+  select(Year, DoY, Hour, NEE, LE, H, Rg, Tair, rH, VPD, Ustar)
 
-edata1 <- rbind(edata2010,edata2011)
 # online tool says missing values must be -9999, convert all NA to -9999
 edata[is.na(edata)]=-9999
 
 # export data for online tool of ReddyProc,
+# add a units row as the first row of the data
+edata.units <- c("-","-","-","umolm-2s-1", "Wm-2","Wm-2","Wm-2","degC","%","hPa","ms-1")
 
-# subset data without rain splits
-edata.noRain <- edata[,.(Year,
-                                  DoY,
-                                  Hour,
-                                  NEE,
-                                  LE,
-                                  H,
-                                  Rg,
-                                  Tair,
-                                  rH,
-                                  Ustar)]
+edata.final <- rbind(edata.units,edata)
 
-# with timesstamp corrected
-# write.table(edata.noRain, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200427/JER_ReddyProc_Input_2011_2019_20200427.txt", sep=" ", dec=".",row.names=FALSE)
-
-
-#write.table(edata.noRain, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20203001/JER_ReddyProc_Input_2011_2019_20200131.txt", sep=" ", dec=".",row.names=FALSE)
-# saved before rain/no rain split was created
-#write.table(edata2011, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200212/JER_ReddyProc_Input_2011_2019_20200212.txt", sep=" ", dec=".",row.names=FALSE)
 
 # Process with all the SSITC_TEST==1 removed
 # saved before rain/no rain split was created
 #write.table(edata2011, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200220/JER_ReddyProc_Input_2011_2019_20200220.txt", sep=" ", dec=".",row.names=FALSE)
+
+# 2022-12-09
+# update with units in first row of file
+# try with all data for 2010 to see if it works
+write.table(edata.final, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200220/JER_ReddyProc_Input_2011_2019_20200220.txt", sep=" ", dec=".",row.names=FALSE)
+
 
 # Run ReddyProc
 
