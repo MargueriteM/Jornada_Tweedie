@@ -90,7 +90,7 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
  
  
  # create a grid of full dates and times
- filled <- expand.grid(date=seq(as.Date("2022-01-01"),as.Date("2022-09-30"), "days"),
+ filled <- expand.grid(date=seq(as.Date("2022-01-01"),as.Date("2022-10-01"), "days"),
                        Hour=seq(0,23.5, by=0.5))
  filled$Year <- year(filled$date)
  filled$DoY <- yday(filled$date)
@@ -111,17 +111,29 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
  # 2020 Jan 1 has only 47 points because first row was removed due to NA point
  daylength <- edata[,list(daylength=length(Hour)),by="Year,DoY"]
  
+ ggplot(daylength, aes(DoY, daylength))+geom_point()
+ 
+ 
  # convert edata to data frame for ReddyProc
  edata <- as.data.frame(edata)
  
 # calculate VPD from rH and Tair in hPa (mbar), at > 10 hPa the light response curve parameters change
 edata$VPD <- fCalcVPDfromRHandTair(edata$rH, edata$Tair)
 
+# set order: Year	DoY	Hour	NEE	LE	H	Rg	Tair	Tsoil	rH	VPD	Ustar (Tsoil is not required)
+edata <- edata %>% 
+  select(Year, DoY, Hour, NEE, LE, H, Rg, Tair, rH, VPD, Ustar)
 
 # online tool says missing values must be -9999, convert all NA to -9999
 edata[is.na(edata)]=-9999
 
+
+# add a units row as the first row of the data
+edata.units <- c("-","-","-","umolm-2s-1", "Wm-2","Wm-2","Wm-2","degC","%","hPa","ms-1")
+
+edata.final <- rbind(edata.units,edata)
+
 # export data for online tool of ReddyProc,
 # with timesstamp corrected
- write.table(edata, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/2022/JER_ReddyProc_Input_2022.txt", sep=" ", dec=".",row.names=FALSE)
+ write.table(edata.final, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/2022/JER_ReddyProc_Input_2022.2.txt", sep=" ", dec=".",row.names=FALSE)
 
