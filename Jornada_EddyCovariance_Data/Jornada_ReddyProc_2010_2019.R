@@ -148,7 +148,7 @@ edata.final <- rbind(edata.units,edata)
 # 2022-12-09
 # update with units in first row of file
 # try with all data for 2010 to see if it works
-write.table(edata.final, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200220/JER_ReddyProc_Input_2011_2019_20200220.txt", sep=" ", dec=".",row.names=FALSE)
+write.table(edata.final, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/JER_ReddyProc_Input_2010_2019_20221209.txt", sep=" ", dec=".",row.names=FALSE)
 
 
 # Run ReddyProc
