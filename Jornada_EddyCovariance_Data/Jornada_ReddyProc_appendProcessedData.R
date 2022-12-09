@@ -86,7 +86,7 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
  edata[Rg<0, Rg:=0]
 
  # remove 2022 because that belongs to the following year
-  edata <- edata[Year!=2022,]
+  edata <- edata[Year!=2023,]
  
  
  # create a grid of full dates and times
