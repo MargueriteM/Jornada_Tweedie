@@ -91,6 +91,10 @@ ggplot(edata, aes(DoY,P_RAIN_1_1_1))+
   geom_line()+
   facet_grid(Year~.)
 
+ggplot(edata, aes(DoY,SW_IN_1_1_1))+
+  geom_line()+
+  facet_grid(Year~.)
+
 setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
          c("NEE","Rg","Tair","rH","Ustar"))
 
@@ -110,7 +114,12 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
  
  edata <- merge(edata,filled,by=c("Year","DoY","Hour"), all=TRUE)
 
+ # 2010 has insufficient biomet, drop 2010 from gapfill
+ edata <- edata[Year>2010,]
  
+ ggplot(edata, aes(DoY,Rg))+
+     geom_line()+
+     facet_grid(Year~.)
  
  # online tool says hours must be between 0.5 and 24.0 
  # therefore add 0.5 to each hour
@@ -148,7 +157,7 @@ edata.final <- rbind(edata.units,edata)
 # 2022-12-09
 # update with units in first row of file
 # try with all data for 2010 to see if it works
-write.table(edata.final, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/JER_ReddyProc_Input_2010_2019_20221209.txt", sep=" ", dec=".",row.names=FALSE)
+write.table(edata.final, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/JER_ReddyProc_Input_2011_2019_20221209.txt", sep=" ", dec=".",row.names=FALSE)
 
 
 # Run ReddyProc
