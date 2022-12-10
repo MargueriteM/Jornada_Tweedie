@@ -141,13 +141,13 @@ edata <- edata %>%
   select(Year, DoY, Hour, NEE, LE, H, Rg, Tair, rH, VPD, Ustar)
 
 # online tool says missing values must be -9999, convert all NA to -9999
-edata[is.na(edata)]=-9999
+# edata[is.na(edata)]=-9999
 
 # export data for online tool of ReddyProc,
 # add a units row as the first row of the data
-edata.units <- c("-","-","-","umolm-2s-1", "Wm-2","Wm-2","Wm-2","degC","%","hPa","ms-1")
+#edata.units <- c("-","-","-","umolm-2s-1", "Wm-2","Wm-2","Wm-2","degC","%","hPa","ms-1")
 
-edata.final <- rbind(edata.units,edata)
+#edata.final <- rbind(edata.units,edata)
 
 
 # Process with all the SSITC_TEST==1 removed
@@ -157,8 +157,27 @@ edata.final <- rbind(edata.units,edata)
 # 2022-12-09
 # update with units in first row of file
 # try with all data for 2010 to see if it works
-write.table(edata.final, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/JER_ReddyProc_Input_2011_2019_20221209.txt", sep=" ", dec=".",row.names=FALSE)
+#write.table(edata.final, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/JER_ReddyProc_Input_2011_2019_20221209.txt", sep=" ", dec=".",row.names=FALSE)
 
+setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019")
+
+saveyear <- function(data,startyear,endyear) {
+
+  for (i in startyear:endyear){
+    # subset each year
+    data1 <- subset(data, Year==i)
+
+    edata.units <- c("-","-","-","umolm-2s-1", "Wm-2","Wm-2","Wm-2","degC","%","hPa","ms-1")
+    
+    edata.final <- rbind(edata.units,data1)
+    
+    # save with columns in prescribed order
+    write.table (edata.final,
+                 file=paste("JER_ReddyProc_Input_",i, ".txt",sep=""),
+                 sep =' ', dec='.', na="-9999", row.names=FALSE)
+  }} 
+
+saveyear(edata, 2011, 2019)
 
 # Run ReddyProc
 
