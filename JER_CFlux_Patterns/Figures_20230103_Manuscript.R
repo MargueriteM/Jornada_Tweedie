@@ -18,59 +18,192 @@ library(viridis)
 library(cowplot)
 library(scales)
 
-# import filtered flux data file from Eddy Pro as data table
-# filtered in: Jornada_EddyPro_Output_Fluxnext_2010_2019.R
-ep.units <- (fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200427/REddyResults_Us-Jo1_20200428_586625386/output.txt",
-                   header=TRUE))[1,]
+# import 
+# Read Reddyproc output data one year at a time
+# 2011
+ep.path.2011 <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/REddyResults_US-Jo1_20221210_773806771/output.txt"
+ep.units.2011 <-fread(ep.path.2011,
+                      header=TRUE)[1,]
 
-# import 2010-2019 ReddyProc Data
-flux.ep <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200427/REddyResults_Us-Jo1_20200428_586625386/output.txt",
-                 header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
-                 col.names = colnames(ep.units))
+
+flux.ep2011 <-fread(ep.path.2011,
+                    header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
+                    col.names = colnames(ep.units.2011))
 
 # for some reason na.strings won't recognize the -9999
-flux.ep[flux.ep == -9999] <- NA
+flux.ep2011[flux.ep2011 == -9999] <- NA
+
+ggplot(flux.ep2011, aes(`Date Time`, NEE_U95_f))+geom_line()
+
+# 2012
+ep.path.2012 <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/REddyResults_US-Jo1_20221210_253889278/output.txt"
+ep.units.2012 <-fread(ep.path.2012,
+                      header=TRUE)[1,]
+
+
+flux.ep2012 <-fread(ep.path.2012,
+                    header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
+                    col.names = colnames(ep.units.2012))
+
+# for some reason na.strings won't recognize the -9999
+flux.ep2012[flux.ep2012 == -9999] <- NA
+
+ggplot(flux.ep2012, aes(`Date Time`, NEE_U95_f))+geom_line()
+
+# 2013
+ep.path.2013 <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/REddyResults_US-Jo1_20221210_315371273/output.txt"
+ep.units.2013 <-fread(ep.path.2013,
+                      header=TRUE)[1,]
+
+
+flux.ep2013 <-fread(ep.path.2013,
+                    header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
+                    col.names = colnames(ep.units.2013))
+
+# for some reason na.strings won't recognize the -9999
+flux.ep2013[flux.ep2013 == -9999] <- NA
+
+ggplot(flux.ep2013, aes(`Date Time`, NEE_U95_f))+geom_line()
+
+
+# 2014
+ep.path.2014 <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/REddyResults_US-Jo1_20221210_440811310/output.txt"
+ep.units.2014 <-fread(ep.path.2014,
+                      header=TRUE)[1,]
+
+
+flux.ep2014 <-fread(ep.path.2014,
+                    header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
+                    col.names = colnames(ep.units.2014))
+
+# for some reason na.strings won't recognize the -9999
+flux.ep2014[flux.ep2014 == -9999] <- NA
+
+ggplot(flux.ep2014, aes(`Date Time`, NEE_U95_f))+geom_line()
+
+# 2015
+ep.path.2015 <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/REddyResults_US-Jo1_20221210_132370731/output.txt"
+ep.units.2015 <-fread(ep.path.2015,
+                      header=TRUE)[1,]
+
+
+flux.ep2015 <-fread(ep.path.2015,
+                    header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
+                    col.names = colnames(ep.units.2015))
+
+# for some reason na.strings won't recognize the -9999
+flux.ep2015[flux.ep2015 == -9999] <- NA
+
+ggplot(flux.ep2015, aes(`Date Time`, NEE_U95_f))+geom_line()
+
+# 2016
+ep.path.2016 <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/REddyResults_US-Jo1_20221210_103164078/output.txt"
+ep.units.2016 <-fread(ep.path.2016,
+                      header=TRUE)[1,]
+
+
+flux.ep2016 <-fread(ep.path.2016,
+                    header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
+                    col.names = colnames(ep.units.2016))
+
+# for some reason na.strings won't recognize the -9999
+flux.ep2016[flux.ep2016 == -9999] <- NA
+
+ggplot(flux.ep2016, aes(`Date Time`, NEE_U95_f))+geom_line()
+
+# 2017
+ep.path.2017 <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/REddyResults_US-Jo1_20221210_270243770/output.txt"
+ep.units.2017 <-fread(ep.path.2017,
+                      header=TRUE)[1,]
+
+
+flux.ep2017 <-fread(ep.path.2017,
+                    header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
+                    col.names = colnames(ep.units.2017))
+
+# for some reason na.strings won't recognize the -9999
+flux.ep2017[flux.ep2017 == -9999] <- NA
+
+ggplot(flux.ep2017, aes(`Date Time`, NEE_U95_f))+geom_line()
+
+# 2018
+ep.path.2018 <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/REddyResults_US-Jo1_20221210_161042297/output.txt"
+ep.units.2018 <-fread(ep.path.2018,
+                      header=TRUE)[1,]
+
+
+flux.ep2018 <-fread(ep.path.2018,
+                    header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
+                    col.names = colnames(ep.units.2018))
+
+# for some reason na.strings won't recognize the -9999
+flux.ep2018[flux.ep2018 == -9999] <- NA
+
+ggplot(flux.ep2018, aes(`Date Time`, NEE_U95_f))+geom_line()
+
+# 2019
+ep.path.2019 <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/REddyResults_US-Jo1_20221210_908275063/output.txt"
+ep.units.2019 <-fread(ep.path.2019,
+                      header=TRUE)[1,]
+
+
+flux.ep2019 <-fread(ep.path.2019,
+                    header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
+                    col.names = colnames(ep.units.2019))
+
+# for some reason na.strings won't recognize the -9999
+flux.ep2019[flux.ep2019 == -9999] <- NA
+
+ggplot(flux.ep2019, aes(`Date Time`, NEE_U95_f))+geom_line()
 
 # add the reddyproc data for 2020
-# headers changed in 2020 batch
-ep.units.2020 <-fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/2020/REddyResults_US-Jo1_20220914_552711071/output.txt",
-                    header=TRUE)[1,]
+# with corrected input format
+ep.path.2020 <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/2020/REddyResults_US-Jo1_20221209_435805042/output.txt"
+ep.units.2020 <-fread(ep.path.2020,
+                      header=TRUE)[1,]
 
 
-flux.ep2020 <-fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/2020/REddyResults_US-Jo1_20220914_552711071/output.txt",
-                     header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
-                     col.names = colnames(ep.units.2020))
+flux.ep2020 <-fread(ep.path.2020,
+                    header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
+                    col.names = colnames(ep.units.2020))
 
 # for some reason na.strings won't recognize the -9999
 flux.ep2020[flux.ep2020 == -9999] <- NA
 
+ggplot(flux.ep2020, aes(`Date Time`, NEE_U95_f))+geom_line()
+
 
 # add the reddyproc data for 2021
-# headers changed in 2020 batch
-ep.units.2021 <-fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/2021/REddyResults_US-Jo1_20221208_443485002/output.txt",
+# with corrected input format
+ep.path.2021 <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/2021/REddyResults_US-Jo1_20221209_41329446/output.txt"
+ep.units.2021 <-fread(ep.path.2021,
                       header=TRUE)[1,]
 
 
-flux.ep2021 <-fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/2021/REddyResults_US-Jo1_20221208_443485002/output.txt",
+flux.ep2021 <-fread(ep.path.2021,
                     header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
-                    col.names = colnames(ep.units.2020))
+                    col.names = colnames(ep.units.2021))
 
 # for some reason na.strings won't recognize the -9999
 flux.ep2021[flux.ep2021 == -9999] <- NA
 
+ggplot(flux.ep2021, aes(`Date Time`, NEE_U95_f))+geom_line()
+
 # add the reddyproc data for 2022
-# headers changed in 2020 batch
-ep.units.2022 <-fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/2022/REddyResults_US-Jo1_20221208_504774810/output.txt",
+# with corrected input format
+ep.path.2022 <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/2022/REddyResults_US-Jo1_20221209_759647150/output.txt"
+ep.units.2022 <-fread(ep.path.2022,
                       header=TRUE)[1,]
 
 
-flux.ep2022 <-fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/2022/REddyResults_US-Jo1_20221208_504774810/output.txt",
+flux.ep2022 <-fread(ep.path.2022,
                     header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
-                    col.names = colnames(ep.units.2020))
+                    col.names = colnames(ep.units.2022))
 
 # for some reason na.strings won't recognize the -9999
 flux.ep2022[flux.ep2022 == -9999] <- NA
 
+ggplot(flux.ep2022, aes(`Date Time`, NEE_U95_f))+geom_line()
 
 # get the 'edata' to add 2010 to the timeseries eventhough 2010 won't gap fill.... 
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
@@ -137,8 +270,9 @@ edata2010 <- as.data.table(subset(edata,Year==2010))
 #edata2020 <- as.data.table(subset(edata,Year==2020))
 # edata2021 <- as.data.table(subset(edata,Year==2021))
 
-flux.ep <- rbind(edata2010,flux.ep[Year>2010&Year<2020,],
-                 flux.ep2020,flux.ep2021,flux.ep2022, fill=TRUE)
+flux.ep <- rbind(edata2010,flux.ep2011,flux.ep2012,flux.ep2013,flux.ep2014,flux.ep2015,
+                 flux.ep2016,flux.ep2017,flux.ep2018,flux.ep2019,flux.ep2020,
+                 flux.ep2021,flux.ep2022, fill=TRUE)
 
 # plot to check
 # NEE_U95_f graph should have 2010 missing
