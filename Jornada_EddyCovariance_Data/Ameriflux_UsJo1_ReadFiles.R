@@ -2,6 +2,7 @@
 ############################################
 # Read US-Jo1 data: Sample Code            #
 # written by: M. Mauritz                   #
+# for Lindsey and Talveer                  #
 ############################################
 
 # load libraries
