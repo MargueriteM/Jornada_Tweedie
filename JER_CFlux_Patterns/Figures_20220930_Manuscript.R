@@ -23,6 +23,7 @@ library(scales)
 ep.units <- (fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200427/REddyResults_Us-Jo1_20200428_586625386/output.txt",
                    header=TRUE))[1,]
 
+# import 2010-2019 ReddyProc Data
 flux.ep <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200427/REddyResults_Us-Jo1_20200428_586625386/output.txt",
                  header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
                  col.names = colnames(ep.units))
