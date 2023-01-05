@@ -416,8 +416,8 @@ daily.comp.co2 <- ggplot(daily_sum_ec,aes(x=NEE_daily, y=NEE_daily_mean))+
   geom_abline(slope=1,intercept=0)+
   geom_smooth(method="lm")+
   labs(x = "Daily Cummulative NEE (ReddyProc gap-filled)",
-       y = "Daily Cummulative NEE (scaled from Mean flux) ")+
-  annotate("text", x=-1, y=2.5, label = "y = -0.15 + 1.17x, R^2 = 0.79")+
+       y = "Daily Cummulative NEE (scaled from mean daily flux) ")+
+  annotate("text", x=-1, y=2.5, label = expression("y = -0.15 + 1.17x, " *R^2*" = 0.79"))+
   theme_bw()
 
 lm.daily.co2 <- lm(daily_sum_ec$NEE_daily_mean~daily_sum_ec$NEE_daily)
@@ -428,14 +428,16 @@ daily.comp.et <- ggplot(daily_sum_ec,aes(x=ET_daily, y=ET_daily_mean))+
   geom_abline(slope=1,intercept=0)+
   geom_smooth(method="lm", alpha=0)+
   labs(x = "Daily Cummulative ET (ReddyProc gap-filled)",
-       y = "Daily Cummulative ET (scaled from Mean flux) ")+
-  annotate("text", x=3.5, y=12, label = "y = 0.015 + 1.16x, R^2 = 0.88")+
+       y = "Daily Cummulative ET (scaled from mean daily flux) ")+
+  annotate("text", x=3.5, y=12, label = expression("y = 0.015 + 1.16x, " *R^2*" = 0.88"))+
   theme_bw()
 
 lm.daily.et <- lm( daily_sum_ec$ET_daily_mean~daily_sum_ec$ET_daily)
 summary(lm.daily.et)
 
-plot_grid(daily.comp.co2, daily.comp.et, ncol=2)
+# supplemental figure showing correlation between ReddyProc daily flux
+# and daily flux scaled from mean flux value
+fig.S <- plot_grid(daily.comp.co2, daily.comp.et, ncol=2)
 
 # timeseries
 ggplot(daily_sum_ec)+geom_point(aes(x=DoY, y=NEE_daily),colour="darkgrey")+
