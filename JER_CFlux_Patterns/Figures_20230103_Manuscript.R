@@ -418,7 +418,8 @@ daily.comp.co2 <- ggplot(daily_sum_ec,aes(x=NEE_daily, y=NEE_daily_mean))+
   labs(x = "Daily Cummulative NEE (ReddyProc gap-filled)",
        y = "Daily Cummulative NEE (scaled from mean daily flux) ")+
   annotate("text", x=-1, y=2.5, label = expression("y = -0.15 + 1.17x, " *R^2*" = 0.79"))+
-  theme_bw()
+  theme_bw()+
+  theme(axis.ticks.length =  unit(-0.2,"cm"))
 
 lm.daily.co2 <- lm(daily_sum_ec$NEE_daily_mean~daily_sum_ec$NEE_daily)
 summary(lm.daily.co2)
@@ -430,23 +431,36 @@ daily.comp.et <- ggplot(daily_sum_ec,aes(x=ET_daily, y=ET_daily_mean))+
   labs(x = "Daily Cummulative ET (ReddyProc gap-filled)",
        y = "Daily Cummulative ET (scaled from mean daily flux) ")+
   annotate("text", x=3.5, y=12, label = expression("y = 0.015 + 1.16x, " *R^2*" = 0.88"))+
-  theme_bw()
+  theme_bw()+
+  theme(axis.ticks.length =  unit(-0.2,"cm"))
 
 lm.daily.et <- lm( daily_sum_ec$ET_daily_mean~daily_sum_ec$ET_daily)
 summary(lm.daily.et)
 
 # supplemental figure showing correlation between ReddyProc daily flux
 # and daily flux scaled from mean flux value
-fig.S <- plot_grid(daily.comp.co2, daily.comp.et, ncol=2)
+fig.S1 <- plot_grid(daily.comp.co2, daily.comp.et, ncol=2)
 
 # timeseries
-ggplot(daily_sum_ec)+geom_point(aes(x=DoY, y=NEE_daily),colour="darkgrey")+
+daily.comp.co2.ts <- ggplot(daily_sum_ec)+geom_point(aes(x=DoY, y=NEE_daily),colour="darkgrey")+
   geom_point(aes(x=DoY, y=NEE_daily_mean),colour="lightblue",size=0.5)+
-  facet_grid(.~Year)
+  facet_grid(.~Year)+
+  labs(y = "Daily Cummulative NEE", x="Day Of Year")+
+  theme_bw()+
+  theme(axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.length =  unit(-0.2,"cm"),
+        strip.background = element_blank())
 
-ggplot(daily_sum_ec)+geom_point(aes(x=DoY, y=ET_daily),colour="darkgrey")+
+daily.comp.et.ts <-ggplot(daily_sum_ec)+geom_point(aes(x=DoY, y=ET_daily),colour="darkgrey")+
   geom_point(aes(x=DoY, y=ET_daily_mean),colour="lightblue",size=0.5)+
-  facet_grid(.~Year)
+  facet_grid(.~Year)+
+  labs(y = "Daily Cummulative NEE",x="Day Of Year")+
+  theme_bw()+
+  theme(axis.ticks.length =  unit(-0.2,"cm"),
+        strip.background = element_blank())
+
+fig.S2 <- plot_grid(daily.comp.co2.ts, daily.comp.et.ts, nrow=2)
 
 
 # add a date variable to daily_sum_ec
@@ -511,7 +525,7 @@ plot_grid(plot.nee.cum+theme(axis.text.x =element_blank(), axis.title.x=element_
           plot.et.cum, nrow=4)
 
 # Plot cumulative sum with 7 day running mean and 2010 data based on mean daily multiplied to day
-plot.nee.daily <- ggplot(daily_sum, aes(DoY, NEE_daily))+
+plot.nee.daily.cum <- ggplot(daily_sum, aes(DoY, NEE_daily))+
   geom_line(colour="#000000", size=0.8)+
   #geom_line(aes(yday(date),NEE_daily_roll),colour="#A0A0A0",size=0.4)+
   geom_line(data=daily_sum[Year==2010,],aes(yday(date),NEE_daily_mean),colour="#A0A0A0",size=0.4)+
@@ -536,13 +550,36 @@ plot.nee.daily <- ggplot(daily_sum, aes(DoY, NEE_daily))+
         axis.ticks.length =  unit(-0.2,"cm"),
         ggh4x.axis.ticks.length.minor = rel(0.7))
 
+# without cumulative
+plot.nee.daily <- ggplot(daily_sum, aes(DoY, NEE_daily))+
+  geom_line(colour="#000000", size=0.8)+
+  #geom_line(aes(yday(date),NEE_daily_roll),colour="#A0A0A0",size=0.4)+
+  geom_line(data=daily_sum[Year==2010,],aes(yday(date),NEE_daily_mean),colour="#A0A0A0",size=0.4)+
+  geom_hline(yintercept=0)+
+  geom_vline(xintercept=c(166,273))+
+  facet_grid(.~Year)+
+  scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
+                     labels=c("Jan","Jul","D"),
+                     minor_breaks =c(31,61,91,121,151,181,211,241,271,301,331,361),
+                     guide="axis_minor",
+                     expand=c(0,0))+
+  scale_y_continuous(name=expression("Daily NEE (gC" *m^-2*")"))+
+  facet_grid(.~Year)+
+  theme_bw(base_size=14)+
+  theme(strip.background = element_blank(),
+        # panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.length =  unit(-0.2,"cm"),
+        ggh4x.axis.ticks.length.minor = rel(0.7))
 
 # graph GPP and Reco
 plot.gpp.daily <- ggplot(daily_sum[Year>2010,], aes(DoY, GPP_daily))+
   geom_line(colour="#000000")+
   geom_hline(yintercept=0)+
   ylim(c(0,3.5))+
- labs(y=expression("Daily cumulative GPP (gC" *m^-2*")"),
+ labs(y=expression("Daily GPP (gC" *m^-2*")"),
        x="Month")+
   facet_grid(.~Year)+
   scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
@@ -588,7 +625,7 @@ plot_grid(plot.nee.daily,
           align="v")
 
 # Plot daily ET sum with 7 day running mean
-pET <- ggplot(daily_sum[Year>2010,], aes(DoY, ET_daily))+
+pET.cum <- ggplot(daily_sum[Year>2010,], aes(DoY, ET_daily))+
   geom_line(colour="royalblue2")+
   #geom_line(aes(DoY,ET_daily_roll),colour="navyblue")+
   geom_line(data=daily_sum[Year==2010,],aes(yday(date),ET_daily_mean),colour="navyblue",size=0.4)+
@@ -613,9 +650,33 @@ pET <- ggplot(daily_sum[Year>2010,], aes(DoY, ET_daily))+
         axis.ticks.length =  unit(-0.2,"cm"),
         ggh4x.axis.ticks.length.minor = rel(0.7))
 
+# without cumulative
+pET <- ggplot(daily_sum[Year>2010,], aes(DoY, ET_daily))+
+  geom_line(colour="royalblue2")+
+  #geom_line(aes(DoY,ET_daily_roll),colour="navyblue")+
+  geom_line(data=daily_sum[Year==2010,],aes(yday(date),ET_daily_mean),colour="navyblue",size=0.4)+
+  geom_hline(yintercept=0)+
+  scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
+                     labels=c("Jan","Jul","D"),
+                     minor_breaks =c(31,61,91,121,151,181,211,241,271,301,331,361),
+                     guide="axis_minor",
+                     expand=c(0,0))+
+  labs(#title="Daily ET and weekly running mean from 2011-2019",
+    y=expression("Daily ET (mm)"),
+    x="Month")+
+  facet_grid(.~Year)+
+  theme_bw(base_size=14)+
+  theme(strip.background = element_blank(),
+        # panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.length =  unit(-0.2,"cm"),
+        ggh4x.axis.ticks.length.minor = rel(0.7))
+
 # graph NEE with cumulative rain 
 # daily rainfall and cumulative rain
-plot.precip.daily <- ggplot(daily_sum)+
+plot.precip.daily.cum <- ggplot(daily_sum)+
  geom_col(aes(x=yday(date), y=precip.tot), fill="#A0A0A0",colour="#808080")+
   geom_line(aes(x=yday(date),y=precip.cum/5),colour="#000000",size=0.5)+
   scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
@@ -633,6 +694,22 @@ plot.precip.daily <- ggplot(daily_sum)+
         axis.ticks.length =  unit(-0.2,"cm"),
         ggh4x.axis.ticks.length.minor = rel(0.7))
 
+# without cumulative
+plot.precip.daily <- ggplot(daily_sum)+
+  geom_col(aes(x=yday(date), y=precip.tot), fill="#A0A0A0",colour="#808080")+
+  scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
+                     labels=c("Jan","Jul","D"),
+                     minor_breaks =c(31,61,91,121,151,181,211,241,271,301,331,361),
+                     guide="axis_minor",
+                     expand=c(0,0))+
+  facet_grid(.~Year)+
+  labs(y="Daily Rain (mm)",x="Month")+
+  theme_bw(base_size=14)+
+  theme(strip.background = element_blank(),
+        # panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.ticks.length =  unit(-0.2,"cm"),
+        ggh4x.axis.ticks.length.minor = rel(0.7))
 
 # graph time-series of daily NEE, ET, rain
 plot_grid(plot.nee.daily+theme(axis.title.x=element_blank(), axis.text.x = element_blank(),plot.margin = unit(c(0, 0, 0, 0), "cm")),
@@ -723,10 +800,3 @@ ggplot(daily_stats, aes(DoY,NEE_cum.mean))+
   geom_ribbon(aes(max=(NEE_cum.mean+NEE_cum.sd),min=(NEE_cum.mean-NEE_cum.sd)),alpha=0.3)+
   theme_bw()
 
-
-
-# graph the variance
-ggplot(daily_stats, aes(DoY,NEE_cum.sd))+
-  geom_point()+
- # geom_errorbar(aes(max=(NEE_cum.mean+NEE_cum.sd),min=(NEE_cum.mean-NEE_cum.sd)))
-geom_point()
