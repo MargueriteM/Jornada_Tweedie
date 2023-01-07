@@ -341,7 +341,7 @@ ggplot(flux2013nl[qc_co2_flux<2 & agc_mean<60,], aes(date_time_orig,co2_mole_fra
   ylim(c(300,500))
 ```
 
-## H2O µmol+1mol_a-1 data with AGC<60, CO2 mole fraction, Prain, and RH
+## H2O µmol+1mol_a-1 data with AGC<60, CO2 mole fraction, LE, Prain, and RH
 ```{r, echo=FALSE}
 
 p.co2 <- ggplot(flux2013nl[qc_co2_flux<2 & agc_mean<60,], aes(date_time_orig,co2_mole_fraction,colour=(factor(qc_co2_flux))))+
@@ -350,6 +350,12 @@ p.co2 <- ggplot(flux2013nl[qc_co2_flux<2 & agc_mean<60,], aes(date_time_orig,co2
 
 p.h2o <- ggplot(flux2013nl[qc_h2o_flux<2 & agc_mean<60,], aes(date_time_orig,h2o_mole_fraction,colour=(factor(qc_h2o_flux))))+
   geom_point(size=0.2)
+
+# graph H2O fluxes with a ylim with no quality check
+p.LE <- ggplot(flux2013nl[agc_mean<60,], aes(date_time_orig,LE,colour=(factor(qc_h2o_flux))))+
+  geom_point(size=0.2)+
+  ylim(c(-500,3000))
+
 
 p.rain <- ggplot(flux2013nl.b, aes(date_time_orig,P_rain_1_1_1))+
   geom_line()
@@ -363,12 +369,69 @@ plot_grid(p.co2+theme(axis.text.x = element_blank(),
           p.h2o+theme(axis.text.x = element_blank(),
                       axis.title.x = element_blank(),
                       legend.position ="none"),
+          p.LE+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank(),
+                      legend.position ="none"),
           p.rain+theme(axis.text.x = element_blank(),
                       axis.title.x = element_blank()),
           p.rh,
-          nrow=4,
+          nrow=5,
           align="v")
 ```
 
+## with limits: H2O µmol+1mol_a-1 data with AGC<60, CO2 mole fraction, Prain, and RH
+```{r, echo=FALSE}
 
+p.co21 <- ggplot(flux2013[CUSTOM_AGC_MEAN<60,], aes(date_time_orig,CO2,colour=(factor(FC_SSITC_TEST))))+
+  geom_point(size=0.2)+
+  ylim(c(300,500))
 
+p.h2o1 <- ggplot(flux2013[CUSTOM_AGC_MEAN<60,], aes(date_time_orig,H2O,colour=(factor(LE_SSITC_TEST))))+
+  geom_point(size=0.2)
+
+p.LE1 <- ggplot(flux2013[CUSTOM_AGC_MEAN<60,], aes(date_time_orig,LE,colour=(factor(LE_SSITC_TEST))))+
+  geom_point(size=0.2)+
+  ylim(c(-500,3000))
+
+p.rain1 <- ggplot(flux2013, aes(date_time_orig,P_RAIN_1_1_1))+
+  geom_line()
+
+p.rh1 <- ggplot(flux2013, aes(date_time_orig,RH_1_1_1))+
+  geom_line()
+
+plot_grid(p.co21+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank(),
+                      legend.position ="none"),
+          p.h2o1+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank(),
+                      legend.position ="none"),
+          p.LE1+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank(),
+                      legend.position ="none"),
+          p.rain1+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank()),
+          p.rh1,
+          nrow=5,
+          align="v")
+```
+
+# compare CO2 mol fraction, Co2 flux, H2O and LE from limit and no limit runs
+```{r}
+flux.merge <- merge(flux2013,flux2013nl, by="date_time_orig")
+
+ggplot(flux.merge[co2_mole_fraction <500 & co2_mole_fraction > 300 &(CUSTOM_AGC_MEAN<60 | agc_mean<60),],aes(CO2,co2_mole_fraction))+
+  geom_point()
+
+ggplot(flux.merge[co2_mole_fraction <500 & co2_mole_fraction > 300 &(CUSTOM_AGC_MEAN<60 | agc_mean<60),],aes(FC,co2_flux))+
+  geom_point()+
+  geom_abline(intercept=0,slope=1)
+
+ggplot(flux.merge[(CUSTOM_AGC_MEAN<60 | agc_mean<60),],aes(H2O,h2o_mole_fraction))+
+  geom_point()+
+  geom_abline(intercept=0,slope=1)
+
+ggplot(flux.merge[LE.y>-500 & LE.y<3000 & (CUSTOM_AGC_MEAN<60 | agc_mean<60),],aes(LE.x,LE.y))+
+  geom_point()+
+  geom_abline(intercept=0,slope=1)
+
+```
