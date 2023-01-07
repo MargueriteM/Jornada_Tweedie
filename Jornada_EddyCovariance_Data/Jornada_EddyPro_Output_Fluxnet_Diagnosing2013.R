@@ -123,3 +123,36 @@ ggplot(ec2[agc<60], aes(TIMESTAMP, H2O))+
 # 
 # Israel Begashaw
 # Sr. Science and Support Manager 
+
+
+# Good Afternoon Israel,
+# 
+# I was hoping I could bother you with some follow up questions. I have been able to run the data for the year without the absolute limits test, and as you suspected, the H2O data was being removed in this step (see graphs below). The high values do align with the onset of the monsoon season (we are in a dry shrubland site near Las Cruces, New Mexico).
+# How do I determine a 'reasonable' mole fraction value for H2O?
+#   
+#   I wasn't able to find much, but did find this graph of percent water in air by temperature and RH . If I can treat this as a reliable source, if I very roughly assume an average air temp of 30C and RH between 25-80, then a reasonable value of H2O mmol/mol would be approximately between 10-30mmol/mol.
+# 
+# Does this conjecturing seem reasonable to you or do you have another suggestion (or a better source I should read!)?
+# 
+# Many thanks,
+# Marguerite
+
+
+
+# Hi Mauritz
+# 
+# Typically H2O concentration in the air can range for 0 to 4% and this translates to a H2O mmol/mol of 0 to 40%.
+# 
+# Typically values close to 40 are observed in tropical environments only. The absolute limit test in EddyPro uses a standard temperature (25°C) and pressure(100 kPa)  to convert density to mole fraction  to filter values and so this conversion may not be accurate always. The reason is because at that stage of processing EddyPro does no have access to good temperature measurement such as from the biomet file. So as long as you are aware that the values you have is in the reasonable range (0 to 40 mmol/mol), there is no need to do the absolute filtering, if it is removing a lot of data.
+# 
+# The Foken QC flags from Eddypro (0,1,2) are not related to absolute limits , but more towards whether you have enough turbulence or whether the data does not have large trends in it. So it mostly uses the wind data and trends in the scalar data. you could also get large spikes in the data because of high AGC/low signal strength, so one think you could do is to filter the 30 minute values based on whether the AGC was below a threshold (below 70).
+# 
+# The H2O and Co2 mole fractions you have shown below are all within the normal observable ranges, so skipping the option to filter data based on absolute limit tests would be fine here.
+# 
+# 
+# 
+# Thanks
+# 
+# James
+
+
