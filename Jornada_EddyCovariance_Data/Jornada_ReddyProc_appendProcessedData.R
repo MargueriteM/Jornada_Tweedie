@@ -24,19 +24,19 @@ library(bit64)
 # load("JER_flux_20200131_EddyPro_Output_filtered_SD_TIMEcorr_20210913.Rdata")
 
  # save to server
- setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2020/EddyPro_Out/")
+ setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out")
  
- flux2020_filter_sd <- fread(file="JER_flux_2020_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
+ flux2013nl_filter_sd <- fread(file="JER_flux_2013noLimits_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
              header = TRUE)
  
-
+ 
 # convert date to POSIXct and get a year, day, hour column
 # if this step doesn't work, make sure bit64 library is loaded otherwise the timestamps importa in a non-sensical format
-flux2020_filter_sd[,':='(Year=year(date_time),DoY=yday(date_time),
+flux2013nl_filter_sd[,':='(Year=year(date_time),DoY=yday(date_time),
         hours = hour(date_time), mins = minute(date_time))]
 
 # make sure there's no duplicated data
-flux_filter <- (flux2020_filter_sd[!(duplicated(flux2020_filter_sd, by=c("date_time")))])
+flux_filter <- (flux2013nl_filter_sd[!(duplicated(flux2013nl_filter_sd, by=c("date_time")))])
 
 # exclude FC, LE, H data where FC_SSITC_TEST==1 because that data should only be used for budgets, not gap-filling
 
@@ -90,7 +90,7 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
  
  
  # create a grid of full dates and times
- filled <- expand.grid(date=seq(as.Date("2020-01-01"),as.Date("2020-12-31"), "days"),
+ filled <- expand.grid(date=seq(as.Date("2013-01-01"),as.Date("2013-12-31"), "days"),
                        Hour=seq(0,23.5, by=0.5))
  filled$Year <- year(filled$date)
  filled$DoY <- yday(filled$date)
@@ -139,5 +139,5 @@ edata.final <- rbind(edata.units,edata)
 
 # export data for online tool of ReddyProc,
 # with timesstamp corrected
- write.table(edata.final, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/2020/JER_ReddyProc_Input_2020.2.txt", sep=" ", dec=".",row.names=FALSE)
+ write.table(edata.final, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/JER_ReddyProc_Input_2013noLimits.txt", sep=" ", dec=".",row.names=FALSE)
 
