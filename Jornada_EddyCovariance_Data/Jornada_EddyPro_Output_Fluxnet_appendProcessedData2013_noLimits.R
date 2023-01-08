@@ -1,6 +1,6 @@
 # Process 2013 data re-run in EddyPro with no limits for H2O as a lot of H2O data is being filtered out:
 # on advice from Israel and James at LI-COR
-# DO NOT APPEND. 
+# Create an appended version with 2013 no limits
 
 # Rscript to process a smaller section of EC data and then append it to already-processed data. 
 # This code follows steps laid out in Jornada_EddyPro_Output_Fluxnet_2010_2019_20200212.R
@@ -30,7 +30,7 @@ library(zoo)
 # 20200427: corrected timestamps!
 # save filtered data with SD filter for all years 2010-current
 # use 20220913 as most recent file which goes until 2020 to append 2021
-load("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered/JER_flux_2010_EddyPro_Output_filtered_SD_20220913.Rdata")
+load("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered/JER_flux_2010_EddyPro_Output_filtered_SD_20221023.Rdata")
 
 flux_filter_sd <- flux_filter_sd_all
 rm(flux_filter_sd_all)
@@ -61,32 +61,24 @@ ggplot(flux_add,aes(date_time_orig,P_RAIN_1_1_1))+geom_line()
 # erroneous data insertion when ts files have not_enough_data
 
 # load biomet data
-#import biomet
-flux2013nl.b.names <- colnames(fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_biomet_2022-11-08T210631_adv.csv",
-                                     sep=",", header=TRUE, na.strings=c("-9999"))[1,])
+# load biomet data
+#2022
+biomet2013.names <- colnames(fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2013.csv",
+                                   header=TRUE))
 
 
-flux2013nl.b <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_biomet_2022-11-08T210631_adv.csv",
-                      sep=",", header=FALSE, na.strings=c("-9999"),skip=2,col.names=flux2013nl.b.names)
+biomet2013 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2013.csv",
+                    skip=2, header=FALSE, col.names=biomet2013.names, na.strings=c("-9999"))
 
-# format date
-flux2013nl.b[,':=' (date_time_orig = ymd_hm(paste(date,time)))][
-  ,':='(date_orig=as.Date.POSIXct(date_time_orig),month_orig=month(date_time_orig),year_orig=year(date_time_orig))]
 
-ggplot(flux2013nl.b, aes(date_time_orig,P_rain_1_1_1))+
+biomet2013 <- biomet2013[,':='
+                         (date_time=ymd_hm(paste(timestamp_1,timestamp_2,timestamp_3,timestamp_4,timestamp_5, sep=" ")))]
+
+ggplot(biomet2013, aes(date_time,P_rain_1_1_1))+
   geom_line()
 
-# there must be some unit issue... for some reason Prain in bioet is 4 orders of magnitude less
-ggplot(flux2013nl.b, aes(date_time_orig,P_rain_1_1_1*1000))+
-  geom_line()
-
-plot(flux2013nl.b$P_rain_1_1_1*1000, flux_add$P_RAIN_1_1_1)
-
-# correct P_rain_1_1_1
-flux2013nl.b <- flux2013nl.b[,P_rain_1_1_1 := P_rain_1_1_1*1000]
-
-ggplot(flux2013nl.b, aes(date_time_orig,P_rain_1_1_1))+
-  geom_line()
+# create date_time_orig column in biomet
+biomet2013 <- biomet2013[,date_time_orig := date_time]
 
 # cut out biomet columns from eddypro fluxnet data and append from the biomet import data
 flux_add[,':='(TA_1_1_1=NULL, RH_1_1_1=NULL, PA_1_1_1=NULL, WD_1_1_1=NULL, MWS_1_1_1=NULL,
@@ -95,7 +87,7 @@ flux_add[,':='(TA_1_1_1=NULL, RH_1_1_1=NULL, PA_1_1_1=NULL, WD_1_1_1=NULL, MWS_1
                LW_IN_1_1_1=NULL, LW_OUT_1_1_1=NULL, SW_OUT_1_1_1=NULL, SW_IN_1_1_1=NULL,
                NETRAD_1_1_1=NULL)]
 
-flux_add <- merge(flux_add, flux2013nl.b[,c("Ta_1_1_1","RH_1_1_1","Pa_1_1_1","WD_1_1_1","MWS_1_1_1",
+flux_add <- merge(flux_add, biomet2013[,c("Ta_1_1_1","RH_1_1_1","Pa_1_1_1","WD_1_1_1","MWS_1_1_1",
                                           "PPFD_1_1_1","PPFDr_1_1_1","P_rain_1_1_1","SWC_1_1_1",
                                           "Ts_1_1_1","SHF_1_1_1","SHF_1_2_1","SHF_2_1_1","SHF_2_2_1",
                                           "LWin_1_1_1","LWout_1_1_1","SWout_1_1_1","Rg_1_1_1",
@@ -234,6 +226,12 @@ time_all[, ':=' (TIMESTAMP_START_correct = as.character(date_time_start, format=
 
 # merge full date_time with flux
 flux_add <- merge(flux_add,time_all[,.(date_time,TIMESTAMP_START_correct,TIMESTAMP_END_correct)], by="date_time", all.y=TRUE)
+
+# check adjusted timestamp
+daycheck <- as.Date("2013-08-30")
+ggplot(flux_add[as.Date(date_time)==daycheck])+
+  geom_line(aes(date_time_orig, SW_IN_1_1_1),colour="black")+
+  geom_line(aes(date_time,SW_IN_1_1_1),colour="red")
 
 
 # Before the rolling mean, add two weeks of prior data
@@ -432,7 +430,7 @@ ggplot(flux_add[filter_h_roll!=1&DOY_START>=1&DOY_START<=50,], aes(DOY_START, H,
 # view the marked flux_addes in ~25 day chunks for day/night
 ggplot(flux_add[filter_h_roll_daynight!=1&DOY_START>=1&DOY_START<=100,], aes(DOY_START, H, colour=factor(filter_h_roll_daynight)))+
   geom_point()+
-  facet_grid(year~.)
+  facet_grid(year_orig~.)
 
 # graph with the fluxes from the 3SD 3day day/night filter removed
 ggplot(flux_add[filter_h_roll_daynight==0,], aes(DOY_START, H))+
@@ -447,79 +445,48 @@ ggplot(flux_add[filter_h_roll_daynight==0,], aes(DOY_START, H))+
 # c("date_time_orig","TIMESTAMP_START","TIMESTAMP_END","DOY_START","DOY_END","time_diff","SW_IN_POT_AF")
 # date_time_orig, time_diff and SW_IN_POT_AF probably won't be in files after 2019 because they were used for the timestamp corrections needed prior to 2019
 flux_add_filter_sd <- copy(flux_add[date_time_orig>=as.Date("2013-01-01"),
-                                    !(c("date_orig","month_orig","year_orig","DOY_START","DOY_END")),with=FALSE])
+                                    !(c("date_time_orig","date_orig","month_orig","year_orig","DOY_START","DOY_END","TIMESTAMP_START","TIMESTAMP_END","time_diff")),with=FALSE])
 flux_add_filter_sd[filter_fc_roll_daynight!=0, FC := NA]
 flux_add_filter_sd[filter_h_roll_daynight!=0, H := NA]
 flux_add_filter_sd[filter_le_roll_daynight!=0, LE := NA]
 
 # check the time period is right:
-ggplot(flux_add_filter_sd,aes(date_time_orig, FC))+geom_point()
-summary(flux_add_filter_sd$date_time_orig)
+ggplot(flux_add_filter_sd,aes(date_time, FC))+geom_point()
+summary(flux_add_filter_sd$date_time)
 
-# make date_time and date_time_orig the same
+# make sure the data are ordered:
+flux_add <- flux_add[order(date_time),]
 
 
 # append new data to previous
-flux_filter_sd_all <- rbind(flux_filter_sd, flux_add_filter_sd,fill=TRUE)
+flux_filter_sd_all <- rbind(flux_filter_sd[year(date_time)!=2013,], flux_add_filter_sd,fill=TRUE)
 
 # make sure there are no duplicates
 flux_filter_sd_all <- (flux_filter_sd_all[!(duplicated(flux_filter_sd_all, by=c("date_time")))])
 
+# make sure the data are ordered:
+flux_filter_sd_all <- flux_filter_sd_all[order(date_time),]
+
+# check the time period is right:
+ggplot(flux_filter_sd_all,aes(date_time, FC))+geom_point()
+summary(flux_filter_sd_all$date_time)
+
+
 
 # 20211229 (redo on 20220103 with TIMESTAMP_START and TIMESTAMP_END included)
-# save 2020 data with biomet data from input biomet2020, not EddyPro output
+# save 2013 data with biomet data from input biomet2013, not EddyPro output
 # save to server
-setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2020/EddyPro_Out/")
+setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out/")
  
 write.table(flux_add_filter_sd,
- file="JER_flux_2020_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
+ file="JER_flux_2013noLimits_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
  row.names=FALSE)
 
- # save filtered data with SD filter for all years 2010-current
- setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
- 
- # 20220913 save with entire year of 2020
- # 20211229 (redo on 20220103 with TIMESTAMP_START and TIMESTAMP_END included)
- save(flux_filter_sd_all,
- file="JER_flux_2010_EddyPro_Output_filtered_SD_20220913.Rdata")
- 
- 
-# 20201114
-# save(flux_filter_sd_all,
-# file="JER_flux_2010_20200131_EddyPro_Output_filtered_SD_TIMEcorr_20201114.Rdata")
+# save filtered data with SD filter for all years 2010-current
+setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
 
-# save only 2020 data for ReddyProc 
-# save(flux_add_filter_sd,
-# file="JER_flux_20200131_EddyPro_Output_filtered_SD_TIMEcorr_20201114.Rdata")
-
-# save only the 2020 flux data as Rdata for a demo file
-# save(flux_add,
-# file="/Users/memauritz/Desktop/R/R_programs/Tweedie/Jornada/Jornada_Tweedie/Jornada_EddyCovariance_Data/demofileflux_add.Rdata")
-
-# Save data for Hayden with similar columns as previous data supplied. (as in: Jornada_ReddyProc_2010_2019_OnlineToolOut)
-# This is not gap-filled because it's only1 month of data
-
-# save data for Hayden. Could not run through ReddyProc because it's only 1 month. 
-flux.hayden <- copy(flux_add_filter_sd)
-
-flux.hayden[,':=' (Year = year(date_time),
-                   DoY = yday(date_time),
-                   hours = hour(date_time),
-                   mins = minute(date_time),
-                   LE_orig = LE,
-                   H_orig = H, 
-                   Rg_orig = SW_IN_1_1_1,
-                   Tair_orig = TA_1_1_1,
-                   rH_orig = RH_1_1_1,
-                   VPD = VPD_EP)]
-
-# Create an Hour variable that matches ReddyProc format
-flux.hayden[mins==0, Hour := hours+0.0]
-flux.hayden[mins==30, Hour := hours+0.5]
-
-# save the data
-write.table(flux.hayden[,.(Year,DoY,Hour,LE_orig,H_orig,Rg_orig,Tair_orig,rH_orig,VPD,USTAR)],
-            file="~/Desktop/TweedieLab/People/Hayden/FluxData_USJo1_LE_H_2020.csv", sep=",", dec=".",
-            row.names=FALSE)
-
-
+# 20230107 - save with re-run 2013 with no limits
+# 20211229 (redo on 20220103 with TIMESTAMP_START and TIMESTAMP_END included)
+# 20221023 - with updates 2021 (Dec + AGC fies and with 2022 Jan - Sep)
+save(flux_filter_sd_all,
+     file="JER_flux_2010_EddyPro_Output_filtered_SD_20221023_2013noLimits.Rdata")
