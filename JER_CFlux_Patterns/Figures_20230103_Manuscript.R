@@ -18,6 +18,10 @@ library(viridis)
 library(cowplot)
 library(scales)
 
+# create a path for saving figures
+figpath <- "/Users/memauritz/Desktop/TweedieLab/Projects/Jornada/Papers/Patterns_Controls/Figures"
+tablepath <- "/Users/memauritz/Desktop/TweedieLab/Projects/Jornada/Papers/Patterns_Controls/Tables"
+
 # import 
 # Read Reddyproc output data one year at a time
 # 2011
@@ -51,12 +55,16 @@ flux.ep2012[flux.ep2012 == -9999] <- NA
 ggplot(flux.ep2012, aes(`Date Time`, NEE_U95_f))+geom_line()
 
 # 2013
-ep.path.2013 <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/REddyResults_US-Jo1_20221210_315371273/output.txt"
-ep.units.2013 <-fread(ep.path.2013,
+# ep.path.2013 <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/REddyResults_US-Jo1_20221210_315371273/output.txt"
+ 
+# 2013 no limits 
+ep.path.2013nl <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/REddyResults_US-Jo1_20230108_574332702/output.txt"
+
+ep.units.2013 <-fread(ep.path.2013nl,
                       header=TRUE)[1,]
 
 
-flux.ep2013 <-fread(ep.path.2013,
+flux.ep2013 <-fread(ep.path.2013nl,
                     header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
                     col.names = colnames(ep.units.2013))
 
@@ -209,6 +217,7 @@ ggplot(flux.ep2022, aes(`Date Time`, NEE_U95_f))+geom_line()
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
 
 # import data that was filtered by 3SD filter
+# SOMETHING WENT WRONG WITH NO LIMITS MERGE 
 load("JER_flux_2010_EddyPro_Output_filtered_SD_20221023.Rdata")
 
 # convert date to POSIXct and get a year, day, hour column
@@ -279,6 +288,24 @@ flux.ep <- rbind(edata2010,flux.ep2011,flux.ep2012,flux.ep2013,flux.ep2014,flux.
 ggplot(flux.ep, aes(DoY, NEE_U95_f))+geom_line()+facet_grid(.~Year)
 # NEE graph should have all years present
 ggplot(flux.ep, aes(DoY, NEE))+geom_line()+facet_grid(.~Year)
+
+# calculate the percent of data gap-filled for NEE and ET
+gapfill.perc.f.nee <- flux.ep[!is.na(NEE_U50_f),list(NEE_U50_count = length(NEE_U50_f)), 
+                        by="Year"]
+gapfill.perc.nee <- flux.ep[!is.na(NEE), list(NEE_count = length(NEE)), 
+                                   by="Year"]
+
+gapfill.perc.f.et <- flux.ep[!is.na(LE_f),list(LE_f_count = length(LE_f)), 
+                          by="Year"]
+gapfill.perc.et <- flux.ep[!is.na(LE), list(LE_count = length(LE)), 
+                        by="Year"]
+                        
+gapfill.perc <- merge(gapfill.perc.nee,gapfill.perc.f.nee,all.x=TRUE)
+gapfill.perc <- merge(gapfill.perc,gapfill.perc.et,all.x=TRUE)
+gapfill.perc <- merge(gapfill.perc,gapfill.perc.f.et,all.x=TRUE)
+
+gapfill.perc <- gapfill.perc[,':='(NEE_meas_gap_perc = round(NEE_count/NEE_U50_count,2)*100,
+                                   LE_meas_gap_perc = round(LE_count/LE_f_count,2)*100)]
 
 # graph time-series of NEE, Tair, Precip
 
@@ -489,13 +516,35 @@ precip_daily <- flux_filter[,date:=as.Date(date_time)][!is.na(P_RAIN_1_1_1),
 # combine daily fluxes with daily precip
 daily_sum <- full_join(daily_sum_ec,precip_daily)
 
+# add a year label to day 365 of each year
+daily_sum <- daily_sum[,year_lab := ifelse(yday(date)==360, Year, NA)]
+
+
 # calculate cumulative sums
 annual_cum <- daily_sum[,list(NEE_cum = sum(NEE_daily),
                               GPP_cum = sum(GPP_daily),
                               Reco_cum = sum(Reco_daily),
                               ET_cum = sum(ET_daily),
-                              precip_cum = sum(precip.tot)),
+                              precip_cum = sum(precip.tot),
+                              temp_mean = mean(Tair_mean, na.rm=TRUE),
+                              temp_min = min(Tair_min, na.rm=TRUE),
+                              temp_max = max(Tair_max, na.rm=TRUE)),
                         by="Year"]
+
+# caluculate seasonal cumulatives
+daily_sum[DoY<166, season:="Pre-Monsoon"]
+daily_sum[DoY>=166 & DoY<=273, season:="Monsoon"]
+daily_sum[DoY>273, season:="Post-Monsoon"]
+
+seasonal_cum <- daily_sum[,list(NEE_cum = sum(NEE_daily),
+                              GPP_cum = sum(GPP_daily),
+                              Reco_cum = sum(Reco_daily),
+                              ET_cum = sum(ET_daily),
+                              precip_cum = sum(precip.tot),
+                              temp_mean = mean(Tair_mean, na.rm=TRUE),
+                              temp_min = min(Tair_min, na.rm=TRUE),
+                              temp_max = max(Tair_max, na.rm=TRUE)),
+                        by="Year,season"]
 
 # plot annnual cumulative
 plot.nee.cum <- ggplot(annual_cum, aes(factor(Year), NEE_cum))+
@@ -590,7 +639,7 @@ plot.gpp.daily <- ggplot(daily_sum[Year>2010,], aes(DoY, GPP_daily))+
   facet_grid(.~Year)+
   theme_bw(base_size=14)+
   theme(strip.background = element_blank(),
-        strip.text = element_blank(),
+        #strip.text = element_blank(),
         panel.grid.minor.x = element_blank(),
         axis.text.x = element_blank(),
         axis.title.x = element_blank(),
@@ -616,13 +665,6 @@ plot.reco.daily <- ggplot(daily_sum[Year>2010,], aes(DoY, Reco_daily))+
         axis.ticks.length =  unit(-0.2,"cm"),
         ggh4x.axis.ticks.length.minor = rel(0.7),
         axis.text.x = element_text(vjust=-0.7))
-
-# combine daily graphs
-plot_grid(plot.nee.daily,
-          plot.gpp.daily,
-          plot.reco.daily, nrow=3,
-          labels=c("a","b","c"),
-          align="v")
 
 # Plot daily ET sum with 7 day running mean
 pET.cum <- ggplot(daily_sum[Year>2010,], aes(DoY, ET_daily))+
@@ -656,6 +698,7 @@ pET <- ggplot(daily_sum[Year>2010,], aes(DoY, ET_daily))+
   #geom_line(aes(DoY,ET_daily_roll),colour="navyblue")+
   geom_line(data=daily_sum[Year==2010,],aes(yday(date),ET_daily_mean),colour="navyblue",size=0.4)+
   geom_hline(yintercept=0)+
+  geom_vline(xintercept=c(166,273))+
   scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
                      labels=c("Jan","Jul","D"),
                      minor_breaks =c(31,61,91,121,151,181,211,241,271,301,331,361),
@@ -697,6 +740,7 @@ plot.precip.daily.cum <- ggplot(daily_sum)+
 # without cumulative
 plot.precip.daily <- ggplot(daily_sum)+
   geom_col(aes(x=yday(date), y=precip.tot), fill="#A0A0A0",colour="#808080")+
+  geom_vline(xintercept=c(166,273))+
   scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
                      labels=c("Jan","Jul","D"),
                      minor_breaks =c(31,61,91,121,151,181,211,241,271,301,331,361),
@@ -712,11 +756,25 @@ plot.precip.daily <- ggplot(daily_sum)+
         ggh4x.axis.ticks.length.minor = rel(0.7))
 
 # graph time-series of daily NEE, ET, rain
-plot_grid(plot.nee.daily+theme(axis.title.x=element_blank(), axis.text.x = element_blank(),plot.margin = unit(c(0, 0, 0, 0), "cm")),
+fig1 <- plot_grid(plot.nee.daily+theme(axis.title.x=element_blank(), axis.text.x = element_blank(),plot.margin = unit(c(0, 0, 0, 0), "cm")),
           pET+theme(axis.title.x=element_blank(), axis.text.x = element_blank(), strip.text.x=element_blank(),plot.margin = unit(c(0.1, 0, 0, 0), "cm")),
           plot.precip.daily+theme(axis.text.x = element_text(vjust = -0.5),strip.text.x=element_blank(),plot.margin = unit(c(t = 0.1, r = 0, b = 0, l = 0), "cm")),
+          labels=c("a","b","c"),
           nrow=3,
           align="v")
+
+
+# graph daily Reco and GPP
+fig2 <- plot_grid(plot.gpp.daily,
+          plot.reco.daily, nrow=2,
+          labels=c("a","b"),
+          align="v")
+
+# save figures
+setwd(figpath)
+ggsave("Figure1.pdf",fig1,device=pdf,path=figpath, dpi=300)
+
+ggsave("Figure2.pdf",fig2,device=pdf,path=figpath, dpi=300)
 
 
 # graph cumulative NEE and cumulative rain
@@ -728,25 +786,54 @@ ggplot(daily_sum, aes(DoY))+
 # graph cumulatives for multiple years in one panel
 plot.nee.an.cum <- ggplot(daily_sum[Year!=2010,], aes(DoY, NEE_cum,color=factor(Year)))+
   geom_line()+
-  labs(x="Day of Year",title="Cumulative NEE")+
+  geom_label(aes(label=year_lab), size=3, label.size=1, show.legend=FALSE)+
+  geom_vline(xintercept=c(166,273))+
+  labs(x="Day of Year",title= "  Cumulative NEE")+
   scale_y_continuous(position="right",name=expression("gC" *m^-2*""))+
   scale_color_viridis_d()+
-  theme_bw(base_size = 14)
+  theme_bw(base_size = 14)+
+  xlim(c(0,370))
+
+plot.et.an.cum <- ggplot(daily_sum[Year!=2010,], aes(DoY, ET_cum,color=factor(Year)))+
+  geom_line()+
+  geom_label(aes(label=year_lab), size=3, label.size=1, show.legend=FALSE)+ 
+  geom_vline(xintercept=c(166,273))+
+  labs(x="Day of Year",title="  Cumulative ET")+
+  scale_y_continuous(position="right",name="mm")+
+  scale_color_viridis_d()+
+  theme_bw(base_size = 14)+
+  xlim(c(0,370))
 
 plot.precip.an.cum <- ggplot(daily_sum[Year!=2010,], aes(DoY, precip.cum,color=factor(Year)))+
   geom_line()+
-  labs(x="Day of Year",title="Cumulative Rainfall")+
+  geom_label(aes(label=year_lab), size=3, label.size=1, show.legend=FALSE)+
+  geom_vline(xintercept=c(166,273))+
+  labs(x="Day of Year",title="  Cumulative Rainfall")+
  scale_y_continuous(position="right",name="mm")+
   scale_color_viridis_d(name="Year")+
-  theme_bw(base_size = 14)
+  theme_bw(base_size = 14)+
+  xlim(c(0,370))
 
 plot.leg <- get_legend(plot.precip.an.cum)
 
-plot_grid(plot_grid(plot.nee.an.cum+theme(legend.position = "none"),
-                           plot.precip.an.cum+theme(legend.position = "none"),
-          ncol=2),
-          plot.leg,
-          rel_widths = c(1,0.1))
+# fig4 <- plot_grid(plot_grid(plot.nee.an.cum+theme(legend.position = "none"),
+#                     plot.et.an.cum+theme(legend.position = "none"),
+#                            plot.precip.an.cum+theme(legend.position = "none"),
+#           ncol=3),
+#           plot.leg,
+#           rel_widths = c(1,0.1))
+
+# without legend
+fig4 <- plot_grid(plot.nee.an.cum+theme(legend.position = "none"),
+                            plot.et.an.cum+theme(legend.position = "none"),
+                            plot.precip.an.cum+theme(legend.position = "none"),
+                            ncol=3,
+                  labels = c("a","b","c"))
+
+# save figure
+setwd(figpath)
+ggsave("Figure4.pdf",fig4,device=pdf,path=figpath, dpi=300, height=6, width=10, units="in")
+
 
 # graph cumulative rainfall and cumulative ET
 ggplot(annual_cum, aes(precip_cum, ET_cum))+geom_point()+geom_abline(intercept=0,slope=1)
@@ -766,10 +853,11 @@ daily_stats <- daily_sum[, unlist(lapply(.SD,
 
 
 # graph daily mean and sd
-ggplot(daily_stats, aes(DoY,NEE_daily.mean))+
+fig3 <- ggplot(daily_stats, aes(DoY,NEE_daily.mean))+
   geom_point(size=0.5)+
   geom_line(size=0.2)+
   geom_hline(yintercept=0)+
+  geom_vline(xintercept=c(166,273))+
   geom_ribbon(aes(max=(NEE_daily.mean+NEE_daily.sd),min=(NEE_daily.mean-NEE_daily.sd)),alpha=0.3)+
   # scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
   #                    labels=c("Jan","Jul","Dec"),
@@ -781,10 +869,14 @@ ggplot(daily_stats, aes(DoY,NEE_daily.mean))+
   theme(axis.ticks.length =  unit(-0.2,"cm"),
         ggh4x.axis.ticks.length.minor = rel(0.7),
         axis.text.x = element_text(vjust = -0.5))
-  
+
+# save figure
+setwd(figpath)
+ggsave("Figure3.pdf",fig3,device=pdf,path=figpath, dpi=300, height=6, width=10, units="in")
+
   
 # graph the variance around the daily means
-ggplot(daily_stats[DoY!=366,], aes(DoY,((NEE_cum.var))))+
+fig5 <- ggplot(daily_stats[DoY!=366,], aes(DoY,((NEE_cum.var))))+
   geom_point(size=0.5)+
   geom_line(size=0.2)+
   geom_vline(xintercept=c(166,273))+
@@ -794,9 +886,27 @@ ggplot(daily_stats[DoY!=366,], aes(DoY,((NEE_cum.var))))+
         ggh4x.axis.ticks.length.minor = rel(0.7),
         axis.text.x = element_text(vjust = -0.5))
 
+# save figure
+setwd(figpath)
+ggsave("Figure5.pdf",fig5,device=pdf,path=figpath, dpi=300, height=6, width=10, units="in")
+
+
 # graph the cumulative with SD
 ggplot(daily_stats, aes(DoY,NEE_cum.mean))+
   geom_point(size=0.3)+
   geom_ribbon(aes(max=(NEE_cum.mean+NEE_cum.sd),min=(NEE_cum.mean-NEE_cum.sd)),alpha=0.3)+
   theme_bw()
+
+# Tables
+# annual NEE, ET, GPP, Reco
+setwd(tablepath)
+write.table(annual_cum, "Cumulative_annual.csv", sep=",", dec=".", row.names=FALSE)
+
+# pre-monsoon, monsoon, post-monsoon NEE, ET, GPP, Reco
+write.table(seasonal_cum, "Cumulative_seasonal.csv", sep=",", dec=".", row.names=FALSE)
+
+# percent of measured/gapfilled values
+write.table(gapfill.perc, "Gapfill_Measured.csv", sep=",", dec=".", row.names=FALSE)
+
+
 
