@@ -364,6 +364,73 @@ flux2013nl.b <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Ba
 flux2013nl.b[,':=' (date_time_orig = ymd_hm(paste(date,time)))][
   ,':='(date_orig=as.Date.POSIXct(date_time_orig),month_orig=month(date_time_orig),year_orig=year(date_time_orig))]
 
+# import data with setting unit in EddyPro set to volt
+# Fluxnet output is hanging when reading in when encountering lines with
+# not_enough_data
+# read full output instead
+flux2013V.names <- colnames(fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_0_voltonly_full_output_2023-01-10T211506_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"),skip=1)[1,])
+
+flux2013V.units <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_0_voltonly_full_output_2023-01-10T211506_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"),skip=1)[1:2,]
+
+
+flux2013V <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_0_voltonly_full_output_2023-01-10T211506_adv.csv",
+                  sep=",", header=FALSE, na.strings=c("-9999"),skip=3,col.names=flux2013V.names)
+
+# remove duplicate data
+flux2013V <- (flux2013V[!(duplicated(flux2013V, by=c("date","time")))])
+
+# make sure the data are ordered:
+flux2013V <- flux2013V[order(date,time),]
+
+# format date
+flux2013V[,':=' (date_time_orig = ymd_hm(paste(date,time)))][
+  ,':='(date_orig=as.Date.POSIXct(date_time_orig),month_orig=month(date_time_orig),year_orig=year(date_time_orig))]
+
+
+# import data with 5mmol/mol correction
+flux2013_5.names <- colnames(fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_5_full_output_2023-01-10T211211_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"),skip=1)[1,])
+
+flux2013_5.units <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_5_full_output_2023-01-10T211211_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"),skip=1)[1:2,]
+
+
+flux2013_5 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_5_full_output_2023-01-10T211211_adv.csv",
+                  sep=",", header=FALSE, na.strings=c("-9999"),skip=3,col.names=flux2013_5.names)
+
+# remove duplicate data
+flux2013_5 <- (flux2013_5[!(duplicated(flux2013_5, by=c("date","time")))])
+
+# make sure the data are ordered:
+flux2013_5 <- flux2013_5[order(date,time),]
+
+# format date
+flux2013_5[,':=' (date_time_orig = ymd_hm(paste(date,time)))][
+  ,':='(date_orig=as.Date.POSIXct(date_time_orig),month_orig=month(date_time_orig),year_orig=year(date_time_orig))]
+
+# import data with 10mmpl/mol correction
+flux2013_10.names <- colnames(fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_10_full_output_2023-01-10T211332_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"),skip=1)[1,])
+
+flux2013_10.units <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_10_full_output_2023-01-10T211332_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"),skip=1)[1:2,]
+
+
+flux2013_10 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_10_full_output_2023-01-10T211332_adv.csv",
+                  sep=",", header=FALSE, na.strings=c("-9999"),skip=3,col.names=flux2013_10.names)
+
+# remove duplicate data
+flux2013_10 <- (flux2013_10[!(duplicated(flux2013_10, by=c("date","time")))])
+
+# make sure the data are ordered:
+flux2013_10 <- flux2013_10[order(date,time),]
+
+# format date
+flux2013_10[,':=' (date_time_orig = ymd_hm(paste(date,time)))][
+  ,':='(date_orig=as.Date.POSIXct(date_time_orig),month_orig=month(date_time_orig),year_orig=year(date_time_orig))]
+
 
 ```
 ## CO2 fluxes with ylim, AGC<60, and SSITC<2
@@ -492,3 +559,48 @@ ggplot(flux.merge[LE.y>-500 & LE.y<3000 & (CUSTOM_AGC_MEAN<60 | agc_mean<60),],a
   geom_abline(intercept=0,slope=1)
 
 ```
+
+# James conversation: 
+# experiment with reducing the h2o flux 
+# in Eddypro metadata editor make unit volt and adjust gain/offset
+# 5mmol/mol = 201 mmol/m3 
+# 3.6g/m3
+
+# volt; gain=1, offset=-3.6
+
+# effect of reducing the water vapor concentration on fluxes
+
+# if the span was off in this year then the h2o values might be incorrect, the effect magnifies at high values of h2O concentration. 
+
+# run with offset for h2o in ts data and see what it does to the fluxes. 
+# ** could compare h2o values from other years and see what's more typical to gauge correction. 
+
+# Look at data with 5 mmol/mol and 10 mmmol/mol correction (and compare change of unit to V with gain = 1, offset = 0)
+
+# graph for volt
+```{r, echo=FALSE}
+
+p.co2.v <- ggplot(flux2013V[qc_co2_flux<2 & agc_mean<60,], aes(date_time_orig,co2_mole_fraction,colour=(factor(qc_co2_flux))))+
+  geom_point(size=0.2)+
+  ylim(c(300,500))
+
+p.h2o.v <- ggplot(flux2013V[qc_h2o_flux<2 & agc_mean<60,], aes(date_time_orig,h2o_mole_fraction,colour=(factor(qc_h2o_flux))))+
+  geom_point(size=0.2)
+
+# graph H2O fluxes with a ylim with no quality check
+p.LE.v <- ggplot(flux2013V[agc_mean<60,], aes(date_time_orig,LE,colour=(factor(qc_h2o_flux))))+
+  geom_point(size=0.2)+
+  ylim(c(-500,3000))
+
+
+plot_grid(p.co2.v+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank(),
+                      legend.position ="none"),
+          p.h2o.v+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank(),
+                      legend.position ="none"),
+          p.LE.v,
+          nrow=3,
+          align="v")
+```
+
