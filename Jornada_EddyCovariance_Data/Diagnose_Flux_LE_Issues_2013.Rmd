@@ -324,6 +324,23 @@ plot_grid(p1.co2+theme(axis.text.x = element_blank(),
 # 
 # James
 
+# James conversation 10 Jan 2023: 
+# experiment with reducing the h2o flux 
+# in Eddypro metadata editor make unit volt and adjust gain/offset
+# 5mmol/mol = 201 mmol/m3 
+# 3.6g/m3
+
+# volt; gain=1, offset=-3.6
+
+# effect of reducing the water vapor concentration on fluxes
+
+# if the span was off in this year then the h2o values might be incorrect, the effect magnifies at high values of h2O concentration. 
+
+# run with offset for h2o in ts data and see what it does to the fluxes. 
+# ** could compare h2o values from other years and see what's more typical to gauge correction. 
+
+# Look at data with 5 mmol/mol and 10 mmmol/mol correction (and compare change of unit to V with gain = 1, offset = 0)
+
 
 ## Look at data from Eddy Pro with No absolute limits processing
 ```{r cars, include=FALSE, echo=FALSE}
@@ -363,7 +380,9 @@ flux2013nl.b <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Ba
 # format date
 flux2013nl.b[,':=' (date_time_orig = ymd_hm(paste(date,time)))][
   ,':='(date_orig=as.Date.POSIXct(date_time_orig),month_orig=month(date_time_orig),year_orig=year(date_time_orig))]
+```
 
+```{r}
 # import data with setting unit in EddyPro set to volt
 # Fluxnet output is hanging when reading in when encountering lines with
 # not_enough_data
@@ -520,6 +539,9 @@ p.LE1 <- ggplot(flux2013[CUSTOM_AGC_MEAN<60,], aes(date_time_orig,LE,colour=(fac
 p.rain1 <- ggplot(flux2013, aes(date_time_orig,P_RAIN_1_1_1))+
   geom_line()
 
+p.tair1 <- ggplot(flux2013, aes(date_time_orig,TA_1_1_1))+
+  geom_line()
+
 p.rh1 <- ggplot(flux2013, aes(date_time_orig,RH_1_1_1))+
   geom_line()
 
@@ -560,22 +582,7 @@ ggplot(flux.merge[LE.y>-500 & LE.y<3000 & (CUSTOM_AGC_MEAN<60 | agc_mean<60),],a
 
 ```
 
-# James conversation: 
-# experiment with reducing the h2o flux 
-# in Eddypro metadata editor make unit volt and adjust gain/offset
-# 5mmol/mol = 201 mmol/m3 
-# 3.6g/m3
 
-# volt; gain=1, offset=-3.6
-
-# effect of reducing the water vapor concentration on fluxes
-
-# if the span was off in this year then the h2o values might be incorrect, the effect magnifies at high values of h2O concentration. 
-
-# run with offset for h2o in ts data and see what it does to the fluxes. 
-# ** could compare h2o values from other years and see what's more typical to gauge correction. 
-
-# Look at data with 5 mmol/mol and 10 mmmol/mol correction (and compare change of unit to V with gain = 1, offset = 0)
 
 # graph for volt
 ```{r, echo=FALSE}
