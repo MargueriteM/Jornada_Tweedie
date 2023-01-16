@@ -55,16 +55,16 @@ flux.ep2012[flux.ep2012 == -9999] <- NA
 ggplot(flux.ep2012, aes(`Date Time`, NEE_U95_f))+geom_line()
 
 # 2013
-# ep.path.2013 <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/REddyResults_US-Jo1_20221210_315371273/output.txt"
+ ep.path.2013 <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/REddyResults_US-Jo1_20221210_315371273/output.txt"
  
 # 2013 no limits 
-ep.path.2013nl <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/REddyResults_US-Jo1_20230108_574332702/output.txt"
+# ep.path.2013nl <- "~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/REddyResults_US-Jo1_20230108_574332702/output.txt"
 
-ep.units.2013 <-fread(ep.path.2013nl,
+ep.units.2013 <-fread(ep.path.2013,
                       header=TRUE)[1,]
 
 
-flux.ep2013 <-fread(ep.path.2013nl,
+flux.ep2013 <-fread(ep.path.2013,
                     header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
                     col.names = colnames(ep.units.2013))
 
@@ -283,11 +283,27 @@ flux.ep <- rbind(edata2010,flux.ep2011,flux.ep2012,flux.ep2013,flux.ep2014,flux.
                  flux.ep2016,flux.ep2017,flux.ep2018,flux.ep2019,flux.ep2020,
                  flux.ep2021,flux.ep2022, fill=TRUE)
 
+# save the data to have a compiled file easy to access
+setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/")
+save(file="REddyResults_2010_2022_Compiled.Rdata",flux.ep)
+
 # plot to check
 # NEE_U95_f graph should have 2010 missing
 ggplot(flux.ep, aes(DoY, NEE_U95_f))+geom_line()+facet_grid(.~Year)
 # NEE graph should have all years present
 ggplot(flux.ep, aes(DoY, NEE))+geom_line()+facet_grid(.~Year)
+
+
+# exclude 1 April - Dec 4 2013 NEE and LE until processing can be figured out
+# H2O values are suspect & have a few things to try with EddyPro but no definite solution yet
+# see Diagnose_Flux_LE_Issues_2013.Rmd
+flux.ep.complete <- copy(flux.ep)
+flux.ep <- flux.ep.complete[((Year==2013 & DoY >90) & (Year==2013 & DoY<338)),':='(NEE=NA, 
+                                                                           NEE_U50_f=NA,
+                                                                           LE=NA,
+                                                                           LE_f=NA)]
+ggplot(flux.ep, aes(DoY, NEE))+geom_line()+facet_grid(.~Year)
+
 
 # calculate the percent of data gap-filled for NEE and ET
 gapfill.perc.f.nee <- flux.ep[!is.na(NEE_U50_f),list(NEE_U50_count = length(NEE_U50_f)), 
@@ -304,8 +320,13 @@ gapfill.perc <- merge(gapfill.perc.nee,gapfill.perc.f.nee,all.x=TRUE)
 gapfill.perc <- merge(gapfill.perc,gapfill.perc.et,all.x=TRUE)
 gapfill.perc <- merge(gapfill.perc,gapfill.perc.f.et,all.x=TRUE)
 
+# create column for total half hours in the entire year
+gapfill.perc[,total_count := c(17520,17520,17568,17520,17520,17520,17568,17520,17520,17520,17568,17520,13152)]
+
 gapfill.perc <- gapfill.perc[,':='(NEE_meas_gap_perc = round(NEE_count/NEE_U50_count,2)*100,
-                                   LE_meas_gap_perc = round(LE_count/LE_f_count,2)*100)]
+                                   LE_meas_gap_perc = round(LE_count/LE_f_count,2)*100,
+                                   NEE_unfilled_gap_perc = round(NEE_U50_count/total_count,2)*100,
+                                   LE_unfilled_gap_perc = round(LE_f_count/total_count,2)*100)]
 
 # graph time-series of NEE, Tair, Precip
 
