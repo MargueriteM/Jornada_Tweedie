@@ -49,7 +49,13 @@ flux1c <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_20
 flux2 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2011/eddypro_JER_2011_full_output_2019-08-08T131507_adv.csv", sep=",",skip=3,
                header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
 
+flux2a <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2011/20190806_2/eddypro_JER_2011_full_output_2019-08-09T164320_adv.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
+
 flux3 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2012/eddypro_JER_2012_full_output_2019-08-08T131951_adv.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
+
+flux3a <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2012/20190806_2/eddypro_JER_2012_full_output_2019-08-09T164512_adv.csv", sep=",",skip=3,
                header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
 
 flux4 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2013/eddypro_JER_2013_full_output_2019-08-08T105511_adv.csv", sep=",",skip=3,
@@ -91,7 +97,7 @@ flux12 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/T
 
 
 # combine all individual years of flux runs
-flux <- rbind(flux1a, flux1b, flux1c, flux2, flux3, flux4,
+flux <- rbind(flux1a, flux1b, flux1c, flux2, flux2a, flux3, flux3a, flux4,
               flux5, flux6, flux7, flux8, flux8.1, flux9, flux10,
               flux11a, flux11b, flux11c, flux12, fill=TRUE)
 
@@ -103,10 +109,10 @@ flux[,':=' (date=as.Date(date),
 
 # Graph initial CO2 flux, just to see
 # co2 flux
-ggplot(flux, aes(date_time,co2_flux,colour=factor(qc_co2_flux)))+
+ggplot(flux, aes(DOY,co2_flux,colour=factor(qc_co2_flux)))+
   geom_point(size=0.2)+
   ylim(c(-20,20))+
-  facet_grid(.~year, scales="free_x")
+  facet_grid(.~year)
 
 #
 # # from James: scf and wpl corrections
