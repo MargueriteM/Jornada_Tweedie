@@ -131,11 +131,21 @@ ggplot(daily_sum, aes(NEE_daily,NEE_daily_sc))+
   theme_bw()
 
 # graph monthly pattern
-ggplot(daily_sum)+
+p_seasonal <- ggplot(daily_sum)+
   geom_boxplot(aes(as.factor(DoY), NEE_daily))+
-  geom_boxplot(aes(as.factor(DoY),NEE_daily_sc),fill="lightgreen")+
+  geom_boxplot(aes(as.factor(DoY),NEE_daily_sc),fill="lightgreen", colour="lightgreen", alpha=0.5)+
   facet_grid(.~month(date), scales="free_x")+
-  theme_bw()
+  labs(y = expression("Daily NEE (gC" *m^-2*")"), x="Day of Year and Month")+
+  theme_bw(base_size=14)+
+  theme(strip.background = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.length =  unit(-0.2,"cm"),
+        ggh4x.axis.ticks.length.minor = rel(0.7))
+
+# save figures
+setwd(figpath)
+# ggsave("FigureS6_Seasonal_Corr_UnCorr.pdf",p_seasonal,device=pdf, dpi=300)
+
 
 
 # calculate hourly mean by month and year
@@ -204,7 +214,9 @@ p_annual_bar <- ggplot(annual_cum[!(Year %in% c(2013,2017,2021,2022))])+
         axis.ticks.length =  unit(-0.2,"cm"),
         ggh4x.axis.ticks.length.minor = rel(0.7))
 
+p_annual_bar
+
 # save figures
 setwd(figpath)
-ggsave("FigureS5_Annual_Corr_UnCorr.pdf",p_annual_bar,device=pdf, dpi=300)
+#ggsave("FigureS5_Annual_Corr_UnCorr.pdf",p_annual_bar,device=pdf, dpi=300)
 
