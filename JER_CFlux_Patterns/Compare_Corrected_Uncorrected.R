@@ -19,6 +19,9 @@ library(scales)
 library(tidyr)
 library(egg) # for tag_facet function to add a,b,c etc to individual facets in ggplot
 
+# figure path for annual corrected vs uncorrected
+figpath <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/MauritzLab_Personal/Manuscripts/JRN_Patterns_Controls/Figures"
+
 
 # load Scott corrected
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20230115_ScottCorrect/")
@@ -113,7 +116,7 @@ daily_sum[Year==2022,date:= as.Date(DoY-1, origin = "2022-01-01")]
 
 
 # graph
-ggplot(daily_sum)+
+ggplot(daily_sum[Year==2021,])+
   geom_line(aes(DoY, NEE_daily))+
   geom_line(aes(DoY,NEE_daily_sc),colour="lightgreen")+
   facet_grid(.~Year)+
@@ -188,12 +191,20 @@ ggplot(annual_cum)+
   theme_bw()
 
 # graph as bars
-ggplot(annual_cum[!(Year %in% c(2013,2022))])+
+p_annual_bar <- ggplot(annual_cum[!(Year %in% c(2013,2017,2021,2022))])+
   geom_col(aes(x=factor(Year-0.1),y=NEE_cum.ann, width=0.7))+
   geom_col(aes(x=factor(Year+0.1),y=NEE_cum.ann.sc), fill="lightgreen",width=0.7)+
   geom_hline(yintercept = 0)+
+  labs(y=expression("Annual NEE (gC" *m^-2*")"))+
   facet_grid(.~Year, scales="free_x")+
-  theme_bw()+
-  theme(axis.title.x = element_blank(),
-        axis.text.x = element_blank())
-  
+  theme_bw(base_size=14)+
+  theme(strip.background = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.length =  unit(-0.2,"cm"),
+        ggh4x.axis.ticks.length.minor = rel(0.7))
+
+# save figures
+setwd(figpath)
+ggsave("FigureS5_Annual_Corr_UnCorr.pdf",p_annual_bar,device=pdf, dpi=300)
+

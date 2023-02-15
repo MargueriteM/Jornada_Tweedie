@@ -23,8 +23,8 @@ library(tidyr)
 library(egg) # for tag_facet function to add a,b,c etc to individual facets in ggplot
 
 # create a path for saving figures
-figpath <- "/Users/memauritz/Desktop/TweedieLab/Projects/Jornada/Papers/Patterns_Controls/Figures"
-tablepath <- "/Users/memauritz/Desktop/TweedieLab/Projects/Jornada/Papers/Patterns_Controls/Tables"
+figpath <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/MauritzLab_Personal/Manuscripts/JRN_Patterns_Controls/Figures"
+tablepath <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/MauritzLab_Personal/Manuscripts/JRN_Patterns_Controls/Tables"
 
 ######
 # custom function from tag_facet to add a,b,c plot labels to individual facets
