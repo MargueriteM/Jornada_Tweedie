@@ -18,7 +18,7 @@ library(tidyr)
 library(dplyr)
 
 # ENTER YEAR TO CHECK HERE
-yeartocheck <- 2022
+yeartocheck <- 2023
 
 # get windrose function, source directly from Github
 #source("~/Desktop/R/R_programs/Functions/plot.windrose.R")
@@ -33,7 +33,7 @@ flux_colnames <- fread(paste(basedir,"/Flux/",yeartocheck,"/Raw_Data/ASCII/dataL
                   header = TRUE, skip=1,sep=",", fill=TRUE,
                  na.strings=c(-9999,"#NAME?"))[1,]
 
-flux <- fread(paste(basedir,"Flux/",yeartocheck,"/Raw_Data/ASCII/dataL1_flux_",yeartocheck,".csv",sep=""),
+flux <- fread(paste(basedir,"/Flux/",yeartocheck,"/Raw_Data/ASCII/dataL1_flux_",yeartocheck,".csv",sep=""),
                   header = FALSE, skip=4, sep=",", fill=TRUE,
                  na.strings=c(-9999,"#NAME?"),
               col.names=colnames(flux_colnames))
@@ -70,7 +70,7 @@ flux[,CO2_ppm := (CO2_mean/0.0409)/44.01]
 
 
 # set working directory to server
-setwd(paste(basedir,"SoilSensor_CS650/",yeartocheck,"/Raw_Data/ASCII",sep=""))
+setwd(paste(basedir,"/SoilSensor_CS650/",yeartocheck,"/Raw_Data/ASCII",sep=""))
 
 # load headers of file and data
 cs650names <- colnames(read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=1,heade=TRUE))
@@ -291,7 +291,7 @@ renderPlot({
  ggplot(wind.data, aes(wnd_dir_compass,hor_wnd_dir_mean_rslt))+
    geom_point()+
    geom_abline(intercept=0,slope=1)+
-   labs(x="Sonic Wind Direction",y="2-D Wind Direction", title="Wind Speed Comparison")
+   labs(x="Sonic Wind Direction",y="2-D Wind Direction", title="Wind Direction Comparison")
 })
 
 # Wind direction
@@ -302,7 +302,7 @@ renderPlot({
  ggplot(wind.data, aes(wnd_spd,hor_wnd_spd_mean_rslt))+
    geom_point()+
    geom_abline(intercept=0,slope=1)+
-   labs(x="Sonic Wind Speed (compass)",y="2-D Wind Speed", title="Wind Direction Comparison")
+   labs(x="Sonic Wind Speed (compass)",y="2-D Wind Speed", title="Wind Speed Comparison")
 })
 ```
 
