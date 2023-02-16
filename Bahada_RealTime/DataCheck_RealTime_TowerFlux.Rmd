@@ -24,12 +24,16 @@ yeartocheck <- 2022
 #source("~/Desktop/R/R_programs/Functions/plot.windrose.R")
 source(paste0("https://raw.githubusercontent.com/MargueriteM/R_functions/master/plot.windrose.R"))
 
+basedir <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower"
+
+# /Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/
+
 # import data directly from SEL Data Archive
-flux_colnames <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/",yeartocheck,"/Raw_Data/ASCII/dataL1_flux_",yeartocheck,".csv",sep=""),
+flux_colnames <- fread(paste(basedir,"/Flux/",yeartocheck,"/Raw_Data/ASCII/dataL1_flux_",yeartocheck,".csv",sep=""),
                   header = TRUE, skip=1,sep=",", fill=TRUE,
                  na.strings=c(-9999,"#NAME?"))[1,]
 
-flux <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/",yeartocheck,"/Raw_Data/ASCII/dataL1_flux_",yeartocheck,".csv",sep=""),
+flux <- fread(paste(basedir,"Flux/",yeartocheck,"/Raw_Data/ASCII/dataL1_flux_",yeartocheck,".csv",sep=""),
                   header = FALSE, skip=4, sep=",", fill=TRUE,
                  na.strings=c(-9999,"#NAME?"),
               col.names=colnames(flux_colnames))
@@ -66,7 +70,7 @@ flux[,CO2_ppm := (CO2_mean/0.0409)/44.01]
 
 
 # set working directory to server
-setwd(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_CS650/",yeartocheck,"/Raw_Data/ASCII",sep=""))
+setwd(paste(basedir,"SoilSensor_CS650/",yeartocheck,"/Raw_Data/ASCII",sep=""))
 
 # load headers of file and data
 cs650names <- colnames(read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=1,heade=TRUE))
