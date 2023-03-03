@@ -35,6 +35,13 @@ rm(flux.ep)
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/")
 load("REddyResults_2010_2022_Compiled.Rdata")
 
+# load non gap-filled data
+setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
+
+# import data that was filtered by 3SD filter
+# with Scott corrected column included 
+load("JER_flux_2010_2022_EddyPro_FullOutput_filterSD_20230115.Rdata")
+
 # graph through time
 p1 <- ggplot(flux.ep, aes(DoY, NEE_U50_f))+geom_line()+facet_grid(.~Year)+labs(Title="No Spectral Correction")
 
@@ -147,6 +154,22 @@ setwd(figpath)
 # ggsave("FigureS6_Seasonal_Corr_UnCorr.pdf",p_seasonal,device=pdf, dpi=300)
 
 
+# graph daily by year
+flux.comp.daily <- ggplot(daily_sum)+
+  geom_line(aes(DoY, NEE_daily), linewidth=0.6)+
+  geom_line(aes(DoY,NEE_daily_sc), linewidth=0.8, colour="green", alpha=0.5)+
+  facet_grid(year(date)~.)+
+  labs(y = expression("Daily NEE (gC" *m^-2*")"), x="Day of Year")+
+  theme_bw(base_size=14)+
+  theme(strip.background = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.length =  unit(-0.2,"cm"),
+        ggh4x.axis.ticks.length.minor = rel(0.7))
+
+# save figures
+setwd(figpath)
+# ggsave("Compare_Flux_daily_Corr_UnCorr.pdf",flux.comp.daily,device=pdf, dpi=300)
+
 
 # calculate hourly mean by month and year
 daily_sum_dt <- daily_sum_dt[,month:= month(`Date Time`)]
@@ -167,9 +190,9 @@ hourly_all <- inner_join(hourly_ec, hourly_ec_sc, by=c("Year","month","Hour"))
 
 # graph
 ggplot(hourly_all[!is.na(month),])+
-  geom_boxplot(aes(factor(Hour), NEE_hourly))+
-  geom_boxplot(aes(factor(Hour), NEE_hourly_sc), fill="lightgreen")+
-  facet_wrap(month~.)
+  geom_point(aes(factor(Hour), NEE_hourly), size=0.5)+
+  geom_point(aes(factor(Hour), NEE_hourly_sc), colour="lightgreen",size=0.5)+
+  facet_grid(Year~month)
 
 # calculate annual C balance
 # calculate cumulative sums
@@ -219,4 +242,47 @@ p_annual_bar
 # save figures
 setwd(figpath)
 #ggsave("FigureS5_Annual_Corr_UnCorr.pdf",p_annual_bar,device=pdf, dpi=300)
+
+# make graphs from the 3SD filtered but not gap-filled data
+colnames(flux_filter_sd)
+# co2_flux (uncorrected)
+# fc_wpl_adjust (corrected)
+
+# graph correlation between flux and corrected
+flux.comp.30min <- ggplot(flux_filter_sd, aes(co2_flux, fc_wpl_adjust))+
+  geom_point()+
+  geom_abline(intercept=0,slope=1)+
+  labs(y="Corrected (0.9) offset 30min CO2 flux",x="Uncorrected 30 min CO2 flux")
+
+# save figures
+setwd(figpath)
+# ggsave("Compare_Flux_30min_noFill_Corr_UnCorr.pdf",flux.comp.30min,device=pdf, dpi=300)
+
+# compare diurnal data by year and month
+# add an hour and minute to flux_filter_sd and average by hour
+flux_filter_sd_hour <- flux_filter_sd[,':='(year=year(date_time),
+                                            month=month(date_time),
+                                            doy=yday(date_time),
+                                            hour=hour(date_time),
+                                       min = min(date_time))][,list(
+                                         co2_flux = mean(co2_flux,na.rm=TRUE),
+                                         fc_wpl_adjust = mean(fc_wpl_adjust,na.rm=TRUE)),
+                                         by="year,month,doy,hour"
+                                       ]
+
+ggplot(flux_filter_sd_hour, aes(x=factor(hour)))+
+  #geom_point(aes(y=co2_flux), colour="black", size=0.2)+
+ # geom_smooth(aes(y=co2_flux), colour="black", alpha=0, linewidth=0.3)+
+  geom_point(aes(y=fc_wpl_adjust), colour="green", size=0.2)+
+  #geom_smooth(aes(y=fc_wpl_adjust), colour="green", alpha=0, linewidth=0.3)+
+  facet_grid(year~month)+
+  theme_bw()
+  
+# hourly correlation between both
+ggplot(flux_filter_sd_hour,aes(x=co2_flux, y=fc_wpl_adjust), size=0.05)+
+  geom_point()+
+  geom_abline(intercept=0,slope=1)+
+  labs(y="Corrected (0.9) offset 30min CO2 flux",x="Uncorrected 30 min CO2 flux")+
+  facet_grid(year~month, scales="free")+
+  theme_bw()
 
