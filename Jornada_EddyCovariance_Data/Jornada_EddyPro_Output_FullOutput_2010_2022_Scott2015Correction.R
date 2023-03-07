@@ -772,5 +772,83 @@ flux_filter_sd <- (flux_filter_sd[!(duplicated(flux_filter_sd, by=c("date_time")
  # I manually modified and renamed the metadata file because the output here has _1_1_1 in all the biomet variables
  ## write.table(description.ltar, file="FluxData_jerbajada_METADATA_20190813.csv",sep=",", dec=".", row.names=FALSE)
  
+ # ENERGY BALANCE 
+ # look at energy balance - 
+ # STEPS (from Gerald)
+ # U* filter and remove erroneous fluxes (can use u* > 0.2 for a rough threshold)
+ # make sure there's the same number of points for each day
+ # (do only when fluxes are available) 
+ # daily: (H+LE) / (Rn - (G+S))
+ # Storage formula comes from EasyFluxDL program
+ # with default values for soil heat storage and BD
+ 
+# # if want to use biomet files, but soil temps are still averaged to 40cm
+#   # import biomet2 files that have soil temp and moisture by depth
+# biomet2files <- list.files(path="/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Ameriflux_USJo1/Biomet2_20201227",
+#                             pattern="Biomet_USJo1_wide",
+#                             full.names=TRUE) 
+#  
+#  # read files and bind them into one file. fill=TRUE because of the missing columns in 2011
+#  biomet2 <- do.call("rbind", lapply(biomet2files[1:11], header = TRUE,
+#                                     fread, sep=",", fill=TRUE,
+#                                     na.strings=c(-9999,"#NAME?")))
+#                                     
  
  
+ flux_filter_sd[,':='(Year=year(date_time),
+                      DOY=yday(date_time),
+                      date=as.Date(date_time),
+                      SHF_1 = (SHF_1_1_1+SHF_1_2_1)/2,
+                      SHF_2 = (SHF_2_1_1+ SHF_2_2_1)/2,
+                      VWC_Ts = (Ts_1_1_1+273.15)*SWC_1_1_1)][,':='(
+                        Tsoil_change = Ts_1_1_1+273.15 - shift(Ts_1_1_1+273.15,n=1,fill=NA), # lag by 1
+                        VWC_change = VWC_Ts-shift(VWC_Ts,n=1,fill=NA) # lag by 1
+                      )][,':='(
+                        Storage=(((870*1300*Tsoil_change+
+                                   4210*1000*VWC_change))*0.08)/(30*60)
+                      )]
+ 
+ 
+  flux_filter_sd_eb <- flux_filter_sd[`u*`>0.2,.(date=date,
+                                                EB_ec = H+LE,
+                                           EB_met1 = (Rn_1_1_1-(SHF_1+Storage)), # surface SHF
+                                           EB_met2 = (Rn_1_1_1-(SHF_2+Storage))), # deeper SHF
+                                     by="date_time"][,.(EB_ec = sum(EB_ec),
+                                                        EB_Met1 = sum(EB_met1),
+                                                        EB_Met2 = sum(EB_met2)),
+                                                     by="date"]
+
+ # plot storage
+ ggplot(flux_filter_sd, aes(date_time,Storage))+
+   geom_line(linewidth=0.3)
+ 
+  # compare EB Met using SHF from surface or deep
+ ggplot(flux_filter_sd_eb, aes(EB_Met1,EB_Met2))+
+   geom_point()+
+   geom_abline(intercept=0, slope=1)
+ 
+ # compare EB from ec with met data
+ ggplot(flux_filter_sd_eb, aes(EB_ec,EB_Met1))+
+   geom_point()+
+   geom_abline(intercept=0, slope=1)
+ 
+ # graph ratio of EB_ec/EB_Met
+ 
+ ggplot(flux_filter_sd_eb, aes(date,EB_ec/EB_Met1))+
+   geom_point()+
+   geom_hline(yintercept=1)
+ 
+# graph Tair and Tsoil
+ ggplot(flux_filter_sd, aes(date_time))+
+   geom_line(aes(y=Ta_1_1_1), colour="lightblue", linewidth=0.5)+
+   geom_line(aes(y=Ts_1_1_1), colour="brown", linewidth=0.5)
+ 
+ # graph VWC
+ ggplot(flux_filter_sd, aes(date_time))+
+   geom_line(aes(y=SWC_1_1_1), colour="blue", linewidth=0.5)
+
+ # graph SHF of two depths
+ ggplot(flux_filter_sd, aes(SHF_1,SHF_2))+
+   geom_point()
+ 
+  
