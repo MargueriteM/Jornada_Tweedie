@@ -838,6 +838,11 @@ flux_filter_sd <- (flux_filter_sd[!(duplicated(flux_filter_sd, by=c("date_time")
    geom_point()+
    geom_hline(yintercept=1)
  
+ # histogram of EB
+ ggplot(flux_filter_sd_eb, aes(EB_ec/EB_Met1))+
+     geom_histogram(bins=60)+
+   geom_vline(xintercept=c(0.9,0.8,0.7,0.6))
+ 
 # graph Tair and Tsoil
  ggplot(flux_filter_sd, aes(date_time))+
    geom_line(aes(y=Ta_1_1_1), colour="lightblue", linewidth=0.5)+
