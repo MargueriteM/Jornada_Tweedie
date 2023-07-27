@@ -284,10 +284,10 @@ cs650[, ':=' (date_time = ymd_hms(TIMESTAMP),
 # remove soil_wide
 rm(cs650_wide)
 
-############################################
-# # Tower soil temperature and moisture data (ECTM)
-############################################
-# soil_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_ECTM/Combined/dataL2_ectm_",year_file,".csv",sep=""),
+# ############################################
+# # # Tower soil temperature and moisture data (ECTM)
+# ############################################
+# soil_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_ECTM/Combined/dataL2_ectm_",year_file,".csv",sep=""),
 #                     sep=",", header=TRUE)
 # 
 # # format date and add column to deginate the data stream, get rid or uneccessary columns
@@ -321,7 +321,7 @@ rm(cs650_wide)
 # 
 # # remove soil_wide
 # rm(soil_wide)
-##################################
+# ##################################
 
 # combine all four SEL data streams 
 # soil_30min is for ECTM
@@ -487,15 +487,16 @@ ggplot(biomet_mean_precip[year(date_time)==year_file,],aes(date_time,P_rain_1_1_
 
 # soilmoisture & soiltemp: average from tower and SN regardless of depth or veg
 # soil moisture = soil water content
+# remove values <0 (get rid of this on 2023-07-27 because this is too early in the process & Talveer needs <0 to rectify)
 
-biomet_mean_soilM <- copy(env_30min[variable %in% c("soilmoisture")&mean.val>=0,])
+biomet_mean_soilM <- copy(env_30min[variable %in% c("soilmoisture"),])
 
 # for biomet soil moisture averaging look at data
 ggplot(biomet_mean_soilM[year>2019], aes(date_time,mean.val, colour=factor(depth)))+
   geom_line()+
   facet_grid(paste(location,veg)~.)
 
-# remove values <0 and calculate average across depths and veg for biomet
+#  calculate average across depths and veg for biomet
 biomet_mean_soilM <- biomet_mean_soilM[,list(SWC_1_1_1 = mean(mean.val, na.rm=TRUE)),
             by="date_time"]
 
