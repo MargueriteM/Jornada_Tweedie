@@ -141,9 +141,9 @@ library(corrplot)
 #############
 # IMPORT DATA
 #############
-year_file <- 2022
+year_file <- 2021
 # Sensor network data:
-SN_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
+SN_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
 
 # make long
@@ -185,7 +185,7 @@ SN_30min[variable=="atm_press", mean.val := mean.val/10]
 rm(SN_wide)
 
 # Tower Met Data (get LWS 5m from here. It's also in FluxTable)
-met_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/Combined/dataL2_met_",year_file,".csv",sep=""),
+met_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/TowerClimate_met/Combined/dataL2_met_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
 
 # adjust name of precip_tot
@@ -208,7 +208,7 @@ met_30min[variable=="precip.tot", veg := "BARE"]
 rm(met_wide) 
 
 # Data from FluxTable: Rs, Rl, HFP, LWS_1 (in shrub)
-flux_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/Combined/dataL2_flux_",year_file,".csv",sep=""),
+flux_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/Combined/dataL2_flux_",year_file,".csv",sep=""),
                     sep=",", header=TRUE)
 # make data long and format to match others for binding
 flux_30min <- melt.data.table(flux_wide,c("date_time"))
@@ -245,7 +245,7 @@ rm(flux_wide)
 # 
 # Data logging starts 2021-05-04 12:44:00 
 
-cs650_wide <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_CS650/Combined/dataL2_Soil_",year_file,".csv",sep=""),
+cs650_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_CS650/Combined/dataL2_Soil_",year_file,".csv",sep=""),
                     sep=",", header=TRUE)
 
 cs650 <- melt(cs650_wide,c("TIMESTAMP"))
