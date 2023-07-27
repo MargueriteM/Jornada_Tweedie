@@ -42,16 +42,16 @@ library(gridExtra)
 library(lattice)
 
 # Get sensor network data from server, using compiled files
-setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/")
+setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/")
 
 year_file <- 2022
 
-SN <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/WSN_",year_file,".csv",sep=""),
+SN <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/WSN_",year_file,".csv",sep=""),
               header = TRUE, sep=",",
             na.strings=c(-9999,-888.88,"#NAME?"))
 
 # column names with units
-colnames2019 <- fread(file="/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/MetaData/JER_SensorNetwork_ColumnNames_2019.csv",
+colnames2019 <- fread(file="/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/MetaData/JER_SensorNetwork_ColumnNames_2019.csv",
                       sep=",",
                       header=TRUE) 
 
