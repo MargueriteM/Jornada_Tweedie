@@ -325,7 +325,7 @@ rm(cs650_wide)
 
 # combine all four SEL data streams 
 # soil_30min is for ECTM
-env_30min <- rbind(SN_30min,met_30min,flux_30min, cs650,fill=TRUE)
+env_30min <- rbind(SN_30min,met_30min,flux_30min, soil_30min, cs650,fill=TRUE)
 
 # some datastreams don't have all the time stamp columns. Create
 env_30min[,':=' (year = year(date_time),
@@ -348,6 +348,7 @@ levels(factor(env_30min$height))
 
 # with ECTM and SN only 
 # env_30min[,height := factor(height,levels=c("-30","-20","-15","-10","-5","-2","50","500"))]
+
 # with CS650, SN, and ECTM:
  env_30min[,height := factor(height,levels=c("-100.5","-42.5","-30","-25.5","-20","-17.5","-15","-11.5",
                                              "-10","-5","-2","50","500"))]
@@ -953,6 +954,7 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/Biom
 
 # 15 Apr 2020: save by year!
 # 27 Dec 2020: save updated by year. 
+# 27 Jul 2023: save 2021 with SWC<0 included to allow Talveer to rectify data
 
 saveyears <- function(data,startyear,endyear) {
 
