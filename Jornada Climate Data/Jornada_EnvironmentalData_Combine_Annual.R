@@ -684,11 +684,11 @@ ggplot(biomet2[variable %in% c("soilmoisture") & veg %in% c("LATR","PRGL","MUPO"
 # MUPO: 3
 # PRGL: 4
 
-# 2020-04-14: convert all VWC to % soil moisture, requested by Ameriflux QA/QC check.
-biomet2[variable %in% c("soilmoisture"), mean.val := mean.val*100]
-
-# make sure all SWC are >0
-biomet2[variable %in% c("soilmoisture") & mean.val<0, mean.val := NA]
+#### Do Not Run, Need to keep SWC < 0 for Talveer to do rectification steps
+#### 2020-04-14: convert all VWC to % soil moisture, requested by Ameriflux QA/QC check.
+### biomet2[variable %in% c("soilmoisture"), mean.val := mean.val*100]
+#### make sure all SWC are >0
+### biomet2[variable %in% c("soilmoisture") & mean.val<0, mean.val := NA]
 
 
  # Bare: 1
