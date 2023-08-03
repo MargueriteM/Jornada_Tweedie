@@ -44,7 +44,7 @@ library(lattice)
 # Get sensor network data from server, using compiled files
 setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/")
 
-year_file <- 2021
+year_file <- 2022
 
 SN <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/WSN_",year_file,".csv",sep=""),
               header = TRUE, sep=",",
@@ -70,7 +70,7 @@ SN[, date_time := ymd_hms(Date)][, Date:=date_time][, date_time:=NULL]
 # Get the column names of each sensor network data set and
 # compare to the columns that should be in the data
 
-################### Fix Column Format Function ######################
+################### Run: Fix Column Format Function ######################
 fix_columns <- function(SNdata,colnames_data) {
   char <- melt.data.table(SNdata[,lapply(.SD, function(x) {is.character(x)==TRUE})])
   char_col <- as.character(droplevels(char[value == TRUE,]$variable))
