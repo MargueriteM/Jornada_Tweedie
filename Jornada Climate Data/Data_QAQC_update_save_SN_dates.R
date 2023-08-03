@@ -54,7 +54,7 @@ library(lattice)
 # Get sensor network data from server, using compiled files
 setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/")
 
-year_file <- 2022
+year_file <- 2023
 
 SN <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/WSN_",year_file,".csv",sep=""),
               header = TRUE, sep=",",
@@ -274,6 +274,15 @@ ggplot(SN_30min[sensor%in%c("moisture","rain"),], aes(date_time, mean.val, colou
   facet_grid(sensor+veg~., scales="free_y")+
   theme_bw()
 
+# 2023: only BARE has soil moisture (SN4)
+# 2023: from 22 may to 27 may, after a rain event the 5cm soil probe declines
+# and fluctuates daily until it returns to 'baseline' (when the soil is dry?)
+
+SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
+           date_time >ymd_hms("2023-05-22 00:00:00") &
+           date_time <ymd_hms("2023-05-28 00:00:00"), mean.val := NA]
+
+
 # 2022: only BARE has soil moisture (SN4)
 # LATR: SN5, SN data logger not working
 # MUPO: SN7, , SN data logger not working
@@ -283,9 +292,9 @@ ggplot(SN_30min[sensor%in%c("moisture","rain"),], aes(date_time, mean.val, colou
 # comes after some heavy rain but does not directly coincide with rain.
 # other depths do not show the pattern.
 # remove
-SN_30min[sensor=="moisture"&veg=="BARE"&depth==10&
-date_time >ymd_hms("2022-09-14 22:30:00") &
-  date_time <ymd_hms("2022-09-19 02:30:00"), mean.val := NA]
+# SN_30min[sensor=="moisture"&veg=="BARE"&depth==10&
+# date_time >ymd_hms("2022-09-14 22:30:00") &
+#   date_time <ymd_hms("2022-09-19 02:30:00"), mean.val := NA]
 
 
 # MUPO 10cm: 13 July 2021 there was a baseline shift! Remove after this.
