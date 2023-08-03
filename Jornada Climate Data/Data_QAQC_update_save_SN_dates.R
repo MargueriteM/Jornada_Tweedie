@@ -178,6 +178,15 @@ ggplot(SN_30min[sensor=="battery",], aes(date_time, mean.val, colour=SN))+
 
 # 2022 (June 6): no voltage on SN5, SN6, SN7
 
+# SN1: rain (latr, prgl), lws (latr), solar rad (prgl, flce, flce104), PAR (prgl, flce, flce104)
+# SN2: rain (bare), lws (prgl), solar rad (latr, prgl), PAR (latr, prgl)
+# SN3: rain (latr, prgl), solar rad (dapu, up), PAr (dapu, up), soil moisture (prgl)
+# SN4: rain (bare), lws (down, up), solar rad (bare), PAr (bare), soil moisture (bare)
+# SN5: solar rad (latr), PAr (latr), soil moisture (latr)
+# SN6: rain (bare), lws (latr), solar rad (mupo, dapu, latr), PAR ((mupo, dapu, latr)
+# SN7: lws (fle, mupo), solar rad (flce, mupo), PAR (flce, mupo), soil moisture (mupo)
+# SN8: lws (prgl), solar rad (prgl, mupo), PAR (prgl, mupo)
+
 # REMOVE OBVIOUSLY BAD DATA POINTS
 # lws values should be between 0-100
 # lws: remove values <0 and >100
