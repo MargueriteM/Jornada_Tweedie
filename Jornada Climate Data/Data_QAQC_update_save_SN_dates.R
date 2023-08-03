@@ -33,6 +33,16 @@
 # SN7: 79.5m
 # SN8: 3m
 
+# sensors at each sensor netowrk node
+# SN1: rain (latr, prgl), lws (latr), solar rad (prgl, flce, flce104), PAR (prgl, flce, flce104)
+# SN2: rain (bare), lws (prgl), solar rad (latr, prgl), PAR (latr, prgl)
+# SN3: rain (latr, prgl), solar rad (dapu, up), PAr (dapu, up), soil moisture (prgl)
+# SN4: rain (bare), lws (down, up), solar rad (bare), PAr (bare), soil moisture (bare)
+# SN5: solar rad (latr), PAr (latr), soil moisture (latr)
+# SN6: rain (bare), lws (latr), solar rad (mupo, dapu, latr), PAR ((mupo, dapu, latr)
+# SN7: lws (fle, mupo), solar rad (flce, mupo), PAR (flce, mupo), soil moisture (mupo)
+# SN8: lws (prgl), solar rad (prgl, mupo), PAR (prgl, mupo)
+
 
 # load libraries
 library(data.table)
@@ -311,8 +321,7 @@ date_time >ymd_hms("2022-09-14 22:30:00") &
 #           date_time >= as.Date("2021-07-01") & 
 #           date_time <= as.Date("2021-10-15"), mean.val := NA]
 
-# 01-09-2022 all bare look OK, remove values below zero
-SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&mean.val<0, mean.val := NA]
+# 01-09-2022 all bare look OK
 
 # plot soil moisture after corrections/filters
 ggplot(SN_30min[sensor=="moisture",],
