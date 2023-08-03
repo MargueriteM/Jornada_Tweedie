@@ -448,10 +448,10 @@ enddate <- (max(SN_wide_save$date_time))
 
 # add comment about processing
 print(paste("#",year(enddate.check), "data processed until",enddate.check,sep=" "))
-# 2022 data processed until 2022-10-13 10:35:00
+# 2022 data processed until 2022-12-31 23:55:00
 
 # # save in QAQC folder with start and end date in the file name
-qaqc.path<- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/QAQC/", sep="")
+qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/", sep="")
 setwd(qaqc.path)
 
 # # FOR INCOMPLETE YEARS
