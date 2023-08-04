@@ -54,7 +54,7 @@ library(lattice)
 # Get sensor network data from server, using compiled files
 setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/")
 
-year_file <- 2023
+year_file <- 2022
 
 SN <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/WSN_",year_file,".csv",sep=""),
               header = TRUE, sep=",",
@@ -277,7 +277,7 @@ ggplot(SN_30min[sensor%in%c("moisture","rain"),], aes(date_time, mean.val, colou
 # 2023: only BARE has soil moisture (SN4)
 # 2023: from 22 may to 27 may, after a rain event the 5cm soil probe declines
 # and fluctuates daily until it returns to 'baseline' (when the soil is dry?)
-
+# remove
 SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
            date_time >ymd_hms("2023-05-22 00:00:00") &
            date_time <ymd_hms("2023-05-28 00:00:00"), mean.val := NA]
@@ -292,9 +292,23 @@ SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
 # comes after some heavy rain but does not directly coincide with rain.
 # other depths do not show the pattern.
 # remove
-# SN_30min[sensor=="moisture"&veg=="BARE"&depth==10&
-# date_time >ymd_hms("2022-09-14 22:30:00") &
-#   date_time <ymd_hms("2022-09-19 02:30:00"), mean.val := NA]
+ # SN_30min[sensor=="moisture"&veg=="BARE"&depth==10&
+ # date_time >ymd_hms("2022-09-14 22:30:00") &
+ #   date_time <ymd_hms("2022-09-19 02:30:00"), mean.val := NA]
+
+# 2022: after each rain event the 5cm soil moisture probe drops below baseline 
+# and fluctuates daily until it returns to 'baseline' (when the soil is dry?)
+# remove
+# create a dataframe of dates with rain
+rain.dates <- SN_30min[sensor=="rain"&mean.val>0,list(date = unique(as.Date(date_time)))]
+
+ggplot(SN_30min[sensor%in%c("moisture","rain") & veg=="BARE" &
+                  date_time>rain.dates$date[1] & date_time<rain.dates$date[1]+10,], aes(date_time, mean.val, colour=factor(depth)))+
+  geom_point(size=0.1)+
+  labs(title="Leaf Wetness, Soil Moisture, and Rain") +
+  facet_grid(sensor+veg~., scales="free_y")+
+  theme_bw()
+
 
 
 # MUPO 10cm: 13 July 2021 there was a baseline shift! Remove after this.
@@ -330,7 +344,7 @@ SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
 #           date_time >= as.Date("2021-07-01") & 
 #           date_time <= as.Date("2021-10-15"), mean.val := NA]
 
-# 01-09-2022 all bare look OK
+
 
 # plot soil moisture after corrections/filters
 ggplot(SN_30min[sensor=="moisture",],
@@ -346,6 +360,7 @@ ggplot(SN_30min[sensor%in%c("moisture","rain","lws"),], aes(date_time, mean.val,
   labs(title="Leaf Wetness, Soil Moisture, and Rain") +
   facet_grid(sensor+veg~., scales="free_y")+
   theme_bw()
+
 
 # par
 # par can't be <0 
