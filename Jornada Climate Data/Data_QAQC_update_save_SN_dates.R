@@ -358,13 +358,17 @@ SN_30min[sensor=="par" & veg!="UP" & mean.val>1000, mean.val := NA]
 # In May 2021 FLCE high value was not removed by >500 but if I use a lower cutoff then I'll remove January high values that could be real due to snow
 # SN_30min[sensor=="par" & veg=="FLCE" & month==5 & mean.val>400, mean.val := NA]
 
+# From April 2023 solar on SN1 FLCE is mostly gone but has some weird sporadic spikes: remove all
+SN_30min[sensor=="par" & SN=="SN1" & veg == "FLCE" & date_time>as.Date("2023-04-01"),
+         mean.val := NA]
+
 # graph
 ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
   geom_line()+
   labs(title="PAR") +
   facet_grid(veg~., scales="free_y")
 
-# 2022 PAR MUPO on SN8 is no longer good. remove all
+# from 2022 PAR MUPO on SN8 is no longer good. remove all
 SN_30min[sensor=="par" & veg=="MUPO" & SN=="SN8", mean.val := NA]
 
 # pressure
@@ -383,6 +387,10 @@ ggplot(SN_30min[sensor=="pressure",], aes(date_time, mean.val, colour=SN))+
 # solar
 # can't be negative
 SN_30min[sensor=="solar" & mean.val<0, mean.val := NA]
+
+# From April 2023 solar on SN1 FLCE is mostly gone but has some weird sporadic spikes: remove all
+SN_30min[sensor=="solar" & SN=="SN1" & veg == "FLCE" & date_time>as.Date("2023-04-01"),
+       mean.val := NA]
 
 ggplot(SN_30min[sensor=="solar",],
        aes(date_time, mean.val, colour=SN))+
@@ -458,6 +466,7 @@ enddate <- (max(SN_wide_save$date_time))
 # add comment about processing
 print(paste("#",year(enddate.check), "data processed until",enddate.check,sep=" "))
 # 2022 data processed until 2022-12-31 23:55:00
+# 2023 data processed until 2023-08-03 10:25:00
 
 # # save in QAQC folder with start and end date in the file name
 qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/", sep="")
