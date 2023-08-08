@@ -130,11 +130,11 @@ radioButtons("variable1", "Flux variables:",
 ```
 **17 Dec 20: When implementing range filter, missing values get connected by a line. :/**
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
- numericInput("range_flux_max","Max range of flux graph (non-reactive)",
-          value = 1)
+ numericInput("range_flux_max","Max range of flux graph",
+          value = 1000)
 
- numericInput("range_flux_min","Min range of flux graph (non-reactive)",
-            value = -1)
+ numericInput("range_flux_min","Min range of flux graph",
+            value = -50)
 
  
 radioButtons("variable1_2", "Sonic Anemometer variables:",
@@ -266,7 +266,8 @@ Wind Roses in Compass direction
    filter((date >= input$daterange2[[1]] & date <= input$daterange2[[2]])) 
  # plot wind variables in windrose
    plot.windrose(wind.data,wind.data$wnd_spd,wind.data$wnd_dir_compass)+
-   labs(title="Sonic Anemometer")
+   labs(title="Sonic Anemometer")+
+     theme(legend.position="bottom")
  })
 
 renderPlot({
@@ -274,14 +275,16 @@ wind.data <-  flux %>%
  filter((date >= input$daterange2[[1]] & date <= input$daterange2[[2]]))
 # plot wind variables in windrose
   plot.windrose(wind.data,wind.data$hor_wnd_spd_mean_rslt,wind.data$hor_wnd_dir_mean_rslt)+
-  labs(title="2-D Anemometer")
+  labs(title="2-D Anemometer")+
+     theme(legend.position="bottom")
 })
 
 ```
 
 Row {data-height=250}
 -------------------------------------------------------------
-Correlation between Sonic and 2-D Anemometer Measurements
+Correlation between Sonic
+and 2-D Anemometer
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # Wind Speed
 renderPlot({
