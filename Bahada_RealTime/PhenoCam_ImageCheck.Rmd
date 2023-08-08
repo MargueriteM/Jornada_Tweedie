@@ -29,6 +29,7 @@ yeartocheck <- 2022
 
 cam1_wd <- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Phenocam/TwrPhenocam/Cam1_Tram/",yeartocheck,"/",sep="")
 
+
 cam1files <- list.files(path=cam1_wd)
 
 cam1_latest <- max(cam1files)
@@ -37,7 +38,8 @@ cam1_latest <- max(cam1files)
 cam1_date <- ymd(paste(str_split_n(cam1_latest,"_",3),str_split_n(cam1_latest,"_",4)))
 
 print(cam1_date)
- 
+
+
 setwd(cam1_wd)
 
 cam1_latest
@@ -46,7 +48,6 @@ knitr::include_graphics(cam1_latest)
 
 getwd()
 ```
-
 ```{r, load info for camera 2}
 yeartocheck <- 2022
 
@@ -60,10 +61,10 @@ cam2_latest <- max(cam2files)
 cam2_date <- ymd(paste(str_split_n(cam2_latest,"_",3),str_split_n(cam1_latest,"_",4)))
 
 print(cam2_date)
- 
+
 setwd(cam2_wd)
 
-cam1_latest
+cam2_latest
 
 knitr::include_graphics(cam2_latest)
 
@@ -83,10 +84,10 @@ cam3_latest <- max(cam3files)
 cam3_date <- ymd(paste(str_split_n(cam3_latest,"_",3),str_split_n(cam1_latest,"_",4)))
 
 print(cam3_date)
- 
+
 setwd(cam3_wd)
 
-cam1_latest
+cam3_latest
 
 knitr::include_graphics(cam3_latest)
 
@@ -106,10 +107,10 @@ cam4_latest <- max(cam4files)
 cam4_date <- ymd(paste(str_split_n(cam4_latest,"_",3),str_split_n(cam1_latest,"_",4)))
 
 print(cam4_date)
- 
+
 setwd(cam4_wd)
 
-cam1_latest
+cam4_latest
 
 knitr::include_graphics(cam4_latest)
 
