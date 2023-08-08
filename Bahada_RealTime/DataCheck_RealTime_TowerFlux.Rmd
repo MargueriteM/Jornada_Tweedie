@@ -192,7 +192,7 @@ Column
     
     setnames(c,input$variable1,"selected")
   # can filter for input range here or in ggplot below
-  #  c <- c[selected>=input$range_flux_min & selected<=input$range_flux_max,]
+   c <- c[selected>=input$range_flux_min & selected<=input$range_flux_max,]
     
   # plot_ly(c,x=~date_time,y=~airtemp, type="scatter")},
   # ggplot(c[selected>=input$range_flux_min & selected<=input$range_flux_max,], aes(date_time, selected))+
