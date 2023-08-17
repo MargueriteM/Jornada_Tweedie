@@ -54,7 +54,7 @@ library(lattice)
 # Get sensor network data from server, using compiled files
 setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/")
 
-year_file <- 2022
+year_file <- 2021
 
 SN <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/WSN_",year_file,".csv",sep=""),
               header = TRUE, sep=",",
@@ -292,8 +292,8 @@ SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
 # comes after some heavy rain but does not directly coincide with rain.
 # other depths do not show the pattern.
 # remove
- # SN_30min[sensor=="moisture"&veg=="BARE"&depth==10&
- # date_time >ymd_hms("2022-09-14 22:30:00") &
+#  SN_30min[sensor=="moisture"&veg=="BARE"&depth==10&
+#  date_time >ymd_hms("2022-09-14 22:30:00") &
  #   date_time <ymd_hms("2022-09-19 02:30:00"), mean.val := NA]
 
 # 2022: after each rain event the 5cm soil moisture probe drops below baseline 
@@ -303,36 +303,43 @@ SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
 rain.dates <- SN_30min[sensor=="rain"&mean.val>0,list(date = unique(as.Date(date_time)))]
 
 ggplot(SN_30min[sensor%in%c("moisture","rain") & veg=="BARE" &
-                  date_time>rain.dates$date[1] & date_time<rain.dates$date[1]+10,], aes(date_time, mean.val, colour=factor(depth)))+
+                  date_time>rain.dates$date[1] & date_time<rain.dates$date[1]+20,], aes(date_time, mean.val, colour=factor(depth)))+
   geom_point(size=0.1)+
   labs(title="Leaf Wetness, Soil Moisture, and Rain") +
   facet_grid(sensor+veg~., scales="free_y")+
   theme_bw()
 
 
+ggplot(SN_30min_21_22[sensor%in%c("moisture","rain") & veg=="BARE" &
+                        date_time>rain.dates$date[3] & date_time<rain.dates$date[6]+20,], aes(date_time, mean.val, colour=factor(depth)))+
+       geom_point(size=0.1)+
+       labs(title="Leaf Wetness, Soil Moisture, and Rain") +
+       facet_grid(sensor+veg~., scales="free_y")+
+       theme_bw()
+
 
 # MUPO 10cm: 13 July 2021 there was a baseline shift! Remove after this.
-# SN_30min[sensor=="moisture"&veg=="MUPO"&depth==10&date_time>as.Date("2021-07-13"), mean.val := NA]
+ SN_30min[sensor=="moisture"&veg=="MUPO"&depth==10&date_time>as.Date("2021-07-13"), mean.val := NA]
 
 # MUPO 20cm: in October 2018 there was a baseline shift! Remove after this.
-# SN_30min[sensor=="moisture"&veg=="MUPO"&depth==20, mean.val := NA]
+ SN_30min[sensor=="moisture"&veg=="MUPO"&depth==20, mean.val := NA]
 
 # MUPO 30cm: 11 July 2021 there was a baseline shift! Remove after this.
-# SN_30min[sensor=="moisture"&veg=="MUPO"&depth==30&date_time>as.Date("2021-07-11"), mean.val := NA]
+ SN_30min[sensor=="moisture"&veg=="MUPO"&depth==30&date_time>as.Date("2021-07-11"), mean.val := NA]
 
 
 # PRGL remove all after January 2019 (sensors got moved on ~19 June 2019)
-# SN_30min[sensor=="moisture"&veg=="PRGL"&date_time>=as.Date("2019-01-01"),
-#         mean.val := NA]
+ SN_30min[sensor=="moisture"&veg=="PRGL"&date_time>=as.Date("2019-01-01"),
+         mean.val := NA]
 
 
 # LATR 5cm: probe goes bad after 12 Feb 2017
-# SN_30min[sensor=="moisture"&veg=="LATR"&depth==5&
-#           date_time >= as.Date("2017-02-12"), mean.val := NA]
+SN_30min[sensor=="moisture"&veg=="LATR"&depth==5&
+           date_time >= as.Date("2017-02-12"), mean.val := NA]
 
 # LATR 10cm: probe had a baseline shift 14 Feb 2019 at 23:30. Remove values after this.
 # SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&#
-#           (date_time>=as.POSIXct("2019-02-14 23:00:00", tz="UTC")), mean.val := NA]
+ #          (date_time>=as.POSIXct("2019-02-14 23:00:00", tz="UTC")), mean.val := NA]
 
 # LATR 20cm: had baseline shift after 28 Feb 2019 18:00 , remove
 # SN_30min[sensor=="moisture"&veg=="LATR"&depth==20&
@@ -342,7 +349,7 @@ ggplot(SN_30min[sensor%in%c("moisture","rain") & veg=="BARE" &
 # 1 July and 15 October
 # SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
 #           date_time >= as.Date("2021-07-01") & 
-#           date_time <= as.Date("2021-10-15"), mean.val := NA]
+ #          date_time <= as.Date("2021-10-15"), mean.val := NA]
 
 
 
