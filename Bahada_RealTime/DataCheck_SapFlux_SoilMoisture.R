@@ -1,4 +1,7 @@
-# Check soil moisture data from Sap Flux Network 
+# Check soil moisture and water potential data from Sap Flux Network 
+# probes installed 11 August 2023
+# script author: Marguerite Mauritz
+# 17 August 2023
 
 # load libraries
 library(data.table)
