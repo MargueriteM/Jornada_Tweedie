@@ -141,7 +141,7 @@ library(corrplot)
 #############
 # IMPORT DATA
 #############
-year_file <- 2021
+year_file <- 2023
 # Sensor network data:
 SN_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
@@ -325,7 +325,7 @@ rm(cs650_wide)
 
 # combine all four SEL data streams 
 # soil_30min is for ECTM
-env_30min <- rbind(SN_30min,met_30min,flux_30min, soil_30min, cs650,fill=TRUE)
+env_30min <- rbind(SN_30min,met_30min,flux_30min,cs650, fill=TRUE) # cs650, soil_30min
 
 # some datastreams don't have all the time stamp columns. Create
 env_30min[,':=' (year = year(date_time),
@@ -349,14 +349,14 @@ levels(factor(env_30min$height))
 # with ECTM and SN only 
 # env_30min[,height := factor(height,levels=c("-30","-20","-15","-10","-5","-2","50","500"))]
 
-# with CS650, SN, and ECTM:
- env_30min[,height := factor(height,levels=c("-100.5","-42.5","-30","-25.5","-20","-17.5","-15","-11.5",
-                                             "-10","-5","-2","50","500"))]
+# with CS650, SN, and ECTM (2021 only)
+ # env_30min[,height := factor(height,levels=c("-100.5","-42.5","-30","-25.5","-20","-17.5","-15","-11.5",
+ #                                             "-10","-5","-2","50","500"))]
 
 
  # with CS650 and SN only
- # env_30min[,height := factor(height,levels=c("-100.5","-42.5","-30","-25.5","-20","-17.5","-15","-11.5",
- #                                             "-10","-5","50","500"))]
+  env_30min[,height := factor(height,levels=c("-100.5","-42.5","-30","-25.5","-20","-17.5","-15","-11.5",
+                                             "-10","-5","50","500"))]
  
 # create a variable to show data coverage =1 with data 
 env_30min[!is.na(mean.val), coverage := 1]
@@ -562,11 +562,12 @@ setnames(biomet, c("date_time"),c("date_time"))
 # save Biomet Data for EddyPro by year to server
 
 # # load function to format data for Eddy Pro and save each year
-setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/")
+setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/")
 
 source("~/Desktop/R/R_programs/Functions/SaveFiles_Biomet_EddyPro.R")
 
 # save
+# 2023-08-29: save 2022, 2023 (do not re-write 2020 and 2021)
 savebiomet(biomet,year_file,year_file)
 
 
@@ -578,6 +579,10 @@ savebiomet(biomet,year_file,year_file)
 # 2020-04-14: date_time is the adjusted timestamp to make all data match MST
 
 # 2021-05-04 12:44:00 start CS650 soil moisture and temperature inclusion from -100 to -11 cm
+
+# 2023-08-29: run up to 2023-08-03 and re-save 2020, 2021, 2022, 2023 with updated SN soil moisture data
+#             soil moisture SN data reprocessed to make sure uniform decisions were made across these years
+#.            also make sure SWC<0 is not removed for these years
 
 biomet2 <- copy(env_30min)
 
@@ -955,6 +960,7 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/Biom
 # 15 Apr 2020: save by year!
 # 27 Dec 2020: save updated by year. 
 # 27 Jul 2023: save 2021 with SWC<0 included to allow Talveer to rectify data
+# 29 Aug 2023: save 2020-2023 with SN data re-processed and SWC<0 included to allow Talveer to rectify data
 
 saveyears <- function(data,startyear,endyear) {
 
@@ -967,12 +973,12 @@ saveyears <- function(data,startyear,endyear) {
   }}
 
 # save 
-# saveyears(biomet2_wide,year_file,year_file)
+ saveyears(biomet2_wide,year_file,year_file)
 
 ## also save to Biomet One Drive preliminary folder
-# setwd("~/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Biomet/Preliminary")
+ setwd("~/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Biomet/Preliminary")
 
-# saveyears(biomet2_wide,year_file,year_file)
+ saveyears(biomet2_wide,year_file,year_file)
 
 #### End of routine processing ####
 
