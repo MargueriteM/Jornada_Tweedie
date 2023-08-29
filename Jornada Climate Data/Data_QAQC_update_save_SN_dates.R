@@ -54,7 +54,7 @@ library(lattice)
 # Get sensor network data from server, using compiled files
 setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/")
 
-year_file <- 2021
+year_file <- 2023
 
 SN <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/WSN_",year_file,".csv",sep=""),
               header = TRUE, sep=",",
@@ -227,7 +227,7 @@ SN_30min[sensor=="rain" & (mean.val<0 | mean.val>50), mean.val := NA]
 
 # on Nov 12th 2021 ~10:15 cleaned rain bucket under PRGl and move tipping scale. 
 # remove "rain" on this day
-# SN_30min[sensor=="rain" & date(date_time) == as.Date("2021-11-12") & veg=="PRGL" & mean.val>0 , mean.val := NA]
+ SN_30min[sensor=="rain" & date(date_time) == as.Date("2021-11-12") & veg=="PRGL" & mean.val>0 , mean.val := NA]
 
 # 2022: max value filter removes value ~800 in PRGL.
 
@@ -274,13 +274,25 @@ ggplot(SN_30min[sensor%in%c("moisture","rain"),], aes(date_time, mean.val, colou
   facet_grid(sensor+veg~., scales="free_y")+
   theme_bw()
 
-# 2023: only BARE has soil moisture (SN4)
-# 2023: from 22 may to 27 may, after a rain event the 5cm soil probe declines
+# mid-2021 onward, only BARE has soil moisture (SN4)
+# BARE 5cm 2020 onward, after each rain event the 5cm soil moisture probe drops below baseline 
 # and fluctuates daily until it returns to 'baseline' (when the soil is dry?)
-# remove
+# examine
+# create a dataframe of dates with rain
+# rain.dates <- SN_30min[sensor=="rain"&mean.val>0,list(date = unique(as.Date(date_time)))]
+# 
+# ggplot(SN_30min[sensor%in%c("moisture","rain") & veg=="BARE" &
+#                   date_time>rain.dates$date[1] & date_time<rain.dates$date[1]+20,], aes(date_time, mean.val, colour=factor(depth)))+
+#   geom_point(size=0.1)+
+#   labs(title="Leaf Wetness, Soil Moisture, and Rain") +
+#   facet_grid(sensor+veg~., scales="free_y")+
+#   theme_bw()
+
+# remove BARE 5cm probe from 2020-2023 due to strange fluctuations after rain
+# and frequent declines below zero after rain events. 
+# The issue becomes progressively worse and most rain events are captured in BARE 10cm which has much more reliable dynamics
 SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
-           date_time >ymd_hms("2023-05-22 00:00:00") &
-           date_time <ymd_hms("2023-05-28 00:00:00"), mean.val := NA]
+           date_time >ymd_hms("2020-01-30 12:00:00 UTC"), mean.val := NA]
 
 
 # 2022: only BARE has soil moisture (SN4)
@@ -292,31 +304,9 @@ SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
 # comes after some heavy rain but does not directly coincide with rain.
 # other depths do not show the pattern.
 # remove
-#  SN_30min[sensor=="moisture"&veg=="BARE"&depth==10&
-#  date_time >ymd_hms("2022-09-14 22:30:00") &
- #   date_time <ymd_hms("2022-09-19 02:30:00"), mean.val := NA]
-
-# 2022: after each rain event the 5cm soil moisture probe drops below baseline 
-# and fluctuates daily until it returns to 'baseline' (when the soil is dry?)
-# remove
-# create a dataframe of dates with rain
-rain.dates <- SN_30min[sensor=="rain"&mean.val>0,list(date = unique(as.Date(date_time)))]
-
-ggplot(SN_30min[sensor%in%c("moisture","rain") & veg=="BARE" &
-                  date_time>rain.dates$date[1] & date_time<rain.dates$date[1]+20,], aes(date_time, mean.val, colour=factor(depth)))+
-  geom_point(size=0.1)+
-  labs(title="Leaf Wetness, Soil Moisture, and Rain") +
-  facet_grid(sensor+veg~., scales="free_y")+
-  theme_bw()
-
-
-ggplot(SN_30min_21_22[sensor%in%c("moisture","rain") & veg=="BARE" &
-                        date_time>rain.dates$date[3] & date_time<rain.dates$date[6]+20,], aes(date_time, mean.val, colour=factor(depth)))+
-       geom_point(size=0.1)+
-       labs(title="Leaf Wetness, Soil Moisture, and Rain") +
-       facet_grid(sensor+veg~., scales="free_y")+
-       theme_bw()
-
+ SN_30min[sensor=="moisture"&veg=="BARE"&depth==10&
+  date_time >ymd_hms("2022-09-14 22:30:00") &
+   date_time <ymd_hms("2022-09-19 02:30:00"), mean.val := NA]
 
 # MUPO 10cm: 13 July 2021 there was a baseline shift! Remove after this.
  SN_30min[sensor=="moisture"&veg=="MUPO"&depth==10&date_time>as.Date("2021-07-13"), mean.val := NA]
@@ -329,8 +319,8 @@ ggplot(SN_30min_21_22[sensor%in%c("moisture","rain") & veg=="BARE" &
 
 
 # PRGL remove all after January 2019 (sensors got moved on ~19 June 2019)
- SN_30min[sensor=="moisture"&veg=="PRGL"&date_time>=as.Date("2019-01-01"),
-         mean.val := NA]
+#  SN_30min[sensor=="moisture"&veg=="PRGL"&date_time>=as.Date("2019-01-01"),
+#         mean.val := NA]
 
 
 # LATR 5cm: probe goes bad after 12 Feb 2017
@@ -338,18 +328,13 @@ SN_30min[sensor=="moisture"&veg=="LATR"&depth==5&
            date_time >= as.Date("2017-02-12"), mean.val := NA]
 
 # LATR 10cm: probe had a baseline shift 14 Feb 2019 at 23:30. Remove values after this.
-# SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&#
- #          (date_time>=as.POSIXct("2019-02-14 23:00:00", tz="UTC")), mean.val := NA]
+SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&#
+          (date_time>=as.POSIXct("2019-02-14 23:00:00", tz="UTC")), mean.val := NA]
 
 # LATR 20cm: had baseline shift after 28 Feb 2019 18:00 , remove
-# SN_30min[sensor=="moisture"&veg=="LATR"&depth==20&
-#           date_time >= as.POSIXct("2019-02-28 18:00:00", tz="UTC"), mean.val := NA]
+ SN_30min[sensor=="moisture"&veg=="LATR"&depth==20&
+          date_time >= as.POSIXct("2019-02-28 18:00:00", tz="UTC"), mean.val := NA]
 
-# BARE 5cm: drifts after July 2021 rain event then looks Ok again. Remove between dates
-# 1 July and 15 October
-# SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
-#           date_time >= as.Date("2021-07-01") & 
- #          date_time <= as.Date("2021-10-15"), mean.val := NA]
 
 
 
@@ -376,9 +361,9 @@ SN_30min[sensor=="par" & mean.val<0, mean.val := NA]
 SN_30min[sensor=="par" & veg!="UP" & mean.val>1000, mean.val := NA]
 
 # 2021 downward-facing sensors had sporadic outlying values >600. remove
-# SN_30min[sensor=="par" & veg!="UP" & mean.val>500, mean.val := NA]
+ SN_30min[sensor=="par" & veg!="UP" & mean.val>500, mean.val := NA]
 # In May 2021 FLCE high value was not removed by >500 but if I use a lower cutoff then I'll remove January high values that could be real due to snow
-# SN_30min[sensor=="par" & veg=="FLCE" & month==5 & mean.val>400, mean.val := NA]
+ SN_30min[sensor=="par" & veg=="FLCE" & month==5 & mean.val>400, mean.val := NA]
 
 # From April 2023 solar on SN1 FLCE is mostly gone but has some weird sporadic spikes: remove all
 SN_30min[sensor=="par" & SN=="SN1" & veg == "FLCE" & date_time>as.Date("2023-04-01"),
@@ -391,7 +376,7 @@ ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
   facet_grid(veg~., scales="free_y")
 
 # from 2022 PAR MUPO on SN8 is no longer good. remove all
-SN_30min[sensor=="par" & veg=="MUPO" & SN=="SN8", mean.val := NA]
+SN_30min[date_time>ymd("2021-12-31") &sensor=="par" & veg=="MUPO" & SN=="SN8", mean.val := NA]
 
 # pressure
 # can't be negative
@@ -474,6 +459,7 @@ ggplot(SN_30min[sensor=="solar",],
   facet_grid(veg~., scales="free_y")
 
 # put data back in wide format to save
+# save year by year: 2020, 2021, 2022, 2023
 SN_save <- copy(SN_30min[,variableID := paste(SN,sensor,unit,veg,depth, sep="_")])
 
 SN_wide_save <- data.table:: dcast(SN_save[!is.na(date_time),
@@ -486,9 +472,11 @@ startdate <- (min(SN_wide_save$date_time))
 enddate <- (max(SN_wide_save$date_time))
 
 # add comment about processing
-print(paste("#",year(enddate.check), "data processed until",enddate.check,sep=" "))
-# 2022 data processed until 2022-12-31 23:55:00
-# 2023 data processed until 2023-08-03 10:25:00
+print(paste("#",year(enddate), "data processed until",enddate,sep=" "))
+# 2020 data processed until 2020-12-31 23:30:00
+# 2021 data processed until 2021-12-31 23:30:00
+# 2022 data processed until 2022-12-31 23:30:00
+# 2023 data processed until 2023-08-03 10:30:00
 
 # # save in QAQC folder with start and end date in the file name
 qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/", sep="")
@@ -510,6 +498,8 @@ setwd(qaqc.path)
 write.table(SN_wide_save,
             paste("WSN_L2_",year_file, ".csv",sep=""),
             sep=",", dec=".", row.names=FALSE)
+
+
 
 # save a text file that says date that code was run (system time), start and end date of data
 run.info <- data.frame(info=c("Data_start","Data_end","Date_processed"),
