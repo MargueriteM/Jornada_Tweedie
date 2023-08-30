@@ -55,15 +55,15 @@ year_file <- 2022
 # Based on data checks, no data form Met and CS650 from 16 Dec 17:30 to 17 Jan 2022
 
 # import most recent file
-climate.loggerinfo <-fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/",year_file,"/Raw_Data/ASCII/dataL1_met_",year_file,".csv",sep=""),
+climate.loggerinfo <-fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/TowerClimate_met/",year_file,"/Raw_Data/ASCII/dataL1_met_",year_file,".csv",sep=""),
                          header = FALSE, sep=",", skip = 0,fill=TRUE,
                          na.strings=c(-9999,"#NAME?"))[1,]
 
-climate.colnames <-fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/",year_file,"/Raw_Data/ASCII/dataL1_met_",year_file,".csv",sep=""),
+climate.colnames <-fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/TowerClimate_met/",year_file,"/Raw_Data/ASCII/dataL1_met_",year_file,".csv",sep=""),
                                      header = TRUE, sep=",", skip = 1,fill=TRUE,
                                      na.strings=c(-9999,"#NAME?"))[1:2,]
 
-climate <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/",year_file,"/Raw_Data/ASCII/dataL1_met_",year_file,".csv",sep=""),
+climate <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/TowerClimate_met/",year_file,"/Raw_Data/ASCII/dataL1_met_",year_file,".csv",sep=""),
                  header = FALSE, sep=",", skip = 4,fill=TRUE,
                  na.strings=c(-9999,"#NAME?"),
                  col.names=c("timestamp","record","airtemp","rh","e",
@@ -105,10 +105,10 @@ startdate.check <- (min(climate_30min$date_time))
 enddate.check <- (max(climate_30min$date_time))
 
 
-# select the date on and after which you want to see the data
-date_select <- as.POSIXct("2022-01-01 00:00:00", ("%Y-%m-%d %H:%M:%S"), tz="UTC")
-
-climate_30min <- climate_30min[date_time >= date_select,]
+# For checking a specific time period: select the date on and after which you want to see the data
+# date_select <- as.POSIXct("2022-01-01 00:00:00", ("%Y-%m-%d %H:%M:%S"), tz="UTC")
+# 
+# climate_30min <- climate_30min[date_time >= date_select,]
 
 # make figures to check data and remove outliers if necessary
 ggplot(climate_30min, aes(date_time, airtemp))+geom_line()
@@ -244,7 +244,7 @@ setnames(climate.save,c("date_time","airtemp","rh","e",
  # climate.save <- rbind(climate.loggerinfo,climate.colnames, climate.save)
  
 # # save in QAQC folder with start and end date in the file name
-qaqc.path<- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/",year_file,"/QAQC/", sep="")
+qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/TowerClimate_met/",year_file,"/QAQC/", sep="")
 setwd(qaqc.path)
 
 ############ write with specific date and time ############
@@ -272,12 +272,12 @@ run.info <- data.frame(info=c("Data_start","Data_end","Date_processed"),
 write.table(run.info, "dataL2_met_DateRange.csv",
             sep=",", dec=".", row.names=FALSE)
 
-# combined folder
-setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/TowerClimate_met/Combined")
-
-write.table(climate.save,
-            paste("dataL2_met_",year_file, ".csv",sep=""),
-            sep=",", dec=".", row.names=FALSE)
+# # don't save individual years to combined folder
+# setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/TowerClimate_met/Combined")
+# 
+# write.table(climate.save,
+#             paste("dataL2_met_",year_file, ".csv",sep=""),
+#             sep=",", dec=".", row.names=FALSE)
 
 
 # save the R script that went along with creating the file to have a record of QA/QC
