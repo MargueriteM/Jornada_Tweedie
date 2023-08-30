@@ -37,7 +37,7 @@ library(tidyverse)
 library(lubridate)
 library(ggplot2)
 
-year_file <- 2022
+year_file <- 2023
 
 # Based on data checks, no data form Met and CS650 from 16 Dec 17:30 to 17 Jan 2022
 
@@ -120,6 +120,7 @@ cs650 %>%
 
 # print that data looks good/has been checked up to enddata.check:
 print(paste("#",year(enddate.check), "data looks good until",enddate.check,sep=" "))
+# 2023 data looks good until 2023-08-25 07:30:00
 # 2022 data looks good until 2022-12-31 23:30:00
 
 # prepare for saving for L2 tables and combination with other data
