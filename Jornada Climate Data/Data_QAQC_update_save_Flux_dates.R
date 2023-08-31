@@ -141,15 +141,15 @@ library(lattice)
 year_file <- 2022
 
 # import most recent file
-flux.loggerinfo <-fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
+flux.loggerinfo <-fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
                            header = FALSE, sep=",", skip = 0,fill=TRUE,
                            na.strings=c(-9999,"#NAME?"))[1,]
 
 
-flux.colnames <-colnames(fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
+flux.colnames <-colnames(fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
                          header = TRUE, sep=","))
 
-flux <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
+flux <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
                  header = FALSE, sep=",", skip = 4,fill=TRUE,
                  na.strings=c(-9999,"#NAME?"),
               col.names=flux.colnames)
@@ -297,7 +297,7 @@ startdate <- (min(flux_wide_save$date_time))
 enddate <- (max(flux_wide_save$date_time))
 
 # # Save to Qa/QC and Combined folder with only year name
-qaqc.path<- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/",year_file,"/QAQC/", sep="")
+qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/QAQC/", sep="")
 setwd(qaqc.path)
 
 ###################### with start and end date in the file name ##################
@@ -326,7 +326,7 @@ write.table(run.info, "dataL2_flux_DateRange.csv",
             sep=",", dec=".", row.names=FALSE)
 
 # save to combined folder
-setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/Combined")
+setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/Combined")
 
 write.table(flux_wide_save,
             paste("dataL2_flux_",year_file, ".csv",sep=""),
