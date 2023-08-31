@@ -25,7 +25,7 @@ library(data.table)
 ```
 
 ```{r, load info for camera 1}
-yeartocheck <- 2022
+yeartocheck <- 2023
 
 cam1_wd <- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Phenocam/TwrPhenocam/Cam1_Tram/",yeartocheck,"/",sep="")
 
@@ -48,6 +48,8 @@ knitr::include_graphics(cam1_latest)
 
 getwd()
 ```
+
+
 ```{r, load info for camera 2}
 yeartocheck <- 2022
 
