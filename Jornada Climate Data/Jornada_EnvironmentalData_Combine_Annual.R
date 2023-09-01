@@ -141,7 +141,7 @@ library(corrplot)
 #############
 # IMPORT DATA
 #############
-year_file <- 2022
+year_file <- 2023
 # Sensor network data:
 SN_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
@@ -450,6 +450,11 @@ ggplot(env_30min[variable == "precip.tot"& veg=="BARE",], aes(date_time, mean.va
   geom_line()+
   facet_grid(paste(variable,location,veg,sep="_")~., scales="free_y")
 
+# 2023 precip.tot in SN2 is always logging ~1/4 the rain captured at the tower
+# perhaps something is wrong with the bucket? LATR and PRGL buckets captured more... 
+# exclude SN2 precip
+env_30min[variable == "precip.tot"& SN=="SN2",mean.val := NA]
+
 # look at heat flux plate data from tower
 ggplot(env_30min[variable == "hfp",], aes(date_time, mean.val,colour=veg))+
   geom_line()+
@@ -482,7 +487,7 @@ biomet_mean_precip <- env_30min[variable %in% c("precip.tot") & veg=="BARE",
                            by="date_time"]
 
 ggplot(SN_30min[variable %in% c("precip.tot") & veg=="BARE" &year(date_time)==year_file,],aes(date_time,mean.val,colour=veg))+geom_point()
-ggplot(env_30min[variable %in% c("precip.tot") & veg=="BARE" &year(date_time)==year_file,],aes(date_time,mean.val,colour=datastream))+geom_point()
+ggplot(env_30min[variable %in% c("precip.tot") & veg=="BARE" &year(date_time)==year_file,],aes(date_time,mean.val,colour=datastream))+geom_point()+facet_grid(datastream~.)
 
 ggplot(biomet_mean_precip[year(date_time)==year_file,],aes(date_time,P_rain_1_1_1))+geom_point()
 
@@ -493,7 +498,7 @@ ggplot(biomet_mean_precip[year(date_time)==year_file,],aes(date_time,P_rain_1_1_
 biomet_mean_soilM <- copy(env_30min[variable %in% c("soilmoisture"),])
 
 # for biomet soil moisture averaging look at data
-ggplot(biomet_mean_soilM[year>2019], aes(date_time,mean.val, colour=factor(depth)))+
+ggplot(biomet_mean_soilM[year>2019], aes(date_time,mean.val, colour=factor(height)))+
   geom_line()+
   facet_grid(paste(location,veg)~.)
 
@@ -955,7 +960,8 @@ biomet2_wide[, names(biomet2_wide[,!date_time_exclude,with=FALSE]) := lapply(.SD
 
 # save biomet2 to combine with all flux data
 # update 27 Dec 2020 with Ameriflux QA/QC changes
-setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/MetDataFiles_EP/Biomet2_20201227")
+# 2023-09-01 change save destination to CZO data location (manually move 2022)
+setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Ameriflux_USJo1/Biomet2_20201227")
 
 # 15 Apr 2020: save by year!
 # 27 Dec 2020: save updated by year. 
