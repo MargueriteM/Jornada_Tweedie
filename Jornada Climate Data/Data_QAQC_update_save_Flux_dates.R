@@ -138,7 +138,7 @@ library(lattice)
 # panel_temp_Avg	C
 # batt_volt_Avg	V
 
-year_file <- 2022
+year_file <- 2023
 
 # import most recent file
 flux.loggerinfo <-fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
@@ -199,16 +199,17 @@ ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "h
 # 2022 low value in August in HFP 3 and 4: both under shrub
 # align with a rain event - leave these values in. 
 
-#zoom to understand low point
+#zoom to understand low point date_time>as.Date("2022-08-04") &date_time<as.Date("2022-08-06")
+# general code for zooming
 ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg") &
-                    date_time>as.Date("2022-08-04") &date_time<as.Date("2022-08-06"),],
+                    date_time>as.Date("2023-05-04") &date_time<as.Date("2023-07-06"),],
        aes(date_time, value))+
   geom_point()+
   facet_grid(variable~.,scales="free_y")
 
 # graph with rain to see if change in HFP aligns with rain
   ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg","precip_Tot") &
-                     date_time>as.Date("2022-08-04") &date_time<as.Date("2022-08-06"),],
+                     date_time>as.Date("2023-05-04") &date_time<as.Date("2023-07-06"),],
          aes(date_time, value))+
     geom_point()+
     facet_grid(variable~.,scales="free_y")
@@ -272,6 +273,13 @@ ggplot(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Av
   facet_grid(variable~., scales="free_y")
 
 
+# plot all  variables that will be taken formward to merge with remianing data
+ggplot(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
+                                 "Rn_nr_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg","lws_1_Avg"),], 
+       aes(date_time,value))+
+  geom_line()+
+  facet_grid(variable~., scales="free_y")
+
 # save 30min filtered HFP, Rs, Rl, Rn, LWS_1 from flux table 
 # setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining")
 # write.table(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
@@ -289,12 +297,16 @@ flux_wide_save <- data.table:: dcast(flux_long[!is.na(date_time)&variable %in% c
                                       value.var="value")
 
 # quick graph just to make sure nothing silly happened
-ggplot(flux_wide_save, aes(x=lws_1_Avg))+
-  geom_line(aes(y=hfp01_3_Avg)) # with NA
+ggplot(flux_wide_save, aes(x=date_time))+
+  geom_line(aes(y=Rn_nr_Avg)) # with NA
 
 # save to QAQC folder on data archive
 startdate <- (min(flux_wide_save$date_time))
 enddate <- (max(flux_wide_save$date_time))
+
+# add comment about processing
+print(paste("#",year(enddate), "data processed until",enddate,sep=" "))
+# 2023 data processed until 2023-08-25 07:30:00
 
 # # Save to Qa/QC and Combined folder with only year name
 qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/QAQC/", sep="")
