@@ -273,7 +273,7 @@ ggplot(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Av
 
 
 # save 30min filtered HFP, Rs, Rl, Rn, LWS_1 from flux table 
-setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining")
+# setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining")
 # write.table(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
 # "Rn_nr_Avg", "lws_1_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg","gapfill_id"),.(date_time,variable,value)],
 # file="FluxTable_L1_2010_2019_30min.csv", sep=",", row.names = FALSE)
@@ -289,8 +289,8 @@ flux_wide_save <- data.table:: dcast(flux_long[!is.na(date_time)&variable %in% c
                                       value.var="value")
 
 # quick graph just to make sure nothing silly happened
-ggplot(flux_wide_save, aes(x=date_time))+
-  geom_line(aes(y=Rn_nr_Avg)) # with NA
+ggplot(flux_wide_save, aes(x=lws_1_Avg))+
+  geom_line(aes(y=hfp01_3_Avg)) # with NA
 
 # save to QAQC folder on data archive
 startdate <- (min(flux_wide_save$date_time))
@@ -325,12 +325,13 @@ run.info <- data.frame(info=c("Data_start","Data_end","Date_processed"),
 write.table(run.info, "dataL2_flux_DateRange.csv",
             sep=",", dec=".", row.names=FALSE)
 
+# don't save single years 
 # save to combined folder
-setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/Combined")
-
-write.table(flux_wide_save,
-            paste("dataL2_flux_",year_file, ".csv",sep=""),
-            sep=",", dec=".", row.names=FALSE)
+# setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/Combined")
+# 
+# write.table(flux_wide_save,
+#             paste("dataL2_flux_",year_file, ".csv",sep=""),
+#             sep=",", dec=".", row.names=FALSE)
 
 # save the R script that went along with creating the file to have a record of QA/QC
 # use rstudioapi to get the path of the current script and then copy it to the 
