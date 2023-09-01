@@ -141,7 +141,7 @@ library(corrplot)
 #############
 # IMPORT DATA
 #############
-year_file <- 2023
+year_file <- 2022
 # Sensor network data:
 SN_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
@@ -185,7 +185,7 @@ SN_30min[variable=="atm_press", mean.val := mean.val/10]
 rm(SN_wide)
 
 # Tower Met Data (get LWS 5m from here. It's also in FluxTable)
-met_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/TowerClimate_met/Combined/dataL2_met_",year_file,".csv",sep=""),
+met_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/TowerClimate_met/",year_file,"/QAQC/dataL2_met_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
 
 # adjust name of precip_tot
@@ -208,7 +208,7 @@ met_30min[variable=="precip.tot", veg := "BARE"]
 rm(met_wide) 
 
 # Data from FluxTable: Rs, Rl, HFP, LWS_1 (in shrub)
-flux_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/Combined/dataL2_flux_",year_file,".csv",sep=""),
+flux_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/QAQC/dataL2_flux_",year_file,".csv",sep=""),
                     sep=",", header=TRUE)
 # make data long and format to match others for binding
 flux_30min <- melt.data.table(flux_wide,c("date_time"))
@@ -245,7 +245,7 @@ rm(flux_wide)
 # 
 # Data logging starts 2021-05-04 12:44:00 
 
-cs650_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_CS650/Combined/dataL2_Soil_",year_file,".csv",sep=""),
+cs650_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_CS650/",year_file,"/QAQC/dataL2_Soil_",year_file,".csv",sep=""),
                     sep=",", header=TRUE)
 
 cs650 <- melt(cs650_wide,c("TIMESTAMP"))
@@ -856,20 +856,20 @@ biomet2[variable %in% c("atm_press") & location=="SN",
         ameriflux.id := "PA_2_1_1"]
 
 # leaf wetness 
-ggplot(biomet2[variable %in% c("lws","lws_5m")], aes(date_time, mean.val,colour=veg))+geom_line()+
+ggplot(biomet2[variable %in% c("lws","lws_2")], aes(date_time, mean.val,colour=veg))+geom_line()+
   facet_grid(SN~.)
 
 # Graph only for tower (lws and lws_5m) to check rescale between 0-100
-ggplot(biomet2[variable %in% c("lws","lws_5m")&location=="tower"], aes(date_time, mean.val,colour=veg))+geom_line()+
+ggplot(biomet2[variable %in% c("lws","lws_2")&location=="tower"], aes(date_time, mean.val,colour=veg))+geom_line()+
   facet_grid(variable~.)
 
 # graph again
-ggplot(biomet2[variable %in% c("lws","lws_5m")], aes(date_time, mean.val,colour=veg))+geom_line()+
+ggplot(biomet2[variable %in% c("lws","lws_2")], aes(date_time, mean.val,colour=veg))+geom_line()+
   facet_grid(SN~.)
 
 
-# Tower 5m (LEAF_WET_1_1_1)
-# Tower ~1m in a shrub (LEAF_WET_1_2_1)
+# Tower 5m (lws_2) (LEAF_WET_1_1_1)
+# Tower ~1m in a shrub (lws) (LEAF_WET_1_2_1)
 # SN1 LATR (LEAF_WET_2_1_1)
 # SN2 PRGL (LEAF_WET_3_1_1)
 # SN4 BARE (LEAF_WET_4_1_1)
@@ -878,7 +878,7 @@ ggplot(biomet2[variable %in% c("lws","lws_5m")], aes(date_time, mean.val,colour=
 # SN7 FLCE (LEAF_WET_7_1_1)
 # SN8 PRGL (LEAF_WET_8_1_1)
 
-biomet2[variable %in% c("lws_5m") & location=="tower" ,
+biomet2[variable %in% c("lws_2") & location=="tower" ,
         ameriflux.id := "LEAF_WET_1_1_1"]
 
 biomet2[variable %in% c("lws") & location=="tower",
