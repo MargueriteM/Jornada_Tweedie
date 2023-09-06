@@ -138,18 +138,18 @@ library(lattice)
 # panel_temp_Avg	C
 # batt_volt_Avg	V
 
-year_file <- 2022
+year_file <- 2023
 
 # import most recent file
-flux.loggerinfo <-fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
+flux.loggerinfo <-fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
                            header = FALSE, sep=",", skip = 0,fill=TRUE,
                            na.strings=c(-9999,"#NAME?"))[1,]
 
 
-flux.colnames <-colnames(fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
+flux.colnames <-colnames(fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
                          header = TRUE, sep=","))
 
-flux <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
+flux <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
                  header = FALSE, sep=",", skip = 4,fill=TRUE,
                  na.strings=c(-9999,"#NAME?"),
               col.names=flux.colnames)
@@ -199,20 +199,23 @@ ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "h
 # 2022 low value in August in HFP 3 and 4: both under shrub
 # align with a rain event - leave these values in. 
 
-#zoom to understand low point
+#zoom to understand low point date_time>as.Date("2022-08-04") &date_time<as.Date("2022-08-06")
+# general code for zooming
 ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg") &
-                    date_time>as.Date("2022-08-04") &date_time<as.Date("2022-08-06"),],
+                    date_time>as.Date("2023-05-04") &date_time<as.Date("2023-07-06"),],
        aes(date_time, value))+
   geom_point()+
   facet_grid(variable~.,scales="free_y")
 
 # graph with rain to see if change in HFP aligns with rain
   ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg","precip_Tot") &
-                     date_time>as.Date("2022-08-04") &date_time<as.Date("2022-08-06"),],
+                     date_time>as.Date("2023-05-04") &date_time<as.Date("2023-07-06"),],
          aes(date_time, value))+
     geom_point()+
     facet_grid(variable~.,scales="free_y")
 
+# align with rain and HFP 3 and 4: both under shrub. Leave these in. 
+  
 # LWS 
 # lws_1 (shrub) and lws_2 (5m)
 # lws_2 is also in climate data
@@ -270,8 +273,15 @@ ggplot(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Av
   facet_grid(variable~., scales="free_y")
 
 
+# plot all  variables that will be taken formward to merge with remianing data
+ggplot(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
+                                 "Rn_nr_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg","lws_1_Avg"),], 
+       aes(date_time,value))+
+  geom_line()+
+  facet_grid(variable~., scales="free_y")
+
 # save 30min filtered HFP, Rs, Rl, Rn, LWS_1 from flux table 
-setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining")
+# setwd("~/Desktop/TweedieLab/Projects/Jornada/Data/Tower/Flux/Compiled_forJoining")
 # write.table(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
 # "Rn_nr_Avg", "lws_1_Avg","hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg","gapfill_id"),.(date_time,variable,value)],
 # file="FluxTable_L1_2010_2019_30min.csv", sep=",", row.names = FALSE)
@@ -294,8 +304,12 @@ ggplot(flux_wide_save, aes(x=date_time))+
 startdate <- (min(flux_wide_save$date_time))
 enddate <- (max(flux_wide_save$date_time))
 
+# add comment about processing
+print(paste("#",year(enddate), "data processed until",enddate,sep=" "))
+# 2023 data processed until 2023-08-25 07:30:00
+
 # # Save to Qa/QC and Combined folder with only year name
-qaqc.path<- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/",year_file,"/QAQC/", sep="")
+qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/QAQC/", sep="")
 setwd(qaqc.path)
 
 ###################### with start and end date in the file name ##################
@@ -323,12 +337,13 @@ run.info <- data.frame(info=c("Data_start","Data_end","Date_processed"),
 write.table(run.info, "dataL2_flux_DateRange.csv",
             sep=",", dec=".", row.names=FALSE)
 
+# don't save single years 
 # save to combined folder
-setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Flux/Combined")
-
-write.table(flux_wide_save,
-            paste("dataL2_flux_",year_file, ".csv",sep=""),
-            sep=",", dec=".", row.names=FALSE)
+# setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/Combined")
+# 
+# write.table(flux_wide_save,
+#             paste("dataL2_flux_",year_file, ".csv",sep=""),
+#             sep=",", dec=".", row.names=FALSE)
 
 # save the R script that went along with creating the file to have a record of QA/QC
 # use rstudioapi to get the path of the current script and then copy it to the 

@@ -18,20 +18,23 @@ library(tidyr)
 library(dplyr)
 
 # ENTER YEAR TO CHECK HERE
-yeartocheck <- 2022
+yeartocheck <- 2023
 
 # get windrose function, source directly from Github
 #source("~/Desktop/R/R_programs/Functions/plot.windrose.R")
 source(paste0("https://raw.githubusercontent.com/MargueriteM/R_functions/master/plot.windrose.R"))
 
-# manually import files
-setwd("Z:/Research Data/Desert/Jornada/Bahada/Tower/Flux/2022/Raw_Data/ASCII")
 
-flux_colnames <- fread("dataL1_flux_2022.csv",
+basedir <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower"
+
+# /Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/
+
+# import data directly from SEL Data Archive
+flux_colnames <- fread(paste(basedir,"/Flux/",yeartocheck,"/Raw_Data/ASCII/dataL1_flux_",yeartocheck,".csv",sep=""),
                   header = TRUE, skip=1,sep=",", fill=TRUE,
                  na.strings=c(-9999,"#NAME?"))[1,]
 
-flux <- fread("dataL1_flux_2022.csv",
+flux <- fread(paste(basedir,"/Flux/",yeartocheck,"/Raw_Data/ASCII/dataL1_flux_",yeartocheck,".csv",sep=""),
                   header = FALSE, skip=4, sep=",", fill=TRUE,
                  na.strings=c(-9999,"#NAME?"),
               col.names=colnames(flux_colnames))
@@ -79,9 +82,8 @@ flux[,CO2_ppm := (CO2_mean/0.0409)/44.01]
 
 
 # set working directory to server
-#setwd(paste("Z:/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_CS650/",yeartocheck,"/Raw_Data/ASCII",sep=""))
+setwd(paste(basedir,"/SoilSensor_CS650/",yeartocheck,"/Raw_Data/ASCII",sep=""))
 
-setwd("Z:/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_CS650/2022/Raw_Data/ASCII")
 
 # load headers of file and data
 cs650names <- colnames(read.table("dataL1_Soil_2022.csv", sep=",", skip=1,heade=TRUE))
@@ -145,11 +147,11 @@ radioButtons("variable1", "Flux variables:",
 ```
 **17 Dec 20: When implementing range filter, missing values get connected by a line. :/**
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
- numericInput("range_flux_max","Max range of flux graph (non-reactive)",
-          value = 1)
+ numericInput("range_flux_max","Max range of flux graph",
+          value = 1000)
 
- numericInput("range_flux_min","Min range of flux graph (non-reactive)",
-            value = -1)
+ numericInput("range_flux_min","Min range of flux graph",
+            value = -50)
 
  
 radioButtons("variable1_2", "Sonic Anemometer variables:",
@@ -192,6 +194,8 @@ radioButtons("variable2", "Biomet variables:",
 radioButtons("variable3", "Instrument variables:",
              c("Battery (V)" = "batt_volt_Avg",
                "AGC/signal strength (unitless)" = "agc_Avg",
+               "IRGA warnings"="irga_warnings",
+               "CSAT warnings" = "csat_warnings",
                "Datalogger Panel Temperature (C)" = "panel_temp_Avg"))
 
  
@@ -207,7 +211,7 @@ Column
     
     setnames(c,input$variable1,"selected")
   # can filter for input range here or in ggplot below
-  #  c <- c[selected>=input$range_flux_min & selected<=input$range_flux_max,]
+   c <- c[selected>=input$range_flux_min & selected<=input$range_flux_max,]
     
   # plot_ly(c,x=~date_time,y=~airtemp, type="scatter")},
   # ggplot(c[selected>=input$range_flux_min & selected<=input$range_flux_max,], aes(date_time, selected))+
@@ -281,7 +285,8 @@ Wind Roses in Compass direction
    filter((date >= input$daterange2[[1]] & date <= input$daterange2[[2]])) 
  # plot wind variables in windrose
    plot.windrose(wind.data,wind.data$wnd_spd,wind.data$wnd_dir_compass)+
-   labs(title="Sonic Anemometer")
+   labs(title="Sonic Anemometer")+
+     theme(legend.position="bottom")
  })
 
 renderPlot({
@@ -289,14 +294,16 @@ wind.data <-  flux %>%
  filter((date >= input$daterange2[[1]] & date <= input$daterange2[[2]]))
 # plot wind variables in windrose
   plot.windrose(wind.data,wind.data$hor_wnd_spd_mean_rslt,wind.data$hor_wnd_dir_mean_rslt)+
-  labs(title="2-D Anemometer")
+  labs(title="2-D Anemometer")+
+     theme(legend.position="bottom")
 })
 
 ```
 
 Row {data-height=250}
 -------------------------------------------------------------
-Correlation between Sonic and 2-D Anemometer Measurements
+Correlation between Sonic
+and 2-D Anemometer
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # Wind Speed
 renderPlot({
@@ -306,7 +313,7 @@ renderPlot({
  ggplot(wind.data, aes(wnd_dir_compass,hor_wnd_dir_mean_rslt))+
    geom_point()+
    geom_abline(intercept=0,slope=1)+
-   labs(x="Sonic Wind Direction",y="2-D Wind Direction", title="Wind Speed Comparison")
+   labs(x="Sonic Wind Direction",y="2-D Wind Direction", title="Wind Direction Comparison")
 })
 
 # Wind direction
@@ -317,7 +324,7 @@ renderPlot({
  ggplot(wind.data, aes(wnd_spd,hor_wnd_spd_mean_rslt))+
    geom_point()+
    geom_abline(intercept=0,slope=1)+
-   labs(x="Sonic Wind Speed (compass)",y="2-D Wind Speed", title="Wind Direction Comparison")
+   labs(x="Sonic Wind Speed (compass)",y="2-D Wind Speed", title="Wind Speed Comparison")
 })
 ```
 

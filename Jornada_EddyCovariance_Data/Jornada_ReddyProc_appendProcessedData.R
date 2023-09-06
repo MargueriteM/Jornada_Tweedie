@@ -20,23 +20,23 @@ library(bit64)
 # import filtered flux data file from Eddy Pro as data table
 # MINIMUM 3 MONTHS OF DATA
 # filtered in: Jornada_EddyPro_Output_Fluxnext_appendProcessedData.R
-setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
- load("JER_flux_20200131_EddyPro_Output_filtered_SD_TIMEcorr_20220913.Rdata")
+# setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
+# load("JER_flux_20200131_EddyPro_Output_filtered_SD_TIMEcorr_20210913.Rdata")
 
  # save to server
- setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2020/EddyPro_Out/")
+ setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out")
  
- flux2020_filter_sd <- fread(file="JER_flux_2020_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
+ flux2013nl_filter_sd <- fread(file="JER_flux_2013noLimits_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
              header = TRUE)
  
  
 # convert date to POSIXct and get a year, day, hour column
 # if this step doesn't work, make sure bit64 library is loaded otherwise the timestamps importa in a non-sensical format
-flux2020_filter_sd[,':='(Year=year(date_time),DoY=yday(date_time),
+flux2013nl_filter_sd[,':='(Year=year(date_time),DoY=yday(date_time),
         hours = hour(date_time), mins = minute(date_time))]
 
 # make sure there's no duplicated data
-flux_filter <- (flux2020_filter_sd[!(duplicated(flux2020_filter_sd, by=c("date_time")))])
+flux_filter <- (flux2013nl_filter_sd[!(duplicated(flux2013nl_filter_sd, by=c("date_time")))])
 
 # exclude FC, LE, H data where FC_SSITC_TEST==1 because that data should only be used for budgets, not gap-filling
 
@@ -85,12 +85,12 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
 # make all Rg<0 equal to 0 becuase ReddyProc won't accept values <0
  edata[Rg<0, Rg:=0]
 
- # remove 2021 because that belongs to the following year
-  edata <- edata[Year!=2021,]
+ # remove year+1 because that belongs to the following year
+  edata <- edata[Year!=max(edata$Year),]
  
  
  # create a grid of full dates and times
- filled <- expand.grid(date=seq(as.Date("2020-01-01"),as.Date("2020-01-31"), "days"),
+ filled <- expand.grid(date=seq(as.Date("2013-01-01"),as.Date("2013-12-31"), "days"),
                        Hour=seq(0,23.5, by=0.5))
  filled$Year <- year(filled$date)
  filled$DoY <- yday(filled$date)
@@ -99,8 +99,12 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
  
  edata <- merge(edata,filled,by=c("Year","DoY","Hour"), all=TRUE)
 
+ ggplot(edata, aes(DoY,NEE))+
+   geom_line()+
+   facet_grid(Year~.)
+ 
   # if NEE in the first row is NA, remove it
-  edata <- edata[!(Year==2020 & DoY == 1 & Hour == 0.0)]
+ #  edata <- edata[!(Year==2020 & DoY == 1 & Hour == 0.0)]
  
  
  # online tool says hours must be between 0.5 and 24.0 
@@ -111,17 +115,29 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
  # 2020 Jan 1 has only 47 points because first row was removed due to NA point
  daylength <- edata[,list(daylength=length(Hour)),by="Year,DoY"]
  
+ ggplot(daylength, aes(DoY, daylength))+geom_point()
+ 
+ 
  # convert edata to data frame for ReddyProc
  edata <- as.data.frame(edata)
  
 # calculate VPD from rH and Tair in hPa (mbar), at > 10 hPa the light response curve parameters change
 edata$VPD <- fCalcVPDfromRHandTair(edata$rH, edata$Tair)
 
+# set order: Year	DoY	Hour	NEE	LE	H	Rg	Tair	Tsoil	rH	VPD	Ustar (Tsoil is not required)
+edata <- edata %>% 
+  select(Year, DoY, Hour, NEE, LE, H, Rg, Tair, rH, VPD, Ustar)
 
 # online tool says missing values must be -9999, convert all NA to -9999
 edata[is.na(edata)]=-9999
 
+
+# add a units row as the first row of the data
+edata.units <- c("-","-","-","umolm-2s-1", "Wm-2","Wm-2","Wm-2","degC","%","hPa","ms-1")
+
+edata.final <- rbind(edata.units,edata)
+
 # export data for online tool of ReddyProc,
 # with timesstamp corrected
- write.table(edata, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/2020/JER_ReddyProc_Input_2020.txt", sep=" ", dec=".",row.names=FALSE)
+ write.table(edata.final, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/JER_ReddyProc_Input_2013noLimits.txt", sep=" ", dec=".",row.names=FALSE)
 

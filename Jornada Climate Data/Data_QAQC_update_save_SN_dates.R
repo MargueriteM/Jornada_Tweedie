@@ -33,6 +33,16 @@
 # SN7: 79.5m
 # SN8: 3m
 
+# sensors at each sensor netowrk node
+# SN1: rain (latr, prgl), lws (latr), solar rad (prgl, flce, flce104), PAR (prgl, flce, flce104)
+# SN2: rain (bare), lws (prgl), solar rad (latr, prgl), PAR (latr, prgl)
+# SN3: rain (latr, prgl), solar rad (dapu, up), PAr (dapu, up), soil moisture (prgl)
+# SN4: rain (bare), lws (down, up), solar rad (bare), PAr (bare), soil moisture (bare)
+# SN5: solar rad (latr), PAr (latr), soil moisture (latr)
+# SN6: rain (bare), lws (latr), solar rad (mupo, dapu, latr), PAR ((mupo, dapu, latr)
+# SN7: lws (fle, mupo), solar rad (flce, mupo), PAR (flce, mupo), soil moisture (mupo)
+# SN8: lws (prgl), solar rad (prgl, mupo), PAR (prgl, mupo)
+
 
 # load libraries
 library(data.table)
@@ -42,16 +52,16 @@ library(gridExtra)
 library(lattice)
 
 # Get sensor network data from server, using compiled files
-setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/")
+setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/")
 
-year_file <- 2022
+year_file <- 2023
 
-SN <- fread(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/WSN_",year_file,".csv",sep=""),
+SN <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/WSN_",year_file,".csv",sep=""),
               header = TRUE, sep=",",
             na.strings=c(-9999,-888.88,"#NAME?"))
 
 # column names with units
-colnames2019 <- fread(file="/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/MetaData/JER_SensorNetwork_ColumnNames_2019.csv",
+colnames2019 <- fread(file="/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/MetaData/JER_SensorNetwork_ColumnNames_2019.csv",
                       sep=",",
                       header=TRUE) 
 
@@ -70,7 +80,7 @@ SN[, date_time := ymd_hms(Date)][, Date:=date_time][, date_time:=NULL]
 # Get the column names of each sensor network data set and
 # compare to the columns that should be in the data
 
-################### Fix Column Format Function ######################
+################### Run: Fix Column Format Function ######################
 fix_columns <- function(SNdata,colnames_data) {
   char <- melt.data.table(SNdata[,lapply(.SD, function(x) {is.character(x)==TRUE})])
   char_col <- as.character(droplevels(char[value == TRUE,]$variable))
@@ -178,6 +188,15 @@ ggplot(SN_30min[sensor=="battery",], aes(date_time, mean.val, colour=SN))+
 
 # 2022 (June 6): no voltage on SN5, SN6, SN7
 
+# SN1: rain (latr, prgl), lws (latr), solar rad (prgl, flce, flce104), PAR (prgl, flce, flce104)
+# SN2: rain (bare), lws (prgl), solar rad (latr, prgl), PAR (latr, prgl)
+# SN3: rain (latr, prgl), solar rad (dapu, up), PAr (dapu, up), soil moisture (prgl)
+# SN4: rain (bare), lws (down, up), solar rad (bare), PAr (bare), soil moisture (bare)
+# SN5: solar rad (latr), PAr (latr), soil moisture (latr)
+# SN6: rain (bare), lws (latr), solar rad (mupo, dapu, latr), PAR ((mupo, dapu, latr)
+# SN7: lws (fle, mupo), solar rad (flce, mupo), PAR (flce, mupo), soil moisture (mupo)
+# SN8: lws (prgl), solar rad (prgl, mupo), PAR (prgl, mupo)
+
 # REMOVE OBVIOUSLY BAD DATA POINTS
 # lws values should be between 0-100
 # lws: remove values <0 and >100
@@ -208,7 +227,7 @@ SN_30min[sensor=="rain" & (mean.val<0 | mean.val>50), mean.val := NA]
 
 # on Nov 12th 2021 ~10:15 cleaned rain bucket under PRGl and move tipping scale. 
 # remove "rain" on this day
-# SN_30min[sensor=="rain" & date(date_time) == as.Date("2021-11-12") & veg=="PRGL" & mean.val>0 , mean.val := NA]
+ SN_30min[sensor=="rain" & date(date_time) == as.Date("2021-11-12") & veg=="PRGL" & mean.val>0 , mean.val := NA]
 
 # 2022: max value filter removes value ~800 in PRGL.
 
@@ -226,6 +245,18 @@ ggplot(SN_30min[sensor=="rain" | sensor =="lws",], aes(date_time, mean.val, colo
   labs(title="Leaf wetness and Rain") +
   facet_grid(sensor~., scales="free_y")
 
+# lws should be between 0-100.
+# 2022 has some values>100 in Aug/Sep
+SN_30min[sensor=="lws" & (mean.val<0 | mean.val>100), mean.val := NA]
+
+# graph again:  lws and rain, grouped for all covers
+ggplot(SN_30min[sensor=="rain" | sensor =="lws",], aes(date_time, mean.val, colour=SN))+
+  geom_point()+
+  geom_line()+
+  labs(title="Leaf wetness and Rain") +
+  facet_grid(sensor~., scales="free_y")
+
+
 
 # moisture
 # remove periods when the sensors are bad. 
@@ -236,46 +267,76 @@ ggplot(SN_30min[sensor=="moisture",],
   labs(title="Soil Moisture") +
   facet_grid(veg~., scales="free_y")
 
+# plot soil moisture with rain
+ggplot(SN_30min[sensor%in%c("moisture","rain"),], aes(date_time, mean.val, colour=factor(depth)))+
+  geom_point(size=0.1)+
+  labs(title="Soil Moisture, and Rain") +
+  facet_grid(sensor+veg~., scales="free_y")+
+  theme_bw()
+
+# mid-2021 onward, only BARE has soil moisture (SN4)
+# BARE 5cm 2020 onward, after each rain event the 5cm soil moisture probe drops below baseline 
+# and fluctuates daily until it returns to 'baseline' (when the soil is dry?)
+# examine
+# create a dataframe of dates with rain
+# rain.dates <- SN_30min[sensor=="rain"&mean.val>0,list(date = unique(as.Date(date_time)))]
+# 
+# ggplot(SN_30min[sensor%in%c("moisture","rain") & veg=="BARE" &
+#                   date_time>rain.dates$date[1] & date_time<rain.dates$date[1]+20,], aes(date_time, mean.val, colour=factor(depth)))+
+#   geom_point(size=0.1)+
+#   labs(title="Leaf Wetness, Soil Moisture, and Rain") +
+#   facet_grid(sensor+veg~., scales="free_y")+
+#   theme_bw()
+
+# remove BARE 5cm probe from 2020-2023 due to strange fluctuations after rain
+# and frequent declines below zero after rain events. 
+# The issue becomes progressively worse and most rain events are captured in BARE 10cm which has much more reliable dynamics
+SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
+           date_time >ymd_hms("2020-01-30 12:00:00 UTC"), mean.val := NA]
+
+
 # 2022: only BARE has soil moisture (SN4)
 # LATR: SN5, SN data logger not working
 # MUPO: SN7, , SN data logger not working
 # PRGL: SN3, sensors got moved on ~19 June 2019
 
+# 2022 Bare 10cm is very highin September 15 - 19 2022
+# comes after some heavy rain but does not directly coincide with rain.
+# other depths do not show the pattern.
+# remove
+ SN_30min[sensor=="moisture"&veg=="BARE"&depth==10&
+  date_time >ymd_hms("2022-09-14 22:30:00") &
+   date_time <ymd_hms("2022-09-19 02:30:00"), mean.val := NA]
+
 # MUPO 10cm: 13 July 2021 there was a baseline shift! Remove after this.
-# SN_30min[sensor=="moisture"&veg=="MUPO"&depth==10&date_time>as.Date("2021-07-13"), mean.val := NA]
+ SN_30min[sensor=="moisture"&veg=="MUPO"&depth==10&date_time>as.Date("2021-07-13"), mean.val := NA]
 
 # MUPO 20cm: in October 2018 there was a baseline shift! Remove after this.
-# SN_30min[sensor=="moisture"&veg=="MUPO"&depth==20, mean.val := NA]
+ SN_30min[sensor=="moisture"&veg=="MUPO"&depth==20, mean.val := NA]
 
 # MUPO 30cm: 11 July 2021 there was a baseline shift! Remove after this.
-# SN_30min[sensor=="moisture"&veg=="MUPO"&depth==30&date_time>as.Date("2021-07-11"), mean.val := NA]
+ SN_30min[sensor=="moisture"&veg=="MUPO"&depth==30&date_time>as.Date("2021-07-11"), mean.val := NA]
 
 
 # PRGL remove all after January 2019 (sensors got moved on ~19 June 2019)
-# SN_30min[sensor=="moisture"&veg=="PRGL"&date_time>=as.Date("2019-01-01"),
+#  SN_30min[sensor=="moisture"&veg=="PRGL"&date_time>=as.Date("2019-01-01"),
 #         mean.val := NA]
 
 
 # LATR 5cm: probe goes bad after 12 Feb 2017
-# SN_30min[sensor=="moisture"&veg=="LATR"&depth==5&
-#           date_time >= as.Date("2017-02-12"), mean.val := NA]
+SN_30min[sensor=="moisture"&veg=="LATR"&depth==5&
+           date_time >= as.Date("2017-02-12"), mean.val := NA]
 
 # LATR 10cm: probe had a baseline shift 14 Feb 2019 at 23:30. Remove values after this.
-# SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&#
-#           (date_time>=as.POSIXct("2019-02-14 23:00:00", tz="UTC")), mean.val := NA]
+SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&#
+          (date_time>=as.POSIXct("2019-02-14 23:00:00", tz="UTC")), mean.val := NA]
 
 # LATR 20cm: had baseline shift after 28 Feb 2019 18:00 , remove
-# SN_30min[sensor=="moisture"&veg=="LATR"&depth==20&
-#           date_time >= as.POSIXct("2019-02-28 18:00:00", tz="UTC"), mean.val := NA]
+ SN_30min[sensor=="moisture"&veg=="LATR"&depth==20&
+          date_time >= as.POSIXct("2019-02-28 18:00:00", tz="UTC"), mean.val := NA]
 
-# BARE 5cm: drifts after July 2021 rain event then looks Ok again. Remove between dates
-# 1 July and 15 October
-# SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
-#           date_time >= as.Date("2021-07-01") & 
-#           date_time <= as.Date("2021-10-15"), mean.val := NA]
 
-# 01-09-2022 all bare look OK, remove values below zero
-SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&mean.val<0, mean.val := NA]
+
 
 # plot soil moisture after corrections/filters
 ggplot(SN_30min[sensor=="moisture",],
@@ -292,6 +353,7 @@ ggplot(SN_30min[sensor%in%c("moisture","rain","lws"),], aes(date_time, mean.val,
   facet_grid(sensor+veg~., scales="free_y")+
   theme_bw()
 
+
 # par
 # par can't be <0 
 SN_30min[sensor=="par" & mean.val<0, mean.val := NA]
@@ -299,9 +361,13 @@ SN_30min[sensor=="par" & mean.val<0, mean.val := NA]
 SN_30min[sensor=="par" & veg!="UP" & mean.val>1000, mean.val := NA]
 
 # 2021 downward-facing sensors had sporadic outlying values >600. remove
-# SN_30min[sensor=="par" & veg!="UP" & mean.val>500, mean.val := NA]
+ SN_30min[sensor=="par" & veg!="UP" & mean.val>500, mean.val := NA]
 # In May 2021 FLCE high value was not removed by >500 but if I use a lower cutoff then I'll remove January high values that could be real due to snow
-# SN_30min[sensor=="par" & veg=="FLCE" & month==5 & mean.val>400, mean.val := NA]
+ SN_30min[sensor=="par" & veg=="FLCE" & month==5 & mean.val>400, mean.val := NA]
+
+# From April 2023 solar on SN1 FLCE is mostly gone but has some weird sporadic spikes: remove all
+SN_30min[sensor=="par" & SN=="SN1" & veg == "FLCE" & date_time>as.Date("2023-04-01"),
+         mean.val := NA]
 
 # graph
 ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
@@ -309,8 +375,8 @@ ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
   labs(title="PAR") +
   facet_grid(veg~., scales="free_y")
 
-# 2022 PAR MUPO on SN8 is no longer good. remove all
-SN_30min[sensor=="par" & veg=="MUPO" & SN=="SN8", mean.val := NA]
+# from 2022 PAR MUPO on SN8 is no longer good. remove all
+SN_30min[date_time>ymd("2021-12-31") &sensor=="par" & veg=="MUPO" & SN=="SN8", mean.val := NA]
 
 # pressure
 # can't be negative
@@ -328,6 +394,10 @@ ggplot(SN_30min[sensor=="pressure",], aes(date_time, mean.val, colour=SN))+
 # solar
 # can't be negative
 SN_30min[sensor=="solar" & mean.val<0, mean.val := NA]
+
+# From April 2023 solar on SN1 FLCE is mostly gone but has some weird sporadic spikes: remove all
+SN_30min[sensor=="solar" & SN=="SN1" & veg == "FLCE" & date_time>as.Date("2023-04-01"),
+       mean.val := NA]
 
 ggplot(SN_30min[sensor=="solar",],
        aes(date_time, mean.val, colour=SN))+
@@ -389,6 +459,7 @@ ggplot(SN_30min[sensor=="solar",],
   facet_grid(veg~., scales="free_y")
 
 # put data back in wide format to save
+# save year by year: 2020, 2021, 2022, 2023
 SN_save <- copy(SN_30min[,variableID := paste(SN,sensor,unit,veg,depth, sep="_")])
 
 SN_wide_save <- data.table:: dcast(SN_save[!is.na(date_time),
@@ -400,8 +471,15 @@ SN_wide_save <- data.table:: dcast(SN_save[!is.na(date_time),
 startdate <- (min(SN_wide_save$date_time))
 enddate <- (max(SN_wide_save$date_time))
 
+# add comment about processing
+print(paste("#",year(enddate), "data processed until",enddate,sep=" "))
+# 2020 data processed until 2020-12-31 23:30:00
+# 2021 data processed until 2021-12-31 23:30:00
+# 2022 data processed until 2022-12-31 23:30:00
+# 2023 data processed until 2023-08-03 10:30:00
+
 # # save in QAQC folder with start and end date in the file name
-qaqc.path<- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/SensorNetwork/Data/QAQC/", sep="")
+qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/", sep="")
 setwd(qaqc.path)
 
 # # FOR INCOMPLETE YEARS
@@ -420,6 +498,8 @@ setwd(qaqc.path)
 write.table(SN_wide_save,
             paste("WSN_L2_",year_file, ".csv",sep=""),
             sep=",", dec=".", row.names=FALSE)
+
+
 
 # save a text file that says date that code was run (system time), start and end date of data
 run.info <- data.frame(info=c("Data_start","Data_end","Date_processed"),

@@ -1,0 +1,613 @@
+---
+title: "Diagnose Flux Issues from 2013"
+author: "Marguerite Mauritz"
+date: '2022-11-09'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# load libraries
+library(ggplot2) # library for making figures in ggplot package
+library(lubridate) # library for easier date manipulation 
+library(data.table) # library for data table which is more efficient with large data sets
+library(dplyr)
+library(cowplot)
+```
+
+## Import data
+```{r cars, include=FALSE, echo=FALSE}
+# EddyPro 7.0.4 has column name slip problems, using Fluxnet output!
+
+# read the data in fluxnet format
+
+flux2013 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2013/eddypro_JER_2013_fluxnet_2019-08-08T105511_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"))
+
+# remove duplicate data
+flux2013 <- (flux2013[!(duplicated(flux2013, by=c("TIMESTAMP_START")))])
+
+# make sure the data are ordered:
+flux2013 <- flux2013[order(TIMESTAMP_START),]
+
+# format date
+flux2013[,':=' (date_time_orig = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
+  ,':='(date_orig=as.Date.POSIXct(date_time_orig),month_orig=month(date_time_orig),year_orig=year(date_time_orig))]
+
+```
+
+## CO2 fluxes with ylim, AGC<60, and SSITC<2
+
+```{r pressure, echo=FALSE}
+# graph CO2 fluxes with a ylim
+ggplot(flux2013[FC_SSITC_TEST<2 & CUSTOM_AGC_MEAN<60,], aes(date_time_orig,FC,colour=(factor(FC_SSITC_TEST))))+
+  geom_point(size=0.2)+
+  ylim(c(-20,20))
+```
+
+## H2O fluxes with ylim, AGC<60, and SSITC<2
+```{r , echo=FALSE}
+ggplot(flux2013[LE_SSITC_TEST<2 & CUSTOM_AGC_MEAN<60,], aes(date_time_orig,LE,colour=(factor(LE_SSITC_TEST))))+
+  geom_point(size=0.2)+
+  ylim(c(-500,1000))
+```
+
+## H2O fluxes with ylim, AGC<60, and no SSITC filter
+```{r , echo=FALSE}
+# graph H2O fluxes with a ylim with no quality check
+ggplot(flux2013[CUSTOM_AGC_MEAN<60,], aes(date_time_orig,LE,colour=(factor(LE_SSITC_TEST))))+
+  geom_point(size=0.2)+
+  ylim(c(-500,1000))
+```
+
+## CO2 data with AGC<60
+```{r, echo=FALSE}
+# graph CO2 and H2O
+ggplot(flux2013[CUSTOM_AGC_MEAN<60,], aes(date_time_orig,CO2,colour=(factor(FC_SSITC_TEST))))+
+  geom_point()
+```
+
+## H2O data with AGC<60
+```{r, echo=FALSE}
+ggplot(flux2013[CUSTOM_AGC_MEAN<60,], aes(date_time_orig,H2O,colour=(factor(LE_SSITC_TEST))))+
+  geom_point()
+```
+
+## Zoom in to months on H2O: April
+```{r, echo=FALSE}
+# zoom in to July
+ggplot(flux2013[month(date_time_orig)==4 & CUSTOM_AGC_MEAN<60,], aes(date_time_orig,H2O,colour=(factor(LE_SSITC_TEST))))+
+  geom_point()
+```
+## Raw data for April 1
+```{r, echo=FALSE, include=FALSE}
+ec_files <- list.files(path="/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/Raw_Data/ASCII", full.names=TRUE) 
+# read files and bind them into one file. fill=TRUE because of the missing columns in 2011
+
+# coulmn names for 2013
+ec1 <- do.call("rbind", lapply(ec_files[91], header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
+                               na.strings=c(-9999,"#NAME?"),
+                               col.names=c("TIMESTAMP",
+                                           "RECORD",
+                                           "Ux",	"Uy",	"Uz",	"Ts",	"CO2",	"H2O",
+                                           "fw",	"press",	"diag_csat","agc","t_hmp",	"e_hmp",
+                                           "atm_press")))
+
+```
+
+
+```{r, echo=FALSE}
+ggplot(ec1[agc<60], aes(TIMESTAMP, H2O))+
+  geom_line(size=0.1)
+```
+
+## Zoom in to months on H2O: July
+```{r, echo=FALSE}
+# zoom in to July
+ggplot(flux2013[month(date_time_orig)==7 & CUSTOM_AGC_MEAN<60,], aes(date_time_orig,H2O,colour=(factor(LE_SSITC_TEST))))+
+  geom_point()
+```
+
+## Raw data for July 22
+```{r, echo=FALSE, include=FALSE}
+#ec_files <- list.files(path="/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/Raw_Data/ASCII", full.names=TRUE) 
+# read files and bind them into one file. fill=TRUE because of the missing columns in 2011
+
+# coulmn names for 2013
+ec2 <- do.call("rbind", lapply(ec_files[173], header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
+                               na.strings=c(-9999,"#NAME?"),
+                               col.names=c("TIMESTAMP",
+                                           "RECORD",
+                                           "Ux",	"Uy",	"Uz",	"Ts",	"CO2",	"H2O",
+                                           "fw",	"press",	"diag_csat","agc","t_hmp",	"e_hmp",
+                                           "atm_press")))
+
+```
+
+
+```{r, echo=FALSE}
+ggplot(ec2[agc<60], aes(TIMESTAMP, H2O))+
+  geom_line(size=0.1)
+```
+
+## Zoom in to months on H2O: September
+```{r, echo=FALSE}
+# zoom in to July
+ggplot(flux2013[month(date_time_orig)==9 & CUSTOM_AGC_MEAN<60,], aes(date_time_orig,H2O,colour=(factor(LE_SSITC_TEST))))+
+  geom_point()
+```
+
+## Raw data for September 10
+```{r, echo=FALSE, include=FALSE}
+#ec_files <- list.files(path="/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/Raw_Data/ASCII", full.names=TRUE) 
+# read files and bind them into one file. fill=TRUE because of the missing columns in 2011
+
+# coulmn names for 2013
+ec3 <- do.call("rbind", lapply(ec_files[253], header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
+                               na.strings=c(-9999,"#NAME?"),
+                               col.names=c("TIMESTAMP",
+                                           "RECORD",
+                                           "Ux",	"Uy",	"Uz",	"Ts",	"CO2",	"H2O",
+                                           "fw",	"press",	"diag_csat","agc","t_hmp",	"e_hmp",
+                                           "atm_press")))
+
+```
+
+
+```{r, echo=FALSE}
+ggplot(ec3[agc<60], aes(TIMESTAMP, H2O))+
+  geom_line(size=0.1)
+```
+
+
+## Raw data for September 16
+```{r, echo=FALSE, include=FALSE}
+#ec_files <- list.files(path="/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/Raw_Data/ASCII", full.names=TRUE) 
+# read files and bind them into one file. fill=TRUE because of the missing columns in 2011
+
+# coulmn names for 2013
+ec4 <- do.call("rbind", lapply(ec_files[269], header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
+                               na.strings=c(-9999,"#NAME?"),
+                               col.names=c("TIMESTAMP",
+                                           "RECORD",
+                                           "Ux",	"Uy",	"Uz",	"Ts",	"CO2",	"H2O",
+                                           "fw",	"press",	"diag_csat","agc","t_hmp",	"e_hmp",
+                                           "atm_press")))
+
+```
+
+
+```{r, echo=FALSE}
+ggplot(ec4[agc<60], aes(TIMESTAMP, H2O))+
+  geom_line(size=0.1)
+```
+
+## Raw data for September 30
+```{r, echo=FALSE, include=FALSE}
+#ec_files <- list.files(path="/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/Raw_Data/ASCII", full.names=TRUE) 
+# read files and bind them into one file. fill=TRUE because of the missing columns in 2011
+
+# coulmn names for 2013
+ec4 <- do.call("rbind", lapply(ec_files[273], header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
+                               na.strings=c(-9999,"#NAME?"),
+                               col.names=c("TIMESTAMP",
+                                           "RECORD",
+                                           "Ux",	"Uy",	"Uz",	"Ts",	"CO2",	"H2O",
+                                           "fw",	"press",	"diag_csat","agc","t_hmp",	"e_hmp",
+                                           "atm_press")))
+
+```
+
+
+```{r, echo=FALSE}
+ggplot(ec4[agc<60], aes(TIMESTAMP, H2O))+
+  geom_line(size=0.1)
+```
+
+
+## Zoom in to months on H2O: October
+```{r, echo=FALSE}
+# zoom in to July
+ggplot(flux2013[month(date_time_orig)==10 & CUSTOM_AGC_MEAN<60,], aes(date_time_orig,H2O,colour=(factor(LE_SSITC_TEST))))+
+  geom_point()
+```
+
+## Raw data for October 8
+```{r, echo=FALSE, include=FALSE}
+#ec_files <- list.files(path="/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/Raw_Data/ASCII", full.names=TRUE) 
+# read files and bind them into one file. fill=TRUE because of the missing columns in 2011
+
+# coulmn names for 2013
+ec5 <- do.call("rbind", lapply(ec_files[281], header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
+                               na.strings=c(-9999,"#NAME?"),
+                               col.names=c("TIMESTAMP",
+                                           "RECORD",
+                                           "Ux",	"Uy",	"Uz",	"Ts",	"CO2",	"H2O",
+                                           "fw",	"press",	"diag_csat","agc","t_hmp",	"e_hmp",
+                                           "atm_press")))
+
+```
+
+
+```{r, echo=FALSE}
+ggplot(ec5[agc<60], aes(TIMESTAMP, H2O))+
+  geom_line(size=0.1)
+```
+
+```{r, echo=FALSE}
+
+p1.co2 <- ggplot(flux2013[CUSTOM_AGC_MEAN<60,], aes(date_time_orig,CO2,colour=(factor(FC_SSITC_TEST))))+
+  geom_point(size=0.2)+
+  ylim(c(300,500))
+
+p1.h2o <- ggplot(flux2013[CUSTOM_AGC_MEAN<60,], aes(date_time_orig,H2O,colour=(factor(LE_SSITC_TEST))))+
+  geom_point(size=0.2)
+
+p1.rain <- ggplot(flux2013, aes(date_time_orig,P_RAIN_1_1_1))+
+  geom_line()
+
+p1.rh <- ggplot(flux2013, aes(date_time_orig,RH_1_1_1))+
+  geom_line()
+
+p1.ta <- ggplot(flux2013, aes(date_time_orig,TA_1_1_1))+
+  geom_line()
+
+plot_grid(p1.co2+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank(),
+                      legend.position ="none"),
+          p1.h2o+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank(),
+                      legend.position ="none"),
+          p1.rain+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank()),
+          p1.rh+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank(),
+                      legend.position ="none"),
+          p1.ta,
+          nrow=5,
+          align="v")
+```
+
+# Advice: 
+
+# Check to see if the issue is during the statistical test steps in Eddy Pro
+# From Israel Begashaw at Licor
+
+# Hello Marguerite,
+# The absolute limit test works on the variables that are involved in the flux computation
+# to filter out the unreasonable concentrations.
+# The complication on the absolute limit test is that if you have data values in density
+# (open path analzyers) EddyPro uses Standard Temperature and Pressure to convert them to
+# mole fraction just for the initial pass filtering. This is done for computational efficiency
+# to be able to filter the variable on its own. However, some values that are within the
+# range for the measured temperature and pressure may get computed to un-reasonable mole
+# fraction when using standard temperature and pressure or the other way around.
+# Typically this happens only on H2O and not CO2, because the CO2 range is wider.
+# Because of the nature of the filtering I wouldn’t automatically reject CO2 fluxes
+# for the periods where H2O is filtered out. I would look at other parameters,
+# such as quality flags to make sure it is valid.
+# The H2O filtering can be tweaked to accommodate potentially high humidity conditions.
+# 
+# Thanks,
+# 
+# 
+# Israel Begashaw
+# Sr. Science and Support Manager 
+
+
+# Good Afternoon Israel,
+# 
+# I was hoping I could bother you with some follow up questions. I have been able to run the data for the year without the absolute limits test, and as you suspected, the H2O data was being removed in this step (see graphs below). The high values do align with the onset of the monsoon season (we are in a dry shrubland site near Las Cruces, New Mexico).
+# How do I determine a 'reasonable' mole fraction value for H2O?
+#   
+#   I wasn't able to find much, but did find this graph of percent water in air by temperature and RH . If I can treat this as a reliable source, if I very roughly assume an average air temp of 30C and RH between 25-80, then a reasonable value of H2O mmol/mol would be approximately between 10-30mmol/mol.
+# 
+# Does this conjecturing seem reasonable to you or do you have another suggestion (or a better source I should read!)?
+# 
+# Many thanks,
+# Marguerite
+
+
+
+# Hi Mauritz
+# 
+# Typically H2O concentration in the air can range for 0 to 4% and this translates to a H2O mmol/mol of 0 to 40%.
+# 
+# Typically values close to 40 are observed in tropical environments only. The absolute limit test in EddyPro uses a standard temperature (25°C) and pressure(100 kPa)  to convert density to mole fraction  to filter values and so this conversion may not be accurate always. The reason is because at that stage of processing EddyPro does no have access to good temperature measurement such as from the biomet file. So as long as you are aware that the values you have is in the reasonable range (0 to 40 mmol/mol), there is no need to do the absolute filtering, if it is removing a lot of data.
+# 
+# The Foken QC flags from Eddypro (0,1,2) are not related to absolute limits , but more towards whether you have enough turbulence or whether the data does not have large trends in it. So it mostly uses the wind data and trends in the scalar data. you could also get large spikes in the data because of high AGC/low signal strength, so one think you could do is to filter the 30 minute values based on whether the AGC was below a threshold (below 70).
+# 
+# The H2O and Co2 mole fractions you have shown below are all within the normal observable ranges, so skipping the option to filter data based on absolute limit tests would be fine here.
+# 
+# 
+# 
+# Thanks
+# 
+# James
+
+# James conversation 10 Jan 2023: 
+# experiment with reducing the h2o flux 
+# in Eddypro metadata editor make unit volt and adjust gain/offset
+# 5mmol/mol = 201 mmol/m3 
+# 3.6g/m3
+
+# volt; gain=1, offset=-3.6
+
+# effect of reducing the water vapor concentration on fluxes
+
+# if the span was off in this year then the h2o values might be incorrect, the effect magnifies at high values of h2O concentration. 
+
+# run with offset for h2o in ts data and see what it does to the fluxes. 
+# ** could compare h2o values from other years and see what's more typical to gauge correction. 
+
+# Look at data with 5 mmol/mol and 10 mmmol/mol correction (and compare change of unit to V with gain = 1, offset = 0)
+
+
+## Look at data from Eddy Pro with No absolute limits processing
+```{r cars, include=FALSE, echo=FALSE}
+# EddyPro 7.0.4 has column name slip problems, using Fluxnet output!
+
+# Fluxnet output is hanging when reading in when encountering lines with
+# not_enough_data
+# read full output instead
+flux2013nl.names <- colnames(fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_full_output_2022-11-08T210631_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"),skip=1)[1,])
+
+flux2013nl.units <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_full_output_2022-11-08T210631_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"),skip=1)[1:2,]
+
+
+flux2013nl <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_full_output_2022-11-08T210631_adv.csv",
+                  sep=",", header=FALSE, na.strings=c("-9999"),skip=3,col.names=flux2013nl.names)
+
+# remove duplicate data
+flux2013nl <- (flux2013nl[!(duplicated(flux2013nl, by=c("date","time")))])
+
+# make sure the data are ordered:
+flux2013nl <- flux2013nl[order(date,time),]
+
+# format date
+flux2013nl[,':=' (date_time_orig = ymd_hm(paste(date,time)))][
+  ,':='(date_orig=as.Date.POSIXct(date_time_orig),month_orig=month(date_time_orig),year_orig=year(date_time_orig))]
+
+#import biomet
+flux2013nl.b.names <- colnames(fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_biomet_2022-11-08T210631_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"))[1,])
+
+
+flux2013nl.b <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_biomet_2022-11-08T210631_adv.csv",
+                  sep=",", header=FALSE, na.strings=c("-9999"),skip=2,col.names=flux2013nl.b.names)
+
+# format date
+flux2013nl.b[,':=' (date_time_orig = ymd_hm(paste(date,time)))][
+  ,':='(date_orig=as.Date.POSIXct(date_time_orig),month_orig=month(date_time_orig),year_orig=year(date_time_orig))]
+```
+
+```{r}
+# import data with setting unit in EddyPro set to volt
+# Fluxnet output is hanging when reading in when encountering lines with
+# not_enough_data
+# read full output instead
+flux2013V.names <- colnames(fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_0_voltonly_full_output_2023-01-10T211506_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"),skip=1)[1,])
+
+flux2013V.units <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_0_voltonly_full_output_2023-01-10T211506_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"),skip=1)[1:2,]
+
+
+flux2013V <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_0_voltonly_full_output_2023-01-10T211506_adv.csv",
+                  sep=",", header=FALSE, na.strings=c("-9999"),skip=3,col.names=flux2013V.names)
+
+# remove duplicate data
+flux2013V <- (flux2013V[!(duplicated(flux2013V, by=c("date","time")))])
+
+# make sure the data are ordered:
+flux2013V <- flux2013V[order(date,time),]
+
+# format date
+flux2013V[,':=' (date_time_orig = ymd_hm(paste(date,time)))][
+  ,':='(date_orig=as.Date.POSIXct(date_time_orig),month_orig=month(date_time_orig),year_orig=year(date_time_orig))]
+
+
+# import data with 5mmol/mol correction
+flux2013_5.names <- colnames(fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_5_full_output_2023-01-10T211211_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"),skip=1)[1,])
+
+flux2013_5.units <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_5_full_output_2023-01-10T211211_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"),skip=1)[1:2,]
+
+
+flux2013_5 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_5_full_output_2023-01-10T211211_adv.csv",
+                  sep=",", header=FALSE, na.strings=c("-9999"),skip=3,col.names=flux2013_5.names)
+
+# remove duplicate data
+flux2013_5 <- (flux2013_5[!(duplicated(flux2013_5, by=c("date","time")))])
+
+# make sure the data are ordered:
+flux2013_5 <- flux2013_5[order(date,time),]
+
+# format date
+flux2013_5[,':=' (date_time_orig = ymd_hm(paste(date,time)))][
+  ,':='(date_orig=as.Date.POSIXct(date_time_orig),month_orig=month(date_time_orig),year_orig=year(date_time_orig))]
+
+# import data with 10mmpl/mol correction
+flux2013_10.names <- colnames(fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_10_full_output_2023-01-10T211332_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"),skip=1)[1,])
+
+flux2013_10.units <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_10_full_output_2023-01-10T211332_adv.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"),skip=1)[1:2,]
+
+
+flux2013_10 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_H2Oadjust_10_full_output_2023-01-10T211332_adv.csv",
+                  sep=",", header=FALSE, na.strings=c("-9999"),skip=3,col.names=flux2013_10.names)
+
+# remove duplicate data
+flux2013_10 <- (flux2013_10[!(duplicated(flux2013_10, by=c("date","time")))])
+
+# make sure the data are ordered:
+flux2013_10 <- flux2013_10[order(date,time),]
+
+# format date
+flux2013_10[,':=' (date_time_orig = ymd_hm(paste(date,time)))][
+  ,':='(date_orig=as.Date.POSIXct(date_time_orig),month_orig=month(date_time_orig),year_orig=year(date_time_orig))]
+
+
+```
+## CO2 fluxes with ylim, AGC<60, and SSITC<2
+
+```{r pressure, echo=FALSE}
+# graph CO2 fluxes with a ylim
+ggplot(flux2013nl[qc_co2_flux<2 & agc_mean<60,], aes(date_time_orig,co2_flux,colour=(factor(qc_co2_flux))))+
+  geom_point(size=0.2)+
+  ylim(c(-20,20))
+```
+
+## H2O fluxes with ylim, AGC<60, and SSITC<2
+```{r , echo=FALSE}
+ggplot(flux2013nl[qc_h2o_flux<2 & agc_mean<60,], aes(date_time_orig,LE,colour=(factor(qc_h2o_flux))))+
+  geom_point(size=0.2)+
+  ylim(c(-500,3000))
+```
+
+## H2O fluxes with ylim, AGC<60, and no SSITC filter
+```{r , echo=FALSE}
+# graph H2O fluxes with a ylim with no quality check
+ggplot(flux2013nl[agc_mean<60,], aes(date_time_orig,LE,colour=(factor(qc_h2o_flux))))+
+  geom_point(size=0.2)+
+  ylim(c(-500,3000))
+```
+
+## CO2 µmol+1mol_a-1 data with AGC<60
+```{r, echo=FALSE}
+# graph CO2 and H2O
+ggplot(flux2013nl[qc_co2_flux<2 & agc_mean<60,], aes(date_time_orig,co2_mole_fraction,colour=(factor(qc_co2_flux))))+
+  geom_point(size=0.2)+
+  ylim(c(300,500))
+```
+
+## H2O µmol+1mol_a-1 data with AGC<60, CO2 mole fraction, LE, Prain, and RH
+```{r, echo=FALSE}
+
+p.co2 <- ggplot(flux2013nl[qc_co2_flux<2 & agc_mean<60,], aes(date_time_orig,co2_mole_fraction,colour=(factor(qc_co2_flux))))+
+  geom_point(size=0.2)+
+  ylim(c(300,500))
+
+p.h2o <- ggplot(flux2013nl[qc_h2o_flux<2 & agc_mean<60,], aes(date_time_orig,h2o_mole_fraction,colour=(factor(qc_h2o_flux))))+
+  geom_point(size=0.2)
+
+# graph H2O fluxes with a ylim with no quality check
+p.LE <- ggplot(flux2013nl[agc_mean<60,], aes(date_time_orig,LE,colour=(factor(qc_h2o_flux))))+
+  geom_point(size=0.2)+
+  ylim(c(-500,3000))
+
+
+p.rain <- ggplot(flux2013nl.b, aes(date_time_orig,P_rain_1_1_1))+
+  geom_line()
+
+p.rh <- ggplot(flux2013nl.b, aes(date_time_orig,RH_1_1_1))+
+  geom_line()
+
+plot_grid(p.co2+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank(),
+                      legend.position ="none"),
+          p.h2o+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank(),
+                      legend.position ="none"),
+          p.LE+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank(),
+                      legend.position ="none"),
+          p.rain+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank()),
+          p.rh,
+          nrow=5,
+          align="v")
+```
+
+## with limits: H2O µmol+1mol_a-1 data with AGC<60, CO2 mole fraction, Prain, and RH
+```{r, echo=FALSE}
+
+p.co21 <- ggplot(flux2013[CUSTOM_AGC_MEAN<60,], aes(date_time_orig,CO2,colour=(factor(FC_SSITC_TEST))))+
+  geom_point(size=0.2)+
+  ylim(c(300,500))
+
+p.h2o1 <- ggplot(flux2013[CUSTOM_AGC_MEAN<60,], aes(date_time_orig,H2O,colour=(factor(LE_SSITC_TEST))))+
+  geom_point(size=0.2)
+
+p.LE1 <- ggplot(flux2013[CUSTOM_AGC_MEAN<60,], aes(date_time_orig,LE,colour=(factor(LE_SSITC_TEST))))+
+  geom_point(size=0.2)+
+  ylim(c(-500,3000))
+
+p.rain1 <- ggplot(flux2013, aes(date_time_orig,P_RAIN_1_1_1))+
+  geom_line()
+
+p.tair1 <- ggplot(flux2013, aes(date_time_orig,TA_1_1_1))+
+  geom_line()
+
+p.rh1 <- ggplot(flux2013, aes(date_time_orig,RH_1_1_1))+
+  geom_line()
+
+plot_grid(p.co21+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank(),
+                      legend.position ="none"),
+          p.h2o1+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank(),
+                      legend.position ="none"),
+          p.LE1+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank(),
+                      legend.position ="none"),
+          p.rain1+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank()),
+          p.rh1,
+          nrow=5,
+          align="v")
+```
+
+# compare CO2 mol fraction, Co2 flux, H2O and LE from limit and no limit runs
+```{r}
+flux.merge <- merge(flux2013,flux2013nl, by="date_time_orig")
+
+ggplot(flux.merge[co2_mole_fraction <500 & co2_mole_fraction > 300 &(CUSTOM_AGC_MEAN<60 | agc_mean<60),],aes(CO2,co2_mole_fraction))+
+  geom_point()
+
+ggplot(flux.merge[co2_mole_fraction <500 & co2_mole_fraction > 300 &(CUSTOM_AGC_MEAN<60 | agc_mean<60),],aes(FC,co2_flux))+
+  geom_point()+
+  geom_abline(intercept=0,slope=1)
+
+ggplot(flux.merge[(CUSTOM_AGC_MEAN<60 | agc_mean<60),],aes(H2O,h2o_mole_fraction))+
+  geom_point()+
+  geom_abline(intercept=0,slope=1)
+
+ggplot(flux.merge[LE.y>-500 & LE.y<3000 & (CUSTOM_AGC_MEAN<60 | agc_mean<60),],aes(LE.x,LE.y))+
+  geom_point()+
+  geom_abline(intercept=0,slope=1)
+
+```
+
+
+
+# graph for volt
+```{r, echo=FALSE}
+
+p.co2.v <- ggplot(flux2013V[qc_co2_flux<2 & agc_mean<60,], aes(date_time_orig,co2_mole_fraction,colour=(factor(qc_co2_flux))))+
+  geom_point(size=0.2)+
+  ylim(c(300,500))
+
+p.h2o.v <- ggplot(flux2013V[qc_h2o_flux<2 & agc_mean<60,], aes(date_time_orig,h2o_mole_fraction,colour=(factor(qc_h2o_flux))))+
+  geom_point(size=0.2)
+
+# graph H2O fluxes with a ylim with no quality check
+p.LE.v <- ggplot(flux2013V[agc_mean<60,], aes(date_time_orig,LE,colour=(factor(qc_h2o_flux))))+
+  geom_point(size=0.2)+
+  ylim(c(-500,3000))
+
+
+plot_grid(p.co2.v+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank(),
+                      legend.position ="none"),
+          p.h2o.v+theme(axis.text.x = element_blank(),
+                      axis.title.x = element_blank(),
+                      legend.position ="none"),
+          p.LE.v,
+          nrow=3,
+          align="v")
+```
+

@@ -91,18 +91,16 @@ ggplot(edata, aes(DoY,P_RAIN_1_1_1))+
   geom_line()+
   facet_grid(Year~.)
 
-ggplot(edata, aes(DoY,SW_IN_1_1_1))+
-  geom_line()+
-  facet_grid(Year~.)
-
 setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
          c("NEE","Rg","Tair","rH","Ustar"))
 
 # make all Rg<0 equal to 0 becuase ReddyProc won't accept values <0
  edata[Rg<0, Rg:=0]
 
- # remove max year because that belongs to the following year
- edata <- edata[Year!=max(edata$Year),]
+ # remove 2019 because that belongs to the following year
+ # edata <- edata[Year!=2019,]
+ 
+ # 
  
  # create a grid of full dates and times
  filled <- expand.grid(date=seq(as.Date("2010-01-01"),as.Date("2019-12-31"), "days"),
@@ -114,12 +112,9 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
  
  edata <- merge(edata,filled,by=c("Year","DoY","Hour"), all=TRUE)
 
- # 2010 has insufficient biomet, drop 2010 from gapfill
- edata <- edata[Year>2010,]
+  # and remove the 00:00 first time point in 2010. It's all NA and Reddyproc is getting upset
+ # edata <- edata[!(Year==2010 & DoY == 1 & Hour == 0.0)]
  
- ggplot(edata, aes(DoY,Rg))+
-     geom_line()+
-     facet_grid(Year~.)
  
  # online tool says hours must be between 0.5 and 24.0 
  # therefore add 0.5 to each hour
@@ -136,48 +131,135 @@ setnames(edata,c("FC","SW_IN_1_1_1","TA_1_1_1","RH_1_1_1","USTAR"),
 # calculate VPD from rH and Tair in hPa (mbar), at > 10 hPa the light response curve parameters change
 edata$VPD <- fCalcVPDfromRHandTair(edata$rH, edata$Tair)
 
-# set order: Year	DoY	Hour	NEE	LE	H	Rg	Tair	Tsoil	rH	VPD	Ustar (Tsoil is not required)
-edata <- edata %>% 
-  select(Year, DoY, Hour, NEE, LE, H, Rg, Tair, rH, VPD, Ustar)
+# remove the first 8 days of 2010 which have NA data
+edata2010 <- edata %>%
+  filter(Year==2010&DoY>=9) %>%
+  select(Year,
+                                          DoY,
+                                          Hour,
+                                          NEE,
+                                           LE,
+                                           H,
+                                           Rg,
+                                           Tair,
+                                          rH,
+                                            Ustar)
 
+edata2011 <- edata %>%
+  filter(Year>=2011) %>%
+  select(Year,
+         DoY,
+         Hour,
+         NEE,
+         LE,
+         H,
+         Rg,
+         Tair,
+         rH,
+         Ustar)
+
+edata1 <- rbind(edata2010,edata2011)
+
+
+# look at 2010-2020 to determine how to split data by rain events
+edata %>% 
+  filter(Year==2010 & P_RAIN_1_1_1<39) %>%
+  ggplot(., aes(DoY,P_RAIN_1_1_1))+
+  geom_line()+
+  facet_grid(Year~.)
+
+edata %>% 
+  filter(Year==2010 & P_RAIN_1_1_1<39) %>%
+  ggplot(., aes(DoY+Hour/100,NEE))+
+  geom_line()+
+  facet_grid(Year~.)
+
+# plot rain and NEE, aligned
+plot_grid(edata %>% 
+            filter(Year==2010 & P_RAIN_1_1_1<39&(DoY>150&DoY<250)) %>%
+            ggplot(., aes(DoY+Hour/100,P_RAIN_1_1_1))+
+            geom_line()+
+            facet_grid(Year~.),
+          edata %>% 
+            filter(Year==2010 & P_RAIN_1_1_1<39&(DoY>150&DoY<250)) %>%
+            ggplot(., aes(DoY+Hour/100,NEE))+
+            geom_line()+
+            facet_grid(Year~.), 
+          nrow=2,ncol=1)
+
+# determine rain events that last more than 6 hours (=12 rows)
+# https://stackoverflow.com/questions/51371155/r-select-rainfall-events-and-calculate-rainfall-event-total-from-time-series-da
+  flags <- edata  %>% 
+  filter(Year==2010 & P_RAIN_1_1_1<39&(DoY>150&DoY<250))%>%
+  # Set a rain flag if there is rain registered on the gauge
+  mutate(rainflag = ifelse(P_RAIN_1_1_1 > 0, 1, 0)) %>% 
+  # Create a column that contains the number of consecutive times there was rain or not.
+  # Use `rle`` which indicates how many times consecutive values happen, and `rep`` to repeat it for each row.
+  ##mutate(rainlength = rep(rle(rainflag)$lengths, rle(rainflag)$lengths)) %>% 
+  # MM modify: sequence counts number of days with no rain fore ach individual day rather than the total days of a rain event for all rows
+   # https://predictivehacks.com/count-the-consecutive-events-in-r/
+       mutate(rainlength = sequence(rle(rainflag)$lengths)) %>%  
+  # Set a flag for an event happening, when there is rain there is a rain event, 
+  # when it is 0 but not for six consecutive times, it is still a rain event
+  mutate(
+    eventflag = ifelse(
+      rainflag == 1, 
+      1, 
+      ifelse(
+        rainflag == 0 & rainlength < 12, 
+        1, 
+        0
+      )
+    )
+  ) %>% 
+  # Correct for the case when the dataset starts with no rain for less than six consecutive times
+  # If within the first six rows there is no rain registered, then the event flag should change to 0
+  mutate(eventflag = ifelse(row_number() < 12 & rainflag == 0, 0, eventflag)) %>% 
+  # Add an id to each event (rain or not), to group by on the pivot table
+  mutate(eventid = case_when(eventflag==1 ~rep(seq(1,length(rle(eventflag)$lengths)), rle(eventflag)$lengths)))
+
+
+  # plot rain and NEE, aligned with rain events
+  plot_grid(flags %>% 
+              filter(Year==2010 & P_RAIN_1_1_1<39&(DoY>150&DoY<250)) %>%
+              ggplot(., aes(DoY+Hour/100,P_RAIN_1_1_1,color=factor(eventid)))+
+              geom_line()+
+              facet_grid(Year~.),
+            flags %>% 
+              filter(Year==2010 & P_RAIN_1_1_1<39&(DoY>150&DoY<250)) %>%
+              ggplot(., aes(DoY+Hour/100,NEE,color=factor(eventid)))+
+              geom_line()+
+              facet_grid(Year~.), 
+            nrow=2,ncol=1)
+  
 # online tool says missing values must be -9999, convert all NA to -9999
-# edata[is.na(edata)]=-9999
+edata[is.na(edata)]=-9999
 
 # export data for online tool of ReddyProc,
-# add a units row as the first row of the data
-#edata.units <- c("-","-","-","umolm-2s-1", "Wm-2","Wm-2","Wm-2","degC","%","hPa","ms-1")
 
-#edata.final <- rbind(edata.units,edata)
+# subset data without rain splits
+edata.noRain <- edata[,.(Year,
+                                  DoY,
+                                  Hour,
+                                  NEE,
+                                  LE,
+                                  H,
+                                  Rg,
+                                  Tair,
+                                  rH,
+                                  Ustar)]
 
+# with timesstamp corrected
+# write.table(edata.noRain, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200427/JER_ReddyProc_Input_2011_2019_20200427.txt", sep=" ", dec=".",row.names=FALSE)
+
+
+#write.table(edata.noRain, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20203001/JER_ReddyProc_Input_2011_2019_20200131.txt", sep=" ", dec=".",row.names=FALSE)
+# saved before rain/no rain split was created
+#write.table(edata2011, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200212/JER_ReddyProc_Input_2011_2019_20200212.txt", sep=" ", dec=".",row.names=FALSE)
 
 # Process with all the SSITC_TEST==1 removed
 # saved before rain/no rain split was created
 #write.table(edata2011, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20200220/JER_ReddyProc_Input_2011_2019_20200220.txt", sep=" ", dec=".",row.names=FALSE)
-
-# 2022-12-09
-# update with units in first row of file
-# try with all data for 2010 to see if it works
-#write.table(edata.final, file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/JER_ReddyProc_Input_2011_2019_20221209.txt", sep=" ", dec=".",row.names=FALSE)
-
-setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019")
-
-saveyear <- function(data,startyear,endyear) {
-
-  for (i in startyear:endyear){
-    # subset each year
-    data1 <- subset(data, Year==i)
-
-    edata.units <- c("-","-","-","umolm-2s-1", "Wm-2","Wm-2","Wm-2","degC","%","hPa","ms-1")
-    
-    edata.final <- rbind(edata.units,data1)
-    
-    # save with columns in prescribed order
-    write.table (edata.final,
-                 file=paste("JER_ReddyProc_Input_",i, ".txt",sep=""),
-                 sep =' ', dec='.', na="-9999", row.names=FALSE)
-  }} 
-
-saveyear(edata, 2011, 2019)
 
 # Run ReddyProc
 
