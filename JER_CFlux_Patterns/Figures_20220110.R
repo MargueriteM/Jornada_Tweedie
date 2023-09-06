@@ -33,6 +33,7 @@ library(zoo)
 library(bit64)
 library(viridis)
 library(cowplot)
+library(scales)
 
 # import filtered flux data file from Eddy Pro as data table
 # filtered in: Jornada_EddyPro_Output_Fluxnext_2010_2019.R
@@ -46,11 +47,22 @@ flux.ep <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc
 # for some reason na.strings won't recognize the -9999
 flux.ep[flux.ep == -9999] <- NA
 
+# add the reddyproc data for 2020
+# headers changed in 2020 batch
+ep.units.2020 <-fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/2020/REddyResults_US-Jo1_20220914_552711071/output.txt",
+                      header=TRUE)[1,]
+
+
+flux.ep2020 <-fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/2020/REddyResults_US-Jo1_20220914_552711071/output.txt",
+                    header=FALSE, skip=2,na.strings=c("-9999", "NA","-"),
+                    col.names = colnames(ep.units.2020))
+
+
 # get the 'edata' to add 2010 to the timeseries eventhough 2010 won't gap fill.... 
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
 
 # import data that was filtered by 3SD filter
-load("JER_flux_2010_EddyPro_Output_filtered_SD_20220124.Rdata")
+load("JER_flux_2010_EddyPro_Output_filtered_SD_20220913.Rdata")
 
 # convert date to POSIXct and get a year, day, hour column
 # if this step doesn't work, make sure bit64 library is loaded otherwise the timestamps importa in a non-sensical format
@@ -701,9 +713,11 @@ flags <- flags %>% mutate(datetime = case_when(
 
 # plot rain and NEE, aligned with rain events
 plot_grid(flags %>% 
-            ggplot(., aes(datetime,P_RAIN_1_1_1,color=factor(eventid)))+
+            ggplot(., aes(yday(datetime),P_RAIN_1_1_1,color=factor(eventid)))+
             geom_line()+
             facet_grid(Year~.)+
+            labs(x="Day of Year",y="Half-Hourly Rain (mm)")+
+            theme_bw(base_size=14)+
             theme(legend.position='none'),
           flags %>% 
             ggplot(., aes(datetime,NEE_U50_f,color=factor(eventid)))+
@@ -738,6 +752,40 @@ rainevents.rain %>%
   geom_col()+
   facet_grid(Year~.)
 
+# graph a histogram of rain event sizes
+ggplot(rainevents.rain, aes(eventRain))+
+  geom_histogram()+
+  geom_vline(xintercept=5)+
+  labs(x="Rain Event Size (mm)")+
+  theme_bw()
+
+# plot events <5mm
+rainevents.rain %>%
+  filter(eventRain<=5)%>%
+  ggplot(., aes(eventRain))+
+  geom_histogram()+
+  labs(x="Small Rain Event Size (mm)")+
+  theme_bw()
+
+# plot events <5mm
+rainevents.rain %>%
+  filter(eventRain>5)%>%
+  ggplot(., aes(eventRain))+
+  geom_histogram()+
+  labs(x="Large Rain Event Size (mm)")+
+  theme_bw()
+
+# histogram for 2014 and 2015
+rainevents.rain %>%
+  filter(eventRain>5 & (Year == 2014|Year==2015))%>%
+  ggplot(., aes(eventRain))+
+  geom_histogram()+
+  labs(x="Rain Event Size (mm)")+
+  geom_vline(xintercept=5)+
+  xlim(c(0,50))+
+  facet_grid(Year~.)+
+  theme_bw()
+
 # merge cumualative rain to full data
 flags <- flags %>% left_join(rainevents.rain, by=c("Year","eventid"))
 
@@ -747,14 +795,16 @@ rainevents.count <- flags %>%
   group_by(Year) %>%
   summarise(event.number = n_distinct(eventid))       
 
-# graph for 2013 (high rain year) and 2015 (frequent rain events)
+# graph for 2014 (high rain year) and 2015 (frequent rain events)
 # look at data in 15-day intervals, ReddyProc has 7-day sliding window for partitioning
 plot_grid(flags %>% 
             filter((eventflag == 0 | eventRain>1) & (Year==2014 | Year == 2015) ) %>%
-            ggplot(., aes(datetime,P_RAIN_1_1_1,color=factor(eventid)))+
+            ggplot(., aes(yday(datetime),P_RAIN_1_1_1,color=factor(eventid)))+
             geom_line()+
-            geom_vline(xintercept=c(1,15,30,45,60,75,90,105,120,135,150,165,180,195,210,225,240,255,270,285,300,315,330,345,360))+
+            geom_vline(colour="darkgrey", xintercept=c(1,15,30,45,60,75,90,105,120,135,150,165,180,195,210,225,240,255,270,285,300,315,330,345,360))+
             facet_grid(Year~.)+
+            labs(x="Day of Year",y="Half-Hourly Rainfall (mm)")+
+            theme_bw(base_size=14)+
             theme(legend.position='none'),
           flags %>% 
             filter((eventflag == 0 | eventRain>1) & (Year==2014 | Year == 2015) ) %>%
@@ -773,7 +823,7 @@ start.2014 <- rainevents.rain %>%
 fig1 <- plot_grid(
   rainevents.rain %>% 
     filter((Year==2014 ) & eventRain>1) %>%
-    filter((yday(eventStartDate)>0 & yday(eventStartDate)<169)) %>%
+    #filter((yday(eventStartDate)>0 & yday(eventStartDate)<169)) %>%
     ggplot(., aes(x=eventStartDate))+
     geom_col(aes(y=eventRain),width=0.1)+
     geom_label(aes(y=eventRain,label=eventRain))+
@@ -857,44 +907,62 @@ plot_grid(
 
 # graph NEE around a rain event "2014-07-31 22:30:00"
 
-startdate <- ymd_hms("2014-07-31 22:30:00",tz="MST")
-enddate <- ymd_hms("2014-08-01 08:30:00",tz="MST")
+startdate <- ymd_hms("2014-09-04 13:00:00",tz="MST")
+enddate <- ymd_hms("2014-09-05 07:30:00",tz="MST")
 
 startdate.window <- startdate-days(5)
 enddate.window <- enddate+days(5)
 
 plot_grid(
-  flags %>% 
+  flags %>%
     filter((eventflag == 0 |eventRain > 1) & (datetime > startdate.window & datetime < enddate.window) ) %>%
     ggplot(., aes(x=datetime))+
     geom_line(aes(y=Tair_f))+
     geom_vline(xintercept=c(startdate,enddate))+
+    labs(x="Day", y="Temperature")+
+    scale_x_datetime(breaks="3 days",date_labels="%D")+
+    scale_y_continuous(labels = label_number(accuracy = 1))+
     theme_bw()+
-    theme(legend.position='none'),
-  flags %>% 
+    theme(legend.position='none',
+          axis.title.x=element_blank(),
+          axis.text.x=element_blank()),
+  flags %>%
     filter((eventflag == 0 |eventRain > 1) & (datetime > startdate.window & datetime < enddate.window)) %>%
     ggplot(., aes(x=datetime))+
     geom_col(aes(y=P_RAIN_1_1_1))+
-    geom_label(aes(x=ymd_hms("2014-07-31 22:30:00",tz="MST"), y=25,label="14 mm"))+
-    geom_vline(xintercept=c(ymd_hms("2014-07-31 22:30:00",tz="MST"),ymd_hms("2014-08-01 08:30:00",tz="MST")))+
+    geom_label(aes(x=enddate, y=20,label="42 mm"))+
+    geom_vline(xintercept=c(startdate,enddate))+
+    labs(x="Day", y="Precipitation (mm)")+
+    scale_x_datetime(breaks="3 days",date_labels="%D")+
+    scale_y_continuous(labels = label_number(accuracy = 1))+
     theme_bw()+
-    theme(legend.position='none'),
-  flags %>% 
+    theme(legend.position='none',
+          axis.title.x=element_blank(),
+          axis.text.x=element_blank()),
+  flags %>%
     filter((eventflag == 0 | eventRain>1) & (datetime > startdate.window & datetime < enddate.window )) %>%
-    ggplot(., aes(x=datetime)) + 
+    ggplot(., aes(x=datetime)) +
     geom_line(aes(y=NEE_U50_f),colour="blue")+
     geom_line(aes(y=-GPP_U50_f),colour="green")+
-    geom_vline(xintercept=c(ymd_hms("2014-07-31 22:30:00",tz="MST"),ymd_hms("2014-08-01 08:30:00",tz="MST")))+
+    #geom_vline(xintercept=c(startdate,enddate))+
+    labs(x="Day", y="NEE and GPP")+
+    scale_x_datetime(breaks="3 days",date_labels="%D")+
+    scale_y_continuous(labels = label_number(accuracy = 1))+
     theme_bw()+
-    theme(legend.position='none'),
-  flags %>% 
+    theme(legend.position='none',
+          axis.title.x=element_blank(),
+          axis.text.x=element_blank()),
+  flags %>%
     filter((eventflag == 0 | eventRain>1) & (datetime > startdate.window & datetime < enddate.window)) %>%
-    ggplot(., aes(x=datetime)) + 
+    ggplot(., aes(x=datetime)) +
     geom_line(aes(y=Reco_U50),colour="brown")+
     #geom_line(aes(y=GPP_U50_f),colour="green")+
-    geom_vline(xintercept=c(ymd_hms("2014-07-31 22:30:00",tz="MST"),ymd_hms("2014-08-01 08:30:00",tz="MST")))+
+    #geom_vline(xintercept=c(startdate,enddate))+
+    labs(x="Day", y="Reco")+
+    scale_x_datetime(breaks="3 days")+
+    scale_y_continuous(labels = label_number(accuracy = 1))+
     theme_bw()+
-    theme(legend.position='none'), 
+    theme(legend.position='none'),
   nrow=4,ncol=1)
 
 

@@ -29,11 +29,13 @@ library(zoo)
 
 # read the data in fluxnet format that you want to append to other data
 # or read demofile instead
-flux_add <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/eddypro_JER_2021_Jan_Nov_fluxnet_2021-12-14T175546_adv.csv",
+# in 2021 IRGA diag column was added on 15 June 2021. From 16 June 2021 onward chance EddyPro metadata to use IRGA diag value
+# there were also some problems with CSAT and IRGA 1 May - 11 Jun 2021!!
+flux_add1 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/eddypro_JER_2021_Jan_Nov_fluxnet_2021-12-14T175546_adv.csv",
               sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
 
 # remove duplicate data
-flux_add <- (flux_add[!(duplicated(flux_add, by=c("TIMESTAMP_START")))])
+flux_add1 <- (flux_add1[!(duplicated(flux_add, by=c("TIMESTAMP_START")))])
 
 # make sure the data are ordered:
 flux_add <- flux_add[order(TIMESTAMP_START),]

@@ -37,12 +37,12 @@ library(tidyverse)
 library(lubridate)
 library(ggplot2)
 
-year_file <- 2022
+year_file <- 2023
 
 # Based on data checks, no data form Met and CS650 from 16 Dec 17:30 to 17 Jan 2022
 
 # set working directory to server
-setwd(paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_CS650/",year_file,"/Raw_Data/ASCII",sep=""))
+setwd(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_CS650/",year_file,"/Raw_Data/ASCII",sep=""))
 
 # load headers of file and data
 cs650names <- colnames(read.table(paste("dataL1_Soil_",year_file,".csv",sep=""), sep=",", skip=1,heade=TRUE))
@@ -118,7 +118,10 @@ cs650 %>%
   geom_line()+
   facet_grid(metric~., scales="free_y")
 
-# 2022 data looks good until "2022-06-01 11:30:00 UTC"
+# print that data looks good/has been checked up to enddata.check:
+print(paste("#",year(enddate.check), "data looks good until",enddate.check,sep=" "))
+# 2023 data looks good until 2023-08-25 07:30:00
+# 2022 data looks good until 2022-12-31 23:30:00
 
 # prepare for saving for L2 tables and combination with other data
 
@@ -137,7 +140,7 @@ cs650.save <- cs650 %>%
 # climate.save <- rbind(climate.loggerinfo,climate.colnames, climate.save)
 
 # # save in QAQC folder with start and end date in the file name
-qaqc.path<- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_CS650/",year_file,"/QAQC/", sep="")
+qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_CS650/",year_file,"/QAQC/", sep="")
 setwd(qaqc.path)
 
 
@@ -170,18 +173,19 @@ write.table(run.info, "dataL2_Soil_DateRange.csv",
             sep=",", dec=".", row.names=FALSE)
 
 
-# Save data to Combined folder with only year name
+# Combined folder: don't save individual year files to here, it's just a duplicatin of the QAQC folder
 difftime(startdate,enddate)
 
-setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/SoilSensor_CS650/Combined")
 
-write.table(cs650.save,
-            paste("dataL2_Soil_",year_file, ".csv",sep=""),
-            sep=",", dec=".", row.names=FALSE)
-
-write.table(run.info,
-            paste("dataL2_Soil_DateRange_",year_file,".csv",sep=""),
-            sep=",", dec=".", row.names=FALSE)
+# setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_CS650/Combined")
+# 
+# write.table(cs650.save,
+#             paste("dataL2_Soil_",year_file, ".csv",sep=""),
+#             sep=",", dec=".", row.names=FALSE)
+# 
+# write.table(run.info,
+#             paste("dataL2_Soil_DateRange_",year_file,".csv",sep=""),
+#             sep=",", dec=".", row.names=FALSE)
 
 
 # save the R script that went along with creating the file to have a record of QA/QC
@@ -201,6 +205,7 @@ write.table(run.info,
 #                                  year(enddate),sprintf("%02d",(month(enddate))),sprintf("%02d",(day(enddate))),
 #                                  sprintf("%02d",(hour(enddate))),sprintf("%02d",(minute(enddate))),
 #                                 sprintf("%02d",(second(enddate))), ".csv",sep="")))
+setwd(qaqc.path)
 
 file.copy(from = rstudioapi::getActiveDocumentContext()$path,
           to = file.path(qaqc.path,

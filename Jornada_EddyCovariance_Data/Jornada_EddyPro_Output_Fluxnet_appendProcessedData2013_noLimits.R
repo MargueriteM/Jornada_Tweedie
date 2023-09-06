@@ -1,3 +1,7 @@
+# Process 2013 data re-run in EddyPro with no limits for H2O as a lot of H2O data is being filtered out:
+# on advice from Israel and James at LI-COR
+# Create an appended version with 2013 no limits
+
 # Rscript to process a smaller section of EC data and then append it to already-processed data. 
 # This code follows steps laid out in Jornada_EddyPro_Output_Fluxnet_2010_2019_20200212.R
 # for examples use the demofileflux_add.Rdata and skip steps with flux_filter_sd
@@ -26,41 +30,16 @@ library(zoo)
 # 20200427: corrected timestamps!
 # save filtered data with SD filter for all years 2010-current
 # use 20220913 as most recent file which goes until 2020 to append 2021
-load("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered/JER_flux_2010_EddyPro_Output_filtered_SD_20220913.Rdata")
+load("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered/JER_flux_2010_EddyPro_Output_filtered_SD_20221023.Rdata")
 
 flux_filter_sd <- flux_filter_sd_all
 rm(flux_filter_sd_all)
 
 # read the data in fluxnet format that you want to append to other data
 # or read demofile instead
-# in 2021 IRGA diag column was added on 15 June 2021. From 16 June 2021 onward change EddyPro metadata to use IRGA diag value
-# there were also some problems with CSAT and IRGA 1 May - 11 Jun 2021!!
-flux_add1 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/eddypro_JER_2021_Jan_Jun_fluxnet_2022-01-18T173841_adv.csv",
-              sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
+flux_add <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out_TestProcessingParameters/eddypro_JER_2013_NoLimits_fluxnet_2022-11-08T210631_adv.csv",
+                      sep=",", header=TRUE, na.strings=c("-9999"), fill=TRUE)
 
-flux_add2 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/eddypro_JER_2021_Jul_Nov_fluxnet_2022-01-07T113327_adv.csv",
-                   sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
-
-flux_add3 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/eddypro_JER_2021_Dec_fluxnet_2022-09-16T135135_adv.csv",
-                   sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
-
-
-# format date
-flux_add1[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
-  ,':='(date=as.Date.POSIXct(date_time),month=month(date_time),year=year(date_time))]
-
-flux_add2[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
-  ,':='(date=as.Date.POSIXct(date_time),month=month(date_time),year=year(date_time))]
-
-flux_add3[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
-  ,':='(date=as.Date.POSIXct(date_time),month=month(date_time),year=year(date_time))]
-
-
-# remove data from Jan - Dec data set that comes after the start of flux_add2
-# flux_add1 <- copy(flux_add1[date_time<min(flux_add2$date_time),])
-
-# combine flux_add1 and flux_add2
-flux_add <- rbind(flux_add1,flux_add2, flux_add3, fill=TRUE)
 
 # remove duplicate data
 flux_add <- (flux_add[!(duplicated(flux_add, by=c("TIMESTAMP_START")))])
@@ -68,33 +47,38 @@ flux_add <- (flux_add[!(duplicated(flux_add, by=c("TIMESTAMP_START")))])
 # make sure the data are ordered:
 flux_add <- flux_add[order(TIMESTAMP_START),]
 
+# format date
+flux_add[,':=' (date_time_orig = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
+  ,':='(date_orig=as.Date.POSIXct(date_time_orig),month_orig=month(date_time_orig),year_orig=year(date_time_orig))]
 
 # make some plots
 # graph some met variables
-ggplot(flux_add,aes(date_time,P_RAIN_1_1_1))+geom_line()
-# a bug in eddy pro means that when data are insufficient, biomet alignment goes wrong
-ggplot(flux_add[!(FILENAME_HF %in% ("not_enough_data")),],aes(date_time,P_RAIN_1_1_1))+geom_line()
+ggplot(flux_add[!(FILENAME_HF %in% ("not_enough_data")),],aes(date_time_orig,P_RAIN_1_1_1))+geom_line()
+ggplot(flux_add,aes(date_time_orig,P_RAIN_1_1_1))+geom_line()
 
 # The biomet data is processing weirdly but I am not sure why. 
 # after emailing with Jiahong, the issue appears to be a bug that causes biomet columns to shift or 
 # erroneous data insertion when ts files have not_enough_data
 
 # load biomet data
-#2021
-biomet2021.names <- colnames(fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2021.csv",
+# load biomet data
+#2022
+biomet2013.names <- colnames(fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2013.csv",
                                    header=TRUE))
 
 
-biomet2021 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2021.csv",
-                    skip=2, header=FALSE, col.names=biomet2021.names, na.strings=c("-9999"))
+biomet2013 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2013.csv",
+                    skip=2, header=FALSE, col.names=biomet2013.names, na.strings=c("-9999"))
 
 
-biomet2021 <- biomet2021[,':='
+biomet2013 <- biomet2013[,':='
                          (date_time=ymd_hm(paste(timestamp_1,timestamp_2,timestamp_3,timestamp_4,timestamp_5, sep=" ")))]
 
-ggplot(biomet2021, aes(date_time,P_rain_1_1_1))+
+ggplot(biomet2013, aes(date_time,P_rain_1_1_1))+
   geom_line()
 
+# create date_time_orig column in biomet
+biomet2013 <- biomet2013[,date_time_orig := date_time]
 
 # cut out biomet columns from eddypro fluxnet data and append from the biomet import data
 flux_add[,':='(TA_1_1_1=NULL, RH_1_1_1=NULL, PA_1_1_1=NULL, WD_1_1_1=NULL, MWS_1_1_1=NULL,
@@ -103,172 +87,69 @@ flux_add[,':='(TA_1_1_1=NULL, RH_1_1_1=NULL, PA_1_1_1=NULL, WD_1_1_1=NULL, MWS_1
                LW_IN_1_1_1=NULL, LW_OUT_1_1_1=NULL, SW_OUT_1_1_1=NULL, SW_IN_1_1_1=NULL,
                NETRAD_1_1_1=NULL)]
 
-flux_add <- merge(flux_add, biomet2021[,c("Ta_1_1_1","RH_1_1_1","Pa_1_1_1","WD_1_1_1","MWS_1_1_1",
+flux_add <- merge(flux_add, biomet2013[,c("Ta_1_1_1","RH_1_1_1","Pa_1_1_1","WD_1_1_1","MWS_1_1_1",
                                           "PPFD_1_1_1","PPFDr_1_1_1","P_rain_1_1_1","SWC_1_1_1",
                                           "Ts_1_1_1","SHF_1_1_1","SHF_1_2_1","SHF_2_1_1","SHF_2_2_1",
                                           "LWin_1_1_1","LWout_1_1_1","SWout_1_1_1","Rg_1_1_1",
-                                          "Rn_1_1_1","date_time")],by="date_time")
+                                          "Rn_1_1_1","date_time_orig")],by="date_time_orig")
 
 setnames(flux_add, c("Ta_1_1_1","Pa_1_1_1","PPFD_1_1_1","PPFDr_1_1_1","P_rain_1_1_1",
-                     "Ts_1_1_1","SHF_1_1_1","SHF_1_2_1","SHF_2_1_1","SHF_2_2_1",
-                     "LWin_1_1_1","LWout_1_1_1","SWout_1_1_1","Rg_1_1_1",
-                     "Rn_1_1_1"),
+                      "Ts_1_1_1","SHF_1_1_1","SHF_1_2_1","SHF_2_1_1","SHF_2_2_1",
+                      "LWin_1_1_1","LWout_1_1_1","SWout_1_1_1","Rg_1_1_1",
+                      "Rn_1_1_1"),
          c("TA_1_1_1", "PA_1_1_1","PPFD_IN_1_1_1", "PPFD_OUT_1_1_1", "P_RAIN_1_1_1",
            "TS_1_1_1", "G_1_1_1", "G_1_2_1", "G_2_1_1", "G_2_2_1", 
            "LW_IN_1_1_1", "LW_OUT_1_1_1", "SW_OUT_1_1_1", "SW_IN_1_1_1",
            "NETRAD_1_1_1"))
 
-
 # create a column for filtering CO2 flux
-# look at Fc  by month for each year
-ggplot(flux_add,
-       aes(DOY_START,FC,colour=factor(FC_SSITC_TEST)))+
-  geom_point()+
-  #ylim(c(-30,30))+
-  facet_grid(year~.,scales="free_y")
-
-
 # filter_fc = 1 to remove and = 0 to keep
 flux_add[,filter_fc := 0L]
-# get rid of QC code >2 and FC_SSITC_TEST = NA (these are files with FILENAME_HF %in% "not_enough_data")
-flux_add[FC_SSITC_TEST>1 | is.na(FC_SSITC_TEST), filter_fc := 1L]
-# previous AGC filter: flux_add[FC_SSITC_TEST>1 | CUSTOM_AGC_MEAN>50, filter_fc := 1L]
-
-# adjust AGC filter from >50 because had IRGA loaner with different baseline
-# 15 or 17 Dec installed Ameriflux loaner IRGA due to high AGC values & for light-source repair
-# AGC baseline: ~63
-# IRGA changes: 20 Nov 20 -> loaner  (AGC baseline: ~50)
-#               26 Feb 21 -> remove loaner & re-install lab IRGA & CSAT
-#               15/17 Dec -> loaner (AGC baseline: 63)
-#              8 Apr 21 -> remove loaner & re-install lab IRGA (AGC: 56)
-# also getting several 0 AGC values this year ...
-# seems to match when FC_SSITC_TEST is NA
-
-# graph AGC
-ggplot(flux_add[filter_fc != 1,],
-       aes(date_time,CUSTOM_AGC_MEAN))+
-  geom_point(aes(colour=factor(FC_SSITC_TEST)))+
-  geom_line()+
-  #ylim(c(25,100))+
-  facet_grid(year~.,scales="free_y")
-
-# filter AGC by values less than 52 prior to 17 Dec
-flux_add[date_time < as.Date ("2021-12-16") & CUSTOM_AGC_MEAN>50,
-         filter_fc := 1L]
-
-# filter AGC by values less than 66 after the 17 Dec
-flux_add[date_time > as.Date ("2021-12-16") & CUSTOM_AGC_MEAN>66,
-         filter_fc := 1L]
-
-# IRGA was behaving badly from 20 Apr to  11 Jun ~7am MDT
-# due to issues with connection and sensor head power reset
-flux_add[as.Date(date_time)>as.Date("2021-04-20") & ymd_hms(date_time)<ymd_hms("2021-07-01 07:00:00"), filter_fc := 1L]
-
+# get rid of QC code >2 and low signal strength
+flux_add[FC_SSITC_TEST>1 | CUSTOM_AGC_MEAN>50, filter_fc := 1L]
 # fluxes outside 30 umol/m2/s are unrealistic
 flux_add[FC<(-30)|FC>30, filter_fc := 1L]
 
 
 # look at the fluxes by month for each year
 ggplot(flux_add[filter_fc !=1,],
-                 aes(date_time,FC))+
+                 aes(date_time_orig,FC))+
   geom_point(aes(colour=factor(FC_SSITC_TEST)))+
   geom_line()+
-  geom_hline(yintercept=c(-5,5))+
-  #ylim(c(-5,5))+
-  facet_grid(year~.,scales="free_y")
-
+  geom_hline(yintercept=c(-5,5))
 
 ###### H ######
 # look at H  by month for each year
 ggplot(flux_add,
        aes(DOY_START,H,colour=factor(H_SSITC_TEST)))+
   geom_point()+
-  geom_line()+
-  #ylim(c(-30,30))+
-  facet_grid(year~.,scales="free_y")
+  geom_line()
 
 # remove QC >1 and AGC > 50
 flux_add[,filter_H := 0L]
-# get rid of QC code >2 and low signal strength and add is.na(H_SSITC_TEST)
-flux_add[H_SSITC_TEST>1 | is.na(H_SSITC_TEST), filter_H := 1L]
-# previous AGC code: flux_add[H_SSITC_TEST>1 | CUSTOM_AGC_MEAN>50, filter_H := 1L]
-
-
-# adjust AGC filter from >50 because had IRGA loaner with different baseline
-# 15 or 17 Dec installed Ameriflux loaner IRGA due to high AGC values & for light-source repair
-# AGC baseline: ~63
-# IRGA changes: 20 Nov 20 -> loaner  (AGC baseline: ~50)
-#               26 Feb 21 -> remove loaner & re-install lab IRGA & CSAT
-#               15/17 Dec -> loaner (AGC baseline: 63)
-#              8 Apr 21 -> remove loaner & re-install lab IRGA (AGC: 56)
-# also getting several 0 AGC values this year ...
-# seems to match when FC_SSITC_TEST is NA
-
-# filter AGC by values less than 52 prior to 17 Dec
-flux_add[date_time < as.Date ("2021-12-16") & CUSTOM_AGC_MEAN>50,
-         filter_H := 1L]
-
-# filter AGC by values less than 66 after the 17 Dec
-flux_add[date_time > as.Date ("2021-12-16") & CUSTOM_AGC_MEAN>66,
-         filter_H := 1L]
-
-
-
+# get rid of QC code >2 and low signal strength
+flux_add[H_SSITC_TEST>1 | CUSTOM_AGC_MEAN>50, filter_H := 1L]
 # remove H < -120 and > 560, these are not typical values.
 flux_add[H < (-120) | H > 560, filter_H := 1L]
-# in 2015 March there's one H > 400 that's an outlier
-flux_add[year==2015 & month==3 & H>400, filter_H := 1L]
-# in 2018 Jan there's one H>400 that's an outlier
-flux_add[year==2018 & month==1 & H>400, filter_H := 1L]
-
-# IRGA was behaving badly from 20 Apr to  11 Jun ~7am MDT
-# due to issues with connection and sensor head power reset
-flux_add[as.Date(date_time)>as.Date("2021-04-20") & ymd_hms(date_time)<ymd_hms("2021-07-01 07:00:00"), filter_H := 1L]
 
 
 # look at all filtered H
 ggplot(flux_add[filter_H!=1,],
-       aes(DOY_START,H))+
-  geom_line()+
-  #ylim(c(-30,30))+
-  facet_grid(year~.,scales="free_y")
+       aes(DOY_START,H,colour=factor(H_SSITC_TEST)))+
+  geom_point()+
+  geom_line()
 
 
 ##### LE ####
 # look at LE  by month for each year
 ggplot(flux_add,
        aes(DOY_START,LE,colour=factor(LE_SSITC_TEST)))+
-  geom_point()+
-  #ylim(c(-30,30))+
-  facet_grid(year~.,scales="free_y")
+  geom_point()
 
 # remove QC >1 and AGC > 50
 flux_add[,filter_LE:= 0L]
-
-# get rid of QC code >2 and low signal strength and add is.na(H_SSITC_TEST)
-flux_add[LE_SSITC_TEST>1 | is.na(LE_SSITC_TEST), filter_LE := 1L]
-# previous AGC code: flux_add[LE_SSITC_TEST>1 | CUSTOM_AGC_MEAN>50, filter_LE := 1L]
-
-
-# adjust AGC filter from >50 because had IRGA loaner with different baseline
-# 15 or 17 Dec installed Ameriflux loaner IRGA due to high AGC values & for light-source repair
-# AGC baseline: ~63
-# IRGA changes: 20 Nov 20 -> loaner  (AGC baseline: ~50)
-#               26 Feb 21 -> remove loaner & re-install lab IRGA & CSAT
-#               15/17 Dec -> loaner (AGC baseline: 63)
-#              8 Apr 21 -> remove loaner & re-install lab IRGA (AGC: 56)
-# also getting several 0 AGC values this year ...
-# seems to match when FC_SSITC_TEST is NA
-
-# filter AGC by values less than 52 prior to 17 Dec
-flux_add[date_time < as.Date ("2021-12-16") & CUSTOM_AGC_MEAN>50,
-         filter_LE := 1L]
-
-# filter AGC by values less than 66 after the 17 Dec
-flux_add[date_time > as.Date ("2021-12-16") & CUSTOM_AGC_MEAN>66,
-         filter_LE := 1L]
-
-
+# get rid of QC code >2 and low signal strength
+flux_add[LE_SSITC_TEST>1 | CUSTOM_AGC_MEAN>50, filter_LE := 1L]
 
 # Remove unreasonable values
 
@@ -277,9 +158,6 @@ flux_add[LE < (-50), filter_LE := 1L]
 # remove LE >1000 this is a generally outlying value
 flux_add[LE >1000, filter_LE := 1L]
 
-# IRGA was behaving badly from 20 Apr to  11 Jun ~7am MDT 2021
-# due to issues with connection and sensor head power reset
-flux_add[as.Date(date_time)>as.Date("2021-04-20") & ymd_hms(date_time)<ymd_hms("2021-07-01 07:00:00"), filter_LE := 1L]
 
 # look at LE  by month for each year
 ggplot(flux_add[filter_LE!=1,],
@@ -289,27 +167,81 @@ ggplot(flux_add[filter_LE!=1,],
   geom_hline(yintercept=c(-50,200))
 
 # Before the SD filter remove all fluxes that occur at the moment of a rain event
-# this graph shows all rain events in flux data
-ggplot()+
+# first look at all fluxes with rain events marked
+# FC
+f.fc <- ggplot()+
   geom_line(data=flux_add[filter_fc !=1], aes(DOY_START,FC),alpha=0.5)+
-  geom_point(data=flux_add[P_RAIN_1_1_1>0], aes(DOY_START,FC), colour="red",size=0.25)+
-  facet_grid(year~.)
+  geom_point(data=flux_add[filter_fc !=1&P_RAIN_1_1_1>0], aes(DOY_START,FC), colour="red",size=0.25)
 
-# this graph shows additional data removed due to rain
-ggplot()+
-  geom_line(data=flux_add[filter_fc !=1], aes(DOY_START,FC),alpha=0.5)+
-  geom_point(data=flux_add[filter_fc !=1&P_RAIN_1_1_1>0], aes(DOY_START,FC), colour="red",size=0.25)+
-  facet_grid(year~.)
+#LE
+f.le <- ggplot()+
+  geom_line(data=flux_add[filter_LE !=1], aes(DOY_START,LE),alpha=0.5)+
+  geom_point(data=flux_add[filter_LE !=1&P_RAIN_1_1_1>0], aes(DOY_START,LE), colour="red",size=0.25)
 
+#H
+f.h <- ggplot()+
+  geom_line(data=flux_add[filter_H !=1], aes(DOY_START,H),alpha=0.5)+
+  geom_point(data=flux_add[filter_H !=1&P_RAIN_1_1_1>0], aes(DOY_START,H), colour="red",size=0.25)
+
+grid.arrange(f.fc, f.le, f.h)
+
+# remove FC, LE, H DURING rain
 flux_add[P_RAIN_1_1_1>0, ':=' (filter_fc = 1L, filter_LE = 1L, filter_H = 1L)]
 
-# Before the rolling mean, add two weeks of prior data
 
-flux_add <- rbind(flux_filter_sd[date_time > as.Date("2020-12-15")],
+# Do timestamp correction  prior to rolling mean filtering
+# refer to Jornada_EddyPro_Output_Fluxnet_2010_2019_20200212.R for all code 2010-2019
+# keep the original timestamp and fix date_time column to make all times MST
+# (use tz=UTC to prevent convervsion of data)
+flux_corrected <- copy(flux_add)
+##rm(flux_long)
+##flux<- copy(flux_corrected)
+
+# minus 1 hour
+flux_add[date_time_orig>=as.POSIXct("2013-01-01 00:00:00",tz="UTC") & 
+       date_time_orig<=as.POSIXct("2013-01-11 13:00:00",tz="UTC"),
+     date_time := date_time_orig - hours(1)]
+
+# do nothing
+flux_add[date_time_orig>=as.POSIXct("2013-01-11 13:30:00",tz="UTC") & 
+       date_time_orig<as.POSIXct("2013-08-02 12:00:00",tz="UTC"),
+     date_time := date_time_orig]
+
+# minus 1 hour
+flux_add[date_time_orig>=as.POSIXct("2013-08-02 13:00:00",tz="UTC") & 
+       date_time_orig<=as.POSIXct("2014-01-01 00:00:00",tz="UTC"),
+     date_time := date_time_orig-hours(1)]
+
+
+flux_add[,time_diff := date_time-date_time_orig]
+
+# create a new datatable that has all the timestamps needed and merge to date_time
+# this will result in NA for all timesstamps that got lost in adjustment
+time_all <- data.table(date_time = seq(ymd_hm("2013-01-01 00:00",tz="UTC"),ymd_hm("2014-01-01 00:00",tz="UTC"),by="30 min"),
+                       date_time_start = seq(ymd_hm("2013-01-01 00:00",tz="UTC"),ymd_hm("2014-01-01 00:00",tz="UTC"),by="30 min"))
+
+time_all[, ':=' (TIMESTAMP_START_correct = as.character(date_time_start, format= "%Y%m%d%H%M"),
+                 TIMESTAMP_END_correct = as.character(date_time, format= "%Y%m%d%H%M"))]
+
+
+# merge full date_time with flux
+flux_add <- merge(flux_add,time_all[,.(date_time,TIMESTAMP_START_correct,TIMESTAMP_END_correct)], by="date_time", all.y=TRUE)
+
+# check adjusted timestamp
+daycheck <- as.Date("2013-08-30")
+ggplot(flux_add[as.Date(date_time)==daycheck])+
+  geom_line(aes(date_time_orig, SW_IN_1_1_1),colour="black")+
+  geom_line(aes(date_time,SW_IN_1_1_1),colour="red")
+
+
+# Before the rolling mean, add two weeks of prior data
+flux_add <- rbind(flux_filter_sd[date_time > as.Date("2012-12-15") & date_time < as.Date("2013-01-01")],
                   flux_add, fill=TRUE)
 
 # make sure the data are ordered:
 flux_add <- flux_add[order(date_time),]
+
+
 
 # APPLY ROLLING MEANS APPROACH TO FILTER Fc, LE, H
 # use rollmeanr from zoo
@@ -330,13 +262,12 @@ flux_add[filter_fc !=1, ':=' (FC_rollmean3_daynight = rollapply(FC, width=(24/0.
 
 threshold <- 3
 
-# graph the 3 and 5 day SD ribbons around measured flux_add
+# graph the 3 (grey) and 5 (blue) day SD ribbons around measured flux_add
 ggplot(flux_add[filter_fc!=1,])+
   geom_line(aes(DOY_START, FC))+
   #geom_line(aes(DOY_START, FC_rollmean), colour="green")+
   geom_ribbon(aes(x=DOY_START, ymin=FC_rollmean3-threshold*FC_rollsd3, ymax=FC_rollmean3+threshold*FC_rollsd3), alpha=0.5)+
-  geom_ribbon(aes(x=DOY_START, ymin=FC_rollmean7-threshold*FC_rollsd7, ymax=FC_rollmean7+threshold*FC_rollsd7), colour="blue",alpha=0.3)#+
-  #facet_grid(year~.)
+  geom_ribbon(aes(x=DOY_START, ymin=FC_rollmean5-threshold*FC_rollsd5, ymax=FC_rollmean7+threshold*FC_rollsd5), colour="blue",alpha=0.3)
 
 # graph the 3 day SD ribbons around measured flux_add by day/night
 ggplot(flux_add[filter_fc!=1,])+
@@ -361,24 +292,18 @@ flux_add[FC>FC_rollmean3_daynight+threshold*FC_rollsd3_daynight|
        FC<FC_rollmean3_daynight-threshold*FC_rollsd3_daynight, filter_fc_roll_daynight := 2L]
 
 # view the marked fluxes in ~25 day chunks
-ggplot(flux_add[filter_fc_roll!=1&DOY_START>=1&DOY_START<=60,], aes(DOY_START, FC, colour=factor(filter_fc_roll)))+
-  geom_point()
+ggplot(flux_add[filter_fc_roll!=1&DOY_START>=300&DOY_START<=365,], aes(DOY_START, FC, colour=factor(filter_fc_roll)))+
+  geom_point()+
+  facet_grid(year_orig~.)
 
 # view the marked fluxes in ~25 day chunks for day/night
 ggplot(flux_add[filter_fc_roll_daynight!=1&DOY_START>=1&DOY_START<=31,], aes(DOY_START, FC, colour=factor(filter_fc_roll_daynight)))+
-  geom_point()
+  geom_point()+
+  facet_grid(year_orig~.)
 
 # graph with the fluxes from the 3SD 3day day/night filter removed
 ggplot(flux_add[filter_fc_roll_daynight==0,], aes(DOY_START, FC))+
   geom_line()
-
-
-# graph fluxes with the 3SD 3day day/night filter removed and with my manual filter
-# HERE THIS DOESN'T REALLY APPLY, I HAVE DONE LESS MANUAL FILTERING AND AM RELYING ON THE RUNNING MEAN SMOOTH
-# this comparison was for previous years. It's nice to have the code handy, if needed
-ggplot()+
-  geom_line(data=flux_add[filter_fc==0], aes(DOY_START, FC, colour="manual"), colour="blue")+
-  geom_line(data=flux_add[filter_fc_roll_daynight==0], aes(DOY_START, FC, colour="SD day/night"), colour="green")
 
 
 # SD filter for LE
@@ -429,12 +354,14 @@ flux_add[LE>LE_rollmean3_daynight+threshold*LE_rollsd3_daynight|
 
 
 # view the marked flux_addes in ~25 day chunks
-ggplot(flux_add[filter_le_roll!=1&DOY_START>=100&DOY_START<=300,], aes(DOY_START, LE, colour=factor(filter_le_roll)))+
-  geom_point()
+ggplot(flux_add[filter_le_roll!=1&DOY_START>=1&DOY_START<=50,], aes(DOY_START, LE, colour=factor(filter_le_roll)))+
+  geom_point()+
+  facet_grid(year_orig~.)
 
 # view the marked flux_addes in ~25 day chunks for day/night
-ggplot(flux_add[filter_le_roll_daynight!=1&DOY_START>=100&DOY_START<=300,], aes(DOY_START, LE, colour=factor(filter_le_roll_daynight)))+
-  geom_point()
+ggplot(flux_add[filter_le_roll_daynight!=1&DOY_START>=1&DOY_START<=100,], aes(DOY_START, LE, colour=factor(filter_le_roll_daynight)))+
+  geom_point()+
+  facet_grid(year_orig~.)
 
 # graph with the flux_addes from the 3SD 3day day/night filter removed
 ggplot(flux_add[filter_le_roll_daynight==0,], aes(DOY_START, LE))+
@@ -442,10 +369,11 @@ ggplot(flux_add[filter_le_roll_daynight==0,], aes(DOY_START, LE))+
 
 # graph fluxes with the 3SD 3day day/night filter removed and with my manual filter
 # HERE THIS DOESN'T REALLY APPLY, I HAVE DONE LESS MANUAL FILTERING AND AM RELYING ON THE RUNNING MEAN SMOOTH
-# this comparison was for previous years. It's nice to have the code handy, if needed
+# this comparison was for previous years (2010-2019). It's nice to have the code handy, if needed
 ggplot()+
   geom_line(data=flux_add[filter_LE==0], aes(DOY_START, LE, colour="manual"), colour="blue")+
   geom_line(data=flux_add[filter_le_roll_daynight==0], aes(DOY_START, LE, colour="SD day/night"), colour="green")
+
 
 # SD filter for H
 # COMPARE ROLLING MEANS APPROACH TO FILTER Fc, LE, H
@@ -482,7 +410,6 @@ ggplot(flux_add[filter_H!=1,])+
                   ymax=H_rollmean3_daynight+threshold*H_rollsd3_daynight, fill=factor(NIGHT)), alpha=0.5)+
   facet_grid(NIGHT~.)
 
-
 # mark any H>3*Hrollsd3 (3 day moving SD) for removal
 flux_add[,filter_h_roll := 0L]
 flux_add[filter_H==1, filter_h_roll := 1L]
@@ -497,22 +424,17 @@ flux_add[H>H_rollmean3_daynight+threshold*H_rollsd3_daynight|
 
 # view the marked flux_addes in ~25 day chunks
 ggplot(flux_add[filter_h_roll!=1&DOY_START>=1&DOY_START<=50,], aes(DOY_START, H, colour=factor(filter_h_roll)))+
-  geom_point()
+  geom_point()+
+  facet_grid(year_orig~.)
 
 # view the marked flux_addes in ~25 day chunks for day/night
 ggplot(flux_add[filter_h_roll_daynight!=1&DOY_START>=1&DOY_START<=100,], aes(DOY_START, H, colour=factor(filter_h_roll_daynight)))+
-  geom_point()
+  geom_point()+
+  facet_grid(year_orig~.)
 
 # graph with the fluxes from the 3SD 3day day/night filter removed
 ggplot(flux_add[filter_h_roll_daynight==0,], aes(DOY_START, H))+
   geom_line()
-
-# graph fluxes with the 3SD 3day day/night filter removed and with my manual filter
-# HERE THIS DOESN'T REALLY APPLY, I HAVE DONE LESS MANUAL FILTERING AND AM RELYING ON THE RUNNING MEAN SMOOTH
-# this comparison was for previous years. It's nice to have the code handy, if needed
-ggplot()+
-  geom_line(data=flux_add[filter_H==0], aes(DOY_START, H, colour="manual"), colour="blue")+
-  geom_line(data=flux_add[filter_h_roll_daynight==0], aes(DOY_START, H, colour="SD day/night"), colour="green")
 
 
 #########
@@ -520,36 +442,51 @@ ggplot()+
 ########### 
 
 # Prior to saving, filter data and remove unnecessary columns
-# c("date_time_orig","TIMESTAMP_START","TIMESTAMP_END","DOY_START","DOY_END","time_diff","SW_IN_POT_AF") 
+# c("date_time_orig","TIMESTAMP_START","TIMESTAMP_END","DOY_START","DOY_END","time_diff","SW_IN_POT_AF")
 # date_time_orig, time_diff and SW_IN_POT_AF probably won't be in files after 2019 because they were used for the timestamp corrections needed prior to 2019
-flux_add_filter_sd <- copy(flux_add[date_time>=as.Date("2021-01-01"),
-                                    !(c("date","month","year","DOY_START","DOY_END")),with=FALSE])
+flux_add_filter_sd <- copy(flux_add[date_time_orig>=as.Date("2013-01-01"),
+                                    !(c("date_time_orig","date_orig","month_orig","year_orig","DOY_START","DOY_END","TIMESTAMP_START","TIMESTAMP_END","time_diff")),with=FALSE])
 flux_add_filter_sd[filter_fc_roll_daynight!=0, FC := NA]
 flux_add_filter_sd[filter_h_roll_daynight!=0, H := NA]
 flux_add_filter_sd[filter_le_roll_daynight!=0, LE := NA]
 
-# check the time period is right: 
+# check the time period is right:
 ggplot(flux_add_filter_sd,aes(date_time, FC))+geom_point()
 summary(flux_add_filter_sd$date_time)
 
+# make sure the data are ordered:
+flux_add <- flux_add[order(date_time),]
+
+
 # append new data to previous
-flux_filter_sd_all <- rbind(flux_filter_sd, flux_add_filter_sd,fill=TRUE)
+flux_filter_sd_all <- rbind(flux_filter_sd[year(date_time)!=2013,], flux_add_filter_sd,fill=TRUE)
+
+# make sure there are no duplicates
+flux_filter_sd_all <- (flux_filter_sd_all[!(duplicated(flux_filter_sd_all, by=c("date_time")))])
+
+# make sure the data are ordered:
+flux_filter_sd_all <- flux_filter_sd_all[order(date_time),]
+
+# check the time period is right:
+ggplot(flux_filter_sd_all,aes(date_time, FC))+geom_point()
+summary(flux_filter_sd_all$date_time)
 
 
-# include TIMESTAMP_START and TIMESTAMP_END 
-# save 2021 data with biomet data from input biomet2021, not EddyPro output
+
+# 20211229 (redo on 20220103 with TIMESTAMP_START and TIMESTAMP_END included)
+# save 2013 data with biomet data from input biomet2013, not EddyPro output
 # save to server
-setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/")
-
+setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2013/EddyPro_Out/")
+ 
 write.table(flux_add_filter_sd,
-            file="JER_flux_2021_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
-            row.names=FALSE)
+ file="JER_flux_2013noLimits_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
+ row.names=FALSE)
 
 # save filtered data with SD filter for all years 2010-current
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
 
+# 20230107 - save with re-run 2013 with no limits
 # 20211229 (redo on 20220103 with TIMESTAMP_START and TIMESTAMP_END included)
-# redo 20221023 to include December 2021 flux data and fix some issues with AGC filter due to instrument changes
+# 20221023 - with updates 2021 (Dec + AGC fies and with 2022 Jan - Sep)
 save(flux_filter_sd_all,
-     file="JER_flux_2010_EddyPro_Output_filtered_SD_20221023.Rdata")
-
+     file="JER_flux_2010_EddyPro_Output_filtered_SD_20221023_2013noLimits.Rdata")

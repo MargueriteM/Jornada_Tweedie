@@ -31,8 +31,12 @@ flux.units <- (fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_O
 flux1a <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/length14/eddypro_JER_2010_length14_full_output_2020-02-04T105358_adv.csv", sep=",",skip=3,
                header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
 
-flux1b <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/length14_2/eddypro_JER_2010_length14_2_full_output_2020-02-04T183325_adv.csv", sep=",",skip=3,
+# flux1b <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/length14_2/eddypro_JER_2010_length14_2_full_output_2020-02-04T183325_adv.csv", sep=",",skip=3,
+#                 header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
+
+flux1b <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/length14_2/eddypro_JER_2010_length14_2_full_output_2020-02-06T164032_adv.csv", sep=",",skip=3,
                 header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
+
 
 flux1c <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2010/length15/eddypro_JER_2010_length15_full_output_2020-02-04T160313_adv.csv", sep=",",skip=3,
                 header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
@@ -59,15 +63,23 @@ flux7 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_201
 flux8 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2017/20190806/eddypro_JER_2017_full_output_2019-08-07T114629_adv.csv", sep=",",skip=3,
                header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
 
-flux9a <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2019/eddypro_JER_2019_full_output_2019-12-24T011346_adv.csv", sep=",",skip=3,
+flux8.1 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2018/eddypro_JER_2018_full_output_2019-08-02T101350_adv.csv", sep=",",skip=3,
                header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
 
-flux9b <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2019/eddypro_JER_2019_2_full_output_2020-01-27T215912_adv.csv", sep=",",skip=3,
+
+flux9 <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2019/eddypro_JER_2019_full_output_2020-02-11T163749_adv.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
+
+flux10a <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2020/eddypro_JER_2020_Jan_May_full_output_2021-12-09T170831_adv.csv", sep=",",skip=3,
                 header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
+
+flux10b <- fread("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_2020/eddypro_JER_2020_May_Dec_full_output_2021-12-08T174700_adv.csv", sep=",",skip=3,
+                 header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),col.names=colnames(flux.units))
 
 
 # combine all individual years of flux runs
-flux <- rbind(flux1a, flux1b, flux1c, flux2, flux3, flux4, flux5, flux6, flux7, flux8, flux9a, flux9b)
+flux <- rbind(flux1a, flux1b, flux1c, flux2, flux3, flux4,
+              flux5, flux6, flux7, flux8, flux8.1, flux9, flux10a, flux10b)
 
 # format date
 flux[,date_time := paste(date,time,sep=" ")]
@@ -218,8 +230,9 @@ ggplot(flux,aes(date_time,air_temperature))+geom_line()
 
 # co2 flux
 ggplot(flux, aes(date_time,co2_flux,colour=factor(qc_co2_flux)))+
-  geom_point()+
-  ylim(c(-5,5))
+  geom_point(size=0.2)+
+  ylim(c(-20,20))+
+  facet_grid(.~year, scales="free_x")
 
 
 ggplot(flux[month(date_time)==12&qc_co2_flux<2,],aes(DOY,co2_flux))+
