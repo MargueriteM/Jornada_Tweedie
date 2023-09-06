@@ -177,6 +177,8 @@ radioButtons("variable2", "Biomet variables:",
 radioButtons("variable3", "Instrument variables:",
              c("Battery (V)" = "batt_volt_Avg",
                "AGC/signal strength (unitless)" = "agc_Avg",
+               "IRGA warnings"="irga_warnings",
+               "CSAT warnings" = "csat_warnings",
                "Datalogger Panel Temperature (C)" = "panel_temp_Avg"))
 
  
