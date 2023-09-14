@@ -18,18 +18,15 @@ library(tidyr)
 library(dplyr)
 
 # ENTER YEAR TO CHECK HERE
-<<<<<<< HEAD
+
 yeartocheck <- 2023 
-=======
-yeartocheck <- 2023
->>>>>>> 54fc026c197d6545690280df2263a049b6de1c2d
 
 # get windrose function, source directly from Github
 #source("~/Desktop/R/R_programs/Functions/plot.windrose.R")
 source(paste0("https://raw.githubusercontent.com/MargueriteM/R_functions/master/plot.windrose.R"))
 
 
-basedir <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower"
+basedir <- "C:/Users/memauritz/OneDrive - University of Texas at El Paso/Bahada/Tower"
 
 # /Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/
 
@@ -90,8 +87,8 @@ setwd(paste(basedir,"/SoilSensor_CS650/",yeartocheck,"/Raw_Data/ASCII",sep=""))
 
 
 # load headers of file and data
-cs650names <- colnames(read.table("dataL1_Soil_2022.csv", sep=",", skip=1,heade=TRUE))
-cs650wide <- read.table("dataL1_Soil_2022.csv", sep=",", skip=4, col.names = cs650names, na.strings="-9999")
+cs650names <- colnames(read.table("dataL1_Soil_2023.csv", sep=",", skip=1,heade=TRUE))
+cs650wide <- read.table("dataL1_Soil_2023.csv", sep=",", skip=4, col.names = cs650names, na.strings="-9999")
 
 
 #cs650names <- colnames(read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=1,heade=TRUE))
