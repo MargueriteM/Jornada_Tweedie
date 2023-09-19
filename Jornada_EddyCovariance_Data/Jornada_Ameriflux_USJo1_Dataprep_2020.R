@@ -93,6 +93,10 @@ write.table(flux.biomet[,!c("date_time"),with=FALSE],
                   "_PRELIM.csv",sep=""),
             sep=',', dec='.', row.names=FALSE, na="-9999", quote=FALSE)
 
+# 19 Sep 2023 submitted following files and changed name to _PRELIM to submit
+#US-Jo1_HH_202001010000_202101010000submit
+#US-Jo1_HH_202012312330_202111302330submit
+#US-Jo1_HH_202201010000_202210010000submit
 
 # # save by years
 # for (i in 2010:2019){

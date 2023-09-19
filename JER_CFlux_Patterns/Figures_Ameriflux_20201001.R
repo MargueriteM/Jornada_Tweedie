@@ -438,7 +438,7 @@ daily_cum_sum <- daily_sum[,':='(NEE_cum = cumsum(NEE_daily),
                                  ET_cum = cumsum(ET_daily)),
                            by="Year"]
 
-daily_cum_sum[,year_lab := ifelse(yday(date)==365, Year, NA)]
+daily_cum_sum[,year_lab := ifelse(yday(date)==348, Year, NA)]
 
 
 p5 <- ggplot(daily_cum_sum, aes(DoY,NEE_cum,colour=factor(Year)))+
@@ -454,8 +454,6 @@ p5 <- ggplot(daily_cum_sum, aes(DoY,NEE_cum,colour=factor(Year)))+
  #   width=800,height=540)
 p5
 dev.off()
-
-
 
 
 ### As Annual Sum
@@ -510,7 +508,73 @@ ggplot(daily_all)+
 #          row.names=FALSE)
 # 
 
-  
+# Add analysis for GPP and ET regression following Biederman and Scott 2017
+# Scott, R. L., and J. A. Biederman (2017), Partitioning evapotranspiration using long-term carbon dioxide and water vapor ﬂuxes, Geophys. Res. Lett., 44, 6833–6840, doi:10.1002/2017GL074324
 
 
+# Plot cumulative ET and GPP per year
+ggplot(daily_cum_sum[Year>2010&Year!=2013&Year!=2017&Year<2020,], aes(x=DoY))+
+  geom_line(aes(y=GPP_cum),colour="green")+
+  geom_line(aes(y=ET_cum),colour="blue")+
+  labs(y=expression("Cumulative GPP (gC" *m^-2*") and ET (mm" *m^-2*")"))+
+  theme(legend.position="none")+
+  facet_wrap(Year~.)+
+  theme_bw()
+# Plot cumulative ET and GPP per year with daily rainfall
+ggplot()+
+  geom_line(data=daily_cum_sum[Year>2010&Year!=2013&Year!=2017&Year<2020,], aes(x=DoY,y=GPP_cum),colour="green")+
+  geom_line(data=daily_cum_sum[Year>2010&Year!=2013&Year!=2017&Year<2020,], aes(x=DoY,y=ET_cum),colour="blue")+
+  geom_col(data=precip_daily[Year>2010&Year!=2013&Year!=2017&Year<2020,], aes(yday(date),precip.tot*10))+
+  labs(y=expression("Cumulative GPP (gC" *m^-2*") and ET (mm" *m^-2*")"))+
+  theme(legend.position="none")+
+  facet_wrap(Year~.)+
+  theme_bw()
+
+# Plot annual GPP/ET ~ WUE
+ggplot(daily_sum[Year>2011&Year!=2013&Year!=2017&Year<2020,], aes(x=DoY))+
+  geom_line(aes(y=GPP_daily/ET_daily))+
+  ylim(c(0,12))+
+  labs(y=expression("WUE (GPP/ET)"))+
+  theme(legend.position="none")+
+  facet_wrap(Year~.)+
+  theme_bw()
+
+# Plot annual WUE in 2011
+ggplot(daily_sum[Year==2011,], aes(x=DoY))+
+  geom_line(aes(y=GPP_daily/ET_daily))+
+  ylim(c(0,100))+
+  labs(y=expression("WUE (GPP/ET)"))+
+  theme(legend.position="none")+
+  facet_wrap(Year~.)+
+  theme_bw()
+
+
+
+# calculate a monthly sum
+# calculate annual budget
+monthly_sum <- daily_sum[,list(NEE_month = sum(NEE_daily),
+                              GPP_month = sum(GPP_daily),
+                              Reco_month = sum(Reco_daily),
+                              ET_month = sum(ET_daily)),
+                        by="Year,month"]
+
+
+# graph GPP vs ET by month and year
+ggplot(monthly_sum[Year<2020 & Year!=2013], aes(GPP_month,ET_month))+
+     geom_point(aes(colour=factor(Year)))+
+     geom_smooth(method="lm", se=FALSE)+
+     facet_wrap(month~.)+
+  theme_bw()
+
+# in one graph with monthtly regressions
+ggplot(monthly_sum[Year<2020 & Year!=2013], aes(GPP_month,ET_month, colour=factor(month)))+
+  geom_point()+
+  geom_smooth(method="lm", se=FALSE)
+
+# in one graph for June, July, August
+ggplot(monthly_sum[Year<2020 & Year!=2013 & (month %in% c(6,7,8))],
+       aes(GPP_month,ET_month, colour=factor(month)))+
+  geom_point()+
+  ylim(c(0,60))+
+  geom_smooth(method="lm", se=FALSE)
 

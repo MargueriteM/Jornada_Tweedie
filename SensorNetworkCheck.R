@@ -35,6 +35,7 @@ library(tidyverse)
 # if tidyverse doesn't work:
 # library(ggplot2)
 # library(dplyr)
+# library(tidyr)
 
 # Import data
 setwd("~/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/SensorNetwork_Data")

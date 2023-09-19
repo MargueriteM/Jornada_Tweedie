@@ -811,11 +811,19 @@ flux_filter_sd <- (flux_filter_sd[!(duplicated(flux_filter_sd, by=c("date_time")
  
   flux_filter_sd_eb <- flux_filter_sd[`u*`>0.2,.(date=date,
                                                 EB_ec = H+LE,
+                                                EB_clim = Rn_1_1_1-(SHF_1+Storage),
+                                                EB_clim_ns = Rn_1_1_1-SHF_1,
                                            EB_met1 = (Rn_1_1_1-(SHF_1+Storage)), # surface SHF
-                                           EB_met2 = (Rn_1_1_1-(SHF_2+Storage))), # deeper SHF
+                                           EB_met2 = (Rn_1_1_1-(SHF_2+Storage)),  # deeper SHF
+                                           EB_met1_ns = (Rn_1_1_1-(SHF_1)), 
+                                           EB_met2_ns = (Rn_1_1_1-(SHF_2))),
                                      by="date_time"][,.(EB_ec = sum(EB_ec),
+                                                        EB_clim = sum(EB_clim),
+                                                        EB_clim_ns = sum(EB_clim_ns),
                                                         EB_Met1 = sum(EB_met1),
-                                                        EB_Met2 = sum(EB_met2)),
+                                                        EB_Met2 = sum(EB_met2),
+                                                        EB_Met1_ns = sum(EB_met1_ns),
+                                                        EB_Met2_ns = sum(EB_met2_ns)),
                                                      by="date"]
 
  # plot storage
@@ -827,33 +835,44 @@ flux_filter_sd <- (flux_filter_sd[!(duplicated(flux_filter_sd, by=c("date_time")
    geom_point()+
    geom_abline(intercept=0, slope=1)
  
- # compare EB from ec with met data
- ggplot(flux_filter_sd_eb, aes(EB_ec,EB_Met1))+
-   geom_point()+
+ # compare EB from ec with met data, with and without 'storage'
+ p.eb.ec <- ggplot(flux_filter_sd_eb, aes(EB_ec))+
+   geom_point(aes(y=EB_Met1), colour="blue")+
+   geom_point(aes(y=EB_Met1_ns), colour="brown")+
    geom_abline(intercept=0, slope=1)
  
- # graph ratio of EB_ec/EB_Met
  
+ 
+ # graph ratio of EB_ec/EB_Met with storage
  ggplot(flux_filter_sd_eb, aes(date,EB_ec/EB_Met1))+
    geom_point()+
    geom_hline(yintercept=1)
  
- # histogram of EB
- ggplot(flux_filter_sd_eb, aes(EB_ec/EB_Met1))+
-     geom_histogram(bins=60)+
-   geom_vline(xintercept=c(0.9,0.8,0.7,0.6))
+ # graph ratio of EB_ec/EB_Met without storage
+ p.eb.ec.time<- ggplot(flux_filter_sd_eb, aes(date,EB_ec/EB_Met1_ns))+
+   geom_point()+
+   geom_hline(yintercept=1)
  
+ # histogram of EB
+p.eb.hist<- ggplot(flux_filter_sd_eb, aes(EB_ec/EB_Met1_ns))+
+     geom_histogram(bins=60)+
+   geom_vline(xintercept=c(0.9,0.8,0.7,0.6,0.5))
+ 
+# graph multiple EB graphs togethe
+plot_grid(p.eb.ec, p.eb.ec.time, p.eb.hist)
+
 # graph Tair and Tsoil
- ggplot(flux_filter_sd, aes(date_time))+
+p.temp <-  ggplot(flux_filter_sd, aes(date_time))+
    geom_line(aes(y=Ta_1_1_1), colour="lightblue", linewidth=0.5)+
    geom_line(aes(y=Ts_1_1_1), colour="brown", linewidth=0.5)
  
  # graph VWC
- ggplot(flux_filter_sd, aes(date_time))+
+p.vwc <- ggplot(flux_filter_sd, aes(date_time))+
    geom_line(aes(y=SWC_1_1_1), colour="blue", linewidth=0.5)
 
  # graph SHF of two depths
- ggplot(flux_filter_sd, aes(SHF_1,SHF_2))+
+p.shf <- ggplot(flux_filter_sd, aes(SHF_1,SHF_2))+
    geom_point()
- 
+
+plot_grid(p.temp, p.vwc, p.shf) 
   

@@ -373,7 +373,7 @@ fig.S1 <- plot_grid(daily.comp.co2, daily.comp.et, ncol=2,
 
 # save
 setwd(figpath)
-ggsave("FigureS1_MeanRERegr_ScottCorrect.pdf", fig.S1, device=pdf,path=figpath, dpi=300)
+# ggsave("FigureS1_MeanRERegr_ScottCorrect.pdf", fig.S1, device=pdf,path=figpath, dpi=300)
 
 # timeseries
 daily.comp.co2.ts <- ggplot(daily_sum_ec)+
@@ -400,7 +400,7 @@ fig.S2 <- plot_grid(daily.comp.co2.ts, daily.comp.et.ts, nrow=2)
 
 # save
 setwd(figpath)
-ggsave("FigureS2_MeanRETimeS_ScottCorrect.pdf", fig.S2, device=pdf,path=figpath, dpi=300)
+# ggsave("FigureS2_MeanRETimeS_ScottCorrect.pdf", fig.S2, device=pdf,path=figpath, dpi=300)
 
 
 # add a date variable to daily_sum_ec
@@ -1069,5 +1069,5 @@ write.table(ann.seas.wide, "Cumulative_seasonal_WIDE_ScottCorrect.csv", sep=",",
 # percent of measured/gapfilled values
 write.table(gapfill.perc, "Gapfill_Measured_ScottCorrect.csv", sep=",", dec=".", row.names=FALSE)
 
-
+# air temperature daily mean, min, max, number of days below 0, sequence of days below 0
 
