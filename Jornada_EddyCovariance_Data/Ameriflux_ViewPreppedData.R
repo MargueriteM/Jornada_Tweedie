@@ -8,7 +8,8 @@ library(ggplot2)
 library(bit64)
 
 # set WD to One Drive
-setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Ameriflux_USJo1")
+# setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Ameriflux_USJo1")
+setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Ameriflux")
 
 # read data year by year and combine
 flux.20 <- fread("US-Jo1_HH_202001010000_202101010000submit.csv",sep=",", dec=".",
