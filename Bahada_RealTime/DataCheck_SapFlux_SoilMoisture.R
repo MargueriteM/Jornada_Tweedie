@@ -12,7 +12,7 @@ library(dplyr)
 
 # import data 
 basedir <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SapFlowNet/Data/Raw"
-
+setwd(basedir)
 # read column names and units
 sfn_soildat_colnames <- fread("BajadaCR1000XSapFlowSoilMoisture_SoilData_SapFlow.dat",
                        header = TRUE, skip=1,sep=",", fill=TRUE,
@@ -39,9 +39,9 @@ bind_rows(filter(sfn_soildat, probe %in% rows_to_skip))%>%
   mutate(metric=case_when (probe %in% rows_to_skip ~ as.character(probe),
                            TRUE ~ as.character(metric)))
 
-# graph data by metric and color by number
+# graph data by metric and color by number (option to select specific probes)
 sfn_soildat1 %>% filter(datetime>as.Date("2023-08-10")&
-                          probe.num %in% c(NA,1,2,3)&
+                          #probe.num %in% c(NA,1,2,3)& # option to select specific probes
                           metric %in% c("BattV_Avg","PTemp_C_Avg","T","Temp","VWC","WaterPot"))%>%
 ggplot(., aes(datetime, value,color=factor(probe.num)))+
   geom_line()+
