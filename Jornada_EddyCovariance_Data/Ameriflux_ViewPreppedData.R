@@ -8,7 +8,9 @@ library(ggplot2)
 library(bit64)
 
 # set WD to One Drive
+# CZO Data account
 # setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Ameriflux_USJo1")
+# Dryland Critical Zone Teams/Sharepoint
 setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Ameriflux")
 
 # read data year by year and combine
