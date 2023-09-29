@@ -141,7 +141,7 @@ library(corrplot)
 #############
 # IMPORT DATA
 #############
-year_file <- 2023
+year_file <- 2020
 # Sensor network data:
 SN_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
@@ -697,10 +697,12 @@ ggplot(biomet2[variable %in% c("soilmoisture") & veg %in% c("LATR","PRGL","MUPO"
 
 #### Do Not Run, Need to keep SWC < 0 for Talveer to do rectification steps
 #### 2020-04-14: convert all VWC to % soil moisture, requested by Ameriflux QA/QC check.
-### biomet2[variable %in% c("soilmoisture"), mean.val := mean.val*100]
+
 #### make sure all SWC are >0
 ### biomet2[variable %in% c("soilmoisture") & mean.val<0, mean.val := NA]
 
+# Keep conversion of VWC to percent (re-implement for 2020-2023 on 2023-09-28)
+biomet2[variable %in% c("soilmoisture"), mean.val := mean.val*100]
 
  # Bare: 1
 biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="SN" & height=="-5"),
