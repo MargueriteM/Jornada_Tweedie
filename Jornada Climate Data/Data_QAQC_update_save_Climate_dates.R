@@ -212,10 +212,9 @@ ggplot(met30_long[variable%in% c("up_tot", "dn_tot")], aes(date_time, value, col
 ggplot(met30_long[variable%in% c("net_rs", "net_ri")], aes(date_time, value, colour=variable))+geom_point()+
   labs(title="net_rs and net_rl")
 
-# 2022 looks good up to "2022-08-25 12:00:00 UTC"
-# 2022 looks good up to "2022-10-13 08:00:00 UTC"
+
 # 2022 looks good up to 2022-12-31
-# 2023 looks goo up to "2023-08-25 07:30:00 UTC"
+# 2023 looks goo up to "2023-10-31 07:30:00 UTC"
 
 # if up or dn is NA then albedo and net are also NA
 dn_tot_na <- copy(met30_long[variable == "dn_tot" & is.na(value), (date_time)])
