@@ -35,13 +35,13 @@ rm(flux_filter_sd_all)
 # or read demofile instead
 # in 2021 IRGA diag column was added on 15 June 2021. From 16 June 2021 onward change EddyPro metadata to use IRGA diag value
 # there were also some problems with CSAT and IRGA 1 May - 11 Jun 2021!!
-flux_add1 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/eddypro_JER_2021_Jan_Jun_fluxnet_2022-01-18T173841_adv.csv",
+flux_add1 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/eddypro_JER_2021_Jan_Jun_fluxnet_2022-01-18T173841_adv.csv",
               sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
 
-flux_add2 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/eddypro_JER_2021_Jul_Nov_fluxnet_2022-01-07T113327_adv.csv",
+flux_add2 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/eddypro_JER_2021_Jul_Nov_fluxnet_2022-01-07T113327_adv.csv",
                    sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
 
-flux_add3 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/eddypro_JER_2021_Dec_fluxnet_2022-09-16T135135_adv.csv",
+flux_add3 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2021/EddyPro_Out/eddypro_JER_2021_Dec_fluxnet_2022-09-16T135135_adv.csv",
                    sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
 
 
@@ -81,11 +81,11 @@ ggplot(flux_add[!(FILENAME_HF %in% ("not_enough_data")),],aes(date_time,P_RAIN_1
 
 # load biomet data
 #2021
-biomet2021.names <- colnames(fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2021.csv",
+biomet2021.names <- colnames(fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2021.csv",
                                    header=TRUE))
 
 
-biomet2021 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2021.csv",
+biomet2021 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2021.csv",
                     skip=2, header=FALSE, col.names=biomet2021.names, na.strings=c("-9999"))
 
 
