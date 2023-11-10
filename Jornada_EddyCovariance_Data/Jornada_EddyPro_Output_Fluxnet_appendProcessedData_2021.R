@@ -140,7 +140,7 @@ flux_add[FC_SSITC_TEST>1 | is.na(FC_SSITC_TEST), filter_fc := 1L]
 # IRGA changes: 20 Nov 20 -> loaner  (AGC baseline: ~50)
 #               26 Feb 21 -> remove loaner & re-install lab IRGA & CSAT
 #               15/17 Dec -> loaner (AGC baseline: 63)
-#              8 Apr 21 -> remove loaner & re-install lab IRGA (AGC: 56)
+#              8 Apr 22 -> remove loaner & re-install lab IRGA (AGC: 56)
 # also getting several 0 AGC values this year ...
 # seems to match when FC_SSITC_TEST is NA
 
