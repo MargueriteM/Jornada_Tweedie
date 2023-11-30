@@ -16,6 +16,7 @@ library(tidyr)
 library(lsr) # contains quantileCut function
 library(gridExtra)
 library(viridis)
+library(cowplot)
 #############
 # IMPORT DATA
 #############
@@ -79,16 +80,69 @@ ggplot(flux, aes(DOY,co2_flux_closed,colour=factor(qc_co2_flux_closed)))+
   geom_point(size=0.2)+
   ylim(c(-20,20))
 
+# graph the time-series of CO2 flux together
+ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2 & agc_mean_open<=56 & DOY>230], aes(x=DOY))+
+  geom_line(aes(y=co2_flux_open), size=0.2, color="black")+
+  geom_line(aes(y=co2_flux_closed), size=0.2, color="green")+
+    ylim(c(-20,20))
+
+
 ## graph the fluxes against each other
-ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2],
+ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2 & agc_mean_open<=56],
        aes(co2_flux_closed,co2_flux_open))+
   geom_point(size=0.2)+
   ylim(c(-20,20))+
   geom_abline(intercept=0,slope=1)
 
 
+# compare co2 molar density
+ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2 & agc_mean_open<=56],
+       aes(co2_molar_density_closed,co2_molar_density_open))+
+  geom_point(size=0.2)+
+  geom_abline(intercept=0,slope=1)
+
+# compare co2 mole fraction
+ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2 & agc_mean_open<=56],
+       aes(co2_mole_fraction_closed,co2_mole_fraction_open))+
+  geom_point(size=0.2)+
+  geom_abline(intercept=0,slope=1)
+
+# compare air density
+ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2 & agc_mean_open<=56],
+       aes(air_density_closed,air_density_open))+
+  geom_point(size=0.2)+
+  geom_abline(intercept=0,slope=1)
+
+
+# compare h2o molar density
+ggplot(flux[qc_h2o_flux_open<2 & qc_h2o_flux_closed <2 & agc_mean_open<=56],
+       aes(h2o_molar_density_closed,h2o_molar_density_open))+
+  geom_point(size=0.2)+
+  geom_abline(intercept=0,slope=1)
+
+# graph the time-series of CO2 molar density
+ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2 & agc_mean_open<=56 & DOY>230], aes(x=DOY))+
+  geom_point(aes(y=co2_molar_density_open), size=0.2, color="black")+
+  geom_point(aes(y=co2_molar_density_closed), size=0.2, color="green")
+
+# graph the time-series of CO2 mole fraction
+ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2 & agc_mean_open<=56 & DOY>230], aes(x=DOY))+
+  geom_point(aes(y=co2_mole_fraction_open), size=0.2, color="black")+
+  geom_point(aes(y=co2_mole_fraction_closed), size=0.2, color="green")
+
+# graph the time-series of air density
+ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2 & agc_mean_open<=56 & DOY>230], aes(x=DOY))+
+  geom_point(aes(y=air_density_open), size=0.2, color="black")+
+  geom_point(aes(y=air_density_closed), size=0.2, color="green")
+
+# graph the time-series of H2O molar density
+ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2 & agc_mean_open<=56 & DOY>230], aes(x=DOY))+
+  geom_point(aes(y=h2o_molar_density_open), size=0.2, color="black")+
+  geom_point(aes(y=h2o_molar_density_closed), size=0.2, color="green")
+
+
 ## graph the co2 fluxes against each other
-fig.co2.compare <- ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2],
+fig.co2.compare <- ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2 & agc_mean_open<=56&DOY>230],
        aes(co2_flux_closed,co2_flux_open))+
   geom_point(size=0.5)+
   ylim(c(-20,20))+
@@ -97,22 +151,35 @@ fig.co2.compare <- ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2],
   theme_bw()
 
 ## graph the LE fluxes against each other
-fig.le.compare <- ggplot(flux[qc_h2o_flux_open<2 & qc_h2o_flux_closed <2],
+fig.le.compare <- ggplot(flux[qc_h2o_flux_open<2 & qc_h2o_flux_closed <2 & agc_mean_open<=56&DOY>230],
        aes(LE_closed,LE_open))+
   geom_point(size=0.5)+
   geom_abline(intercept=0,slope=1, color="dark grey")+
   theme_bw()
 
 ## graph the H fluxes against each other
-fig.h.compare <- ggplot(flux[qc_H_open<2 & qc_H_closed <2],
+fig.h.compare <- ggplot(flux[qc_H_open<2 & qc_H_closed <2& agc_mean_open<=56&DOY>230],
        aes(H_closed,H_open))+
   geom_point(size=0.5)+
   geom_abline(intercept=0,slope=1, color="dark grey")+
   theme_bw()
 
 
+# compare co2 molar density
+fig.co2.moldens.compare <- ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2 & agc_mean_open<=56],
+       aes(co2_molar_density_closed,co2_molar_density_open))+
+  geom_point(size=0.2)+
+  geom_abline(intercept=0,slope=1, color="dark grey")+
+  theme_bw()
+
+# compare h2o molar density
+fig.h2o.moldens.compare <- ggplot(flux[qc_h2o_flux_open<2 & qc_h2o_flux_closed <2 & agc_mean_open<=56],
+       aes(h2o_molar_density_closed,h2o_molar_density_open))+
+  geom_point(size=0.2)+
+  geom_abline(intercept=0,slope=1)
+
 # graph the covariances against each other
-fig.cov.compare <- ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2],
+fig.cov.compare <- ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2 & agc_mean_open<=56&DOY>230],
        aes(`w/co2_cov_closed`,`w/co2_cov_open`))+
   geom_point(size=0.5)+
   ylim(c(-0.1,0.1))+
@@ -120,7 +187,64 @@ fig.cov.compare <- ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2],
   geom_abline(intercept=0,slope=1, color="dark grey")+
   theme_bw()
 
-plot_grid(fig.co2.compare, fig.cov.compare, fig.le.compare, fig.h.compare)
+plot_grid(fig.co2.compare, fig.moldens.compare, fig.le.compare, fig.h.compare)
+plot_grid(fig.co2.moldens.compare, fig.h2o.moldens.compare)
+
+# co-plot time-series
+# graph the time-series of CO2 flux together
+
+fig.time.co2 <- ggplot()+
+  geom_line(aes(x=DOY,y=co2_flux_open), data = flux[qc_co2_flux_open<2 & agc_mean_open<=56&DOY>230], size=0.2, color="black")+
+  geom_point(aes(x=DOY,y=co2_flux_open), data = flux[qc_co2_flux_open<2 & agc_mean_open<=56&DOY>230], size=0.1, color="black")+
+  geom_line(aes(x=DOY, y=co2_flux_closed), data=flux[qc_co2_flux_open <2&DOY>230], size=0.2, color="green")+
+  geom_point(aes(x=DOY, y=co2_flux_closed), data=flux[qc_co2_flux_open <2&DOY>230], size=0.1, color="green")+
+  ylim(c(-20,20))
+
+# graph covariance time-series together
+fig.time.cov <- ggplot()+
+  geom_line(aes(x=DOY,y=`w/co2_cov_open`), data = flux[qc_co2_flux_open<2 & agc_mean_open<=56&DOY>230], size=0.2, color="black")+
+  geom_line(aes(x=DOY, y=`w/co2_cov_closed`), data=flux[qc_co2_flux_open <2&DOY>230], size=0.2, color="green")+
+  ylim(c(-0.2,0.2))
+
+
+# graph the time-series of CO2 molar density
+fig.time.co2.moldens <- ggplot(flux[qc_co2_flux_open<2 & qc_co2_flux_closed <2 & agc_mean_open<=56 & DOY>230], aes(x=DOY))+
+  geom_point(aes(y=co2_molar_density_open), size=0.2, color="black")+
+  geom_point(aes(y=co2_molar_density_closed), size=0.2, color="green")+
+  geom_line(aes(y=co2_molar_density_open), size=0.2, color="black")+
+  geom_line(aes(y=co2_molar_density_closed), size=0.2, color="green")
+
+
+# graph the time-series of CO2 molar density
+fig.time.h2o.moldens <- ggplot(flux[qc_h2o_flux_open<2 & qc_h2o_flux_closed <2 & agc_mean_open<=56 & DOY>230], aes(x=DOY))+
+  geom_point(aes(y=h2o_molar_density_open), size=0.2, color="black")+
+  geom_point(aes(y=h2o_molar_density_closed), size=0.2, color="green")+
+  geom_line(aes(y=h2o_molar_density_open), size=0.2, color="black")+
+  geom_line(aes(y=h2o_molar_density_closed), size=0.2, color="green")
+
+
+# graph H time-series together
+fig.time.h <- ggplot()+
+  geom_point(aes(x=DOY,y=H_open), data = flux[qc_H_open<2 & agc_mean_open<=56& DOY>230], size=0.2, color="black")+
+  geom_point(aes(x=DOY, y=H_closed), data=flux[qc_H_closed <2&DOY>230], size=0.2, color="green")+
+  geom_line(aes(x=DOY,y=H_open), data = flux[qc_H_open<2 & agc_mean_open<=56& DOY>230], size=0.2, color="black")+
+  geom_line(aes(x=DOY, y=H_closed), data=flux[qc_H_closed <2&DOY>230], size=0.2, color="green")
+
+
+# graph LE time-series together
+fig.time.le <- ggplot()+
+  geom_line(aes(x=DOY,y=LE_open), data = flux[qc_h2o_flux_open<2 & agc_mean_open<56&DOY>230], size=0.2, color="black")+
+  geom_line(aes(x=DOY, y=LE_closed), data=flux[qc_h2o_flux_open <2&DOY>230], size=0.2, color="green")+
+  geom_point(aes(x=DOY,y=LE_open), data = flux[qc_h2o_flux_open<2 & agc_mean_open<56&DOY>230], size=0.2, color="black")+
+  geom_point(aes(x=DOY, y=LE_closed), data=flux[qc_h2o_flux_open <2&DOY>230], size=0.2, color="green")
+
+
+
+plot_grid(fig.time.co2, fig.time.moldens, fig.time.le, fig.time.h)
+
+plot_grid(fig.time.co2+ylim(-5,5), fig.time.le, nrow=2)
+
+plot_grid(fig.time.co2.moldens, fig.time.h2o.moldens, nrow=2)
 
 #
 # # from James: scf and wpl corrections
