@@ -58,28 +58,71 @@ ec5 <- do.call("rbind", lapply(ec_files[97:103], header = FALSE, fread, sep=",",
                                            "atm_press",	"CO2_dry_7200_raw",	"H2O_dry_7200_raw",
                                            "AGC_7200_raw",	"tmpr_avg_7200_raw",	"press_tot_7200_raw")))
 
-ec.all <- rbind(ec, ec2,ec3,ec4)
-ec.all <- ec5
+ec6 <- do.call("rbind", lapply(ec_files[100:147], header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
+                               na.strings=c(-9999,"#NAME?"),
+                               col.names=c("TIMESTAMP",
+                                           "RECORD",
+                                           "Ux",	"Uy",	"Uz",	"Ts",	"CO2",	"H2O",
+                                           "fw",	"press",	"diag_csat","diag_irga_raw",	"agc",	"t_hmp",	"e_hmp",
+                                           "atm_press",	"CO2_dry_7200_raw",	"H2O_dry_7200_raw",
+                                           "AGC_7200_raw",	"tmpr_avg_7200_raw",	"press_tot_7200_raw")))
+
+
+ec7 <- do.call("rbind", lapply(ec_files[148:156], header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
+                               na.strings=c(-9999,"#NAME?"),
+                               col.names=c("TIMESTAMP",
+                                           "RECORD",
+                                           "Ux",	"Uy",	"Uz",	"Ts",	"CO2",	"H2O",
+                                           "fw",	"press",	"diag_csat","diag_irga_raw",	"agc",	"t_hmp",	"e_hmp",
+                                           "atm_press",	"CO2_dry_7200_raw",	"H2O_dry_7200_raw",
+                                           "AGC_7200_raw",	"tmpr_avg_7200_raw",	"press_tot_7200_raw")))
+
+
+ec.all <- rbind(ec6, ec7)
+ec.all <- ec6
 ec.all[,':=' (hour=hour(TIMESTAMP), minute = minute(TIMESTAMP), second = second(TIMESTAMP))]
 
 ec.sub <- copy(ec.all[second==0,])
 
 
 # graph
-ggplot(ec4, aes(TIMESTAMP, agc))+
-  geom_point()
 
 
+# closed path
 ggplot(ec.sub[CO2_dry_7200_raw>300,], aes(TIMESTAMP, CO2_dry_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)
 
-ggplot(ec.sub[CO2_dry_7200_raw>300,], aes(TIMESTAMP, CO2))+
+ggplot(ec.sub[H2O_dry_7200_raw<50], aes(TIMESTAMP, H2O_dry_7200_raw))+
+  geom_point(size=1)+
+  geom_line(linewidth=0.5)
+
+ggplot(ec.sub, aes(TIMESTAMP, AGC_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)
 
 
+ggplot(ec.sub, aes(TIMESTAMP, tmpr_avg_7200_raw))+
+  geom_point(size=1)+
+  geom_line(linewidth=0.5)
 
+ggplot(ec.sub, aes(TIMESTAMP, press_tot_7200_raw))+
+  geom_point(size=1)+
+  geom_line(linewidth=0.5)
+
+# open path
+ggplot(ec.sub, aes(TIMESTAMP, CO2))+
+  geom_point(size=1)+
+  geom_line(linewidth=0.5)
+
+ggplot(ec.sub, aes(TIMESTAMP, H2O))+
+  geom_point(size=1)+
+  geom_line(linewidth=0.5)
+
+ggplot(ec.sub, aes(TIMESTAMP, agc))+
+  geom_point()
+
+# specific time periods of closed-path CO2
 ggplot(ec.sub[date(TIMESTAMP)>as.Date("2023-10-01")&CO2_dry_7200_raw>300,], aes(TIMESTAMP, CO2_dry_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)
