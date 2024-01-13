@@ -7,6 +7,8 @@ library(lubridate)
 library(dplyr)
 
 ec_files <- list.files(path="/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2023/Raw_Data/ASCII", full.names=TRUE) 
+ec_files24 <- list.files(path="/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2024/Raw_Data/ASCII", full.names=TRUE) 
+
 # read files and bind them into one file. fill=TRUE because of the missing columns in 2011
 
 ec <- do.call("rbind", lapply(ec_files[1:5], header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
@@ -78,8 +80,28 @@ ec7 <- do.call("rbind", lapply(ec_files[148:156], header = FALSE, fread, sep=","
                                            "AGC_7200_raw",	"tmpr_avg_7200_raw",	"press_tot_7200_raw")))
 
 
-ec.all <- rbind(ec6, ec7)
-ec.all <- ec6
+ec8 <- do.call("rbind", lapply(ec_files[157:180], header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
+                               na.strings=c(-9999,"#NAME?"),
+                               col.names=c("TIMESTAMP",
+                                           "RECORD",
+                                           "Ux",	"Uy",	"Uz",	"Ts",	"CO2",	"H2O",
+                                           "fw",	"press",	"diag_csat","diag_irga_raw",	"agc",	"t_hmp",	"e_hmp",
+                                           "atm_press",	"CO2_dry_7200_raw",	"H2O_dry_7200_raw",
+                                           "AGC_7200_raw",	"tmpr_avg_7200_raw",	"press_tot_7200_raw")))
+
+ec9 <- do.call("rbind", lapply(ec_files24[1:9], header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
+                               na.strings=c(-9999,"#NAME?"),
+                               col.names=c("TIMESTAMP",
+                                           "RECORD",
+                                           "Ux",	"Uy",	"Uz",	"Ts",	"CO2",	"H2O",
+                                           "fw",	"press",	"diag_csat","diag_irga_raw",	"agc",	"t_hmp",	"e_hmp",
+                                           "atm_press",	"CO2_dry_7200_raw",	"H2O_dry_7200_raw",
+                                           "AGC_7200_raw",	"tmpr_avg_7200_raw",	"press_tot_7200_raw")))
+
+
+
+ec.all <- rbind(ec8, ec9)
+#ec.all <- ec6
 ec.all[,':=' (hour=hour(TIMESTAMP), minute = minute(TIMESTAMP), second = second(TIMESTAMP))]
 
 ec.sub <- copy(ec.all[second==0,])
@@ -136,6 +158,6 @@ ggplot(ec.sub[date(TIMESTAMP)>as.Date("2023-11-12")&CO2_dry_7200_raw>300,], aes(
   geom_line(linewidth=0.5)
 
 
-ggplot(ec.sub[date(TIMESTAMP)>as.Date("2023-11-13")&CO2_dry_7200_raw>300,], aes(TIMESTAMP, CO2_dry_7200_raw))+
+ggplot(ec.sub[date(TIMESTAMP)>as.Date("2023-12-25")&CO2_dry_7200_raw>300,], aes(TIMESTAMP, CO2_dry_7200_raw))+
   geom_point(size=1)+
-  geom_line(linewidth=0.5)+facet_grid(.~date(TIMESTAMP))
+  geom_line(linewidth=0.5)
