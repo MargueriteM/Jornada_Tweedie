@@ -89,7 +89,16 @@ ec8 <- do.call("rbind", lapply(ec_files[157:180], header = FALSE, fread, sep=","
                                            "atm_press",	"CO2_dry_7200_raw",	"H2O_dry_7200_raw",
                                            "AGC_7200_raw",	"tmpr_avg_7200_raw",	"press_tot_7200_raw")))
 
-ec9 <- do.call("rbind", lapply(ec_files24[1:9], header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
+ec9 <- do.call("rbind", lapply(ec_files24[1:15], header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
+                               na.strings=c(-9999,"#NAME?"),
+                               col.names=c("TIMESTAMP",
+                                           "RECORD",
+                                           "Ux",	"Uy",	"Uz",	"Ts",	"CO2",	"H2O",
+                                           "fw",	"press",	"diag_csat","diag_irga_raw",	"agc",	"t_hmp",	"e_hmp",
+                                           "atm_press",	"CO2_dry_7200_raw",	"H2O_dry_7200_raw",
+                                           "AGC_7200_raw",	"tmpr_avg_7200_raw",	"press_tot_7200_raw")))
+
+ec10 <- do.call("rbind", lapply(ec_files24[16:30], header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
                                na.strings=c(-9999,"#NAME?"),
                                col.names=c("TIMESTAMP",
                                            "RECORD",
@@ -99,8 +108,7 @@ ec9 <- do.call("rbind", lapply(ec_files24[1:9], header = FALSE, fread, sep=",", 
                                            "AGC_7200_raw",	"tmpr_avg_7200_raw",	"press_tot_7200_raw")))
 
 
-
-ec.all <- rbind(ec8, ec9)
+ec.all <- rbind(ec8, ec9, ec10)
 #ec.all <- ec6
 ec.all[,':=' (hour=hour(TIMESTAMP), minute = minute(TIMESTAMP), second = second(TIMESTAMP))]
 
@@ -119,7 +127,7 @@ ggplot(ec.sub[H2O_dry_7200_raw<50], aes(TIMESTAMP, H2O_dry_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)
 
-ggplot(ec.sub, aes(TIMESTAMP, AGC_7200_raw))+
+ggplot(ec.sub[AGC_7200_raw>20], aes(TIMESTAMP, AGC_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)
 
@@ -133,7 +141,7 @@ ggplot(ec.sub, aes(TIMESTAMP, press_tot_7200_raw))+
   geom_line(linewidth=0.5)
 
 # open path
-ggplot(ec.sub, aes(TIMESTAMP, CO2))+
+ggplot(ec.sub[CO2>500&CO2<800], aes(TIMESTAMP, CO2))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)
 
