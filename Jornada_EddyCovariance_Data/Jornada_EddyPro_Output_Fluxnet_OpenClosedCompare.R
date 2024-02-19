@@ -38,7 +38,7 @@ flux_open[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
   ,':='(date=as.Date.POSIXct(date_time),month=month(date_time),year=year(date_time))]
 
 # closed path
-flux_closed <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ClosedPath/EddyPro_Out/20231013_ClosedPathCompare/eddypro_JER_2023_0811_1010_ClosedPathCompare_fluxnet_2023-10-13T164431_adv.csv",
+flux_closed <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ClosedPath/EddyPro_Out/20231018_ClosedPathCompare2_umolmol/eddypro_JER_2023_0811_1010_ClosedPathCompare2_fluxnet_2023-10-18T121739_adv.csv",
                    sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
 
 # remove duplicate data
@@ -52,7 +52,7 @@ flux_closed[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))]
   ,':='(date=as.Date.POSIXct(date_time),month=month(date_time),year=year(date_time))]
 
 # column numbers differ, find difference
-c(setdiff(colnames(flux_open), colnames(flux_closed)), setdiff(colnames(flux_closed), colnames(flux_open)))c(setdiff(colnames(flux_open), colnames(flux_closed)), setdiff(colnames(flux_closed), colnames(flux_open)))
+c(setdiff(colnames(flux_open), colnames(flux_closed)), setdiff(colnames(flux_closed), colnames(flux_open)))
 
 # change column names and merge
 setnames(flux_open, 5:477, paste0(names(flux_open)[5:477], '_open'))
@@ -69,70 +69,64 @@ flux <- flux_open[flux_closed,]
 # make some plots
 # graph some met variables
 ggplot(flux[!(FILENAME_HF_open %in% ("not_enough_data")),],
-       aes(date_time,H2O_open))+geom_line()
+       aes(date_time,H2O_open))+
+  geom_line()+
+  ylim(c(0,40))
 
 ggplot(flux[!(FILENAME_HF_closed %in% ("not_enough_data")),],
-       aes(date_time,H2O_closed))+geom_line()
+       aes(date_time,H2O_closed))+
+  geom_line()+
+  ylim(c(0,40))
 
 
-# The biomet data is processing weirdly but I am not sure why. 
-# after emailing with Jiahong, the issue appears to be a bug that causes biomet columns to shift or 
-# erroneous data insertion when ts files have not_enough_data
+ggplot(flux[!(FILENAME_HF_open %in% ("not_enough_data")),],
+       aes(date_time,FC_open))+
+  geom_line()
 
-# load biomet data
-#2020
-biomet2020.names <- colnames(fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2020.csv",
-                                   header=TRUE))
-
-
-biomet2020 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2020.csv",
-                    skip=2, header=FALSE, col.names=biomet2020.names, na.strings=c("-9999"))
-
-
-biomet2020 <- biomet2020[,':='
-                         (date_time=ymd_hm(paste(timestamp_1,timestamp_2,timestamp_3,timestamp_4,timestamp_5, sep=" ")))]
-
-ggplot(biomet2020, aes(date_time,P_rain_1_1_1))+
+ggplot(flux[!(FILENAME_HF_closed %in% ("not_enough_data")),],
+       aes(date_time,FC_closed))+
   geom_line()
 
 
-# cut out biomet columns from eddypro fluxnet data and append from the biomet import data
-flux_add[,':='(TA_1_1_1=NULL, RH_1_1_1=NULL, PA_1_1_1=NULL, WD_1_1_1=NULL, MWS_1_1_1=NULL,
-               PPFD_IN_1_1_1=NULL, PPFD_OUT_1_1_1=NULL, P_RAIN_1_1_1=NULL, SWC_1_1_1=NULL, 
-               TS_1_1_1=NULL, G_1_1_1=NULL, G_1_2_1=NULL, G_2_1_1=NULL, G_2_2_1=NULL, 
-               LW_IN_1_1_1=NULL, LW_OUT_1_1_1=NULL, SW_OUT_1_1_1=NULL, SW_IN_1_1_1=NULL,
-               NETRAD_1_1_1=NULL)]
-
-flux_add <- merge(flux_add, biomet2020[,c("Ta_1_1_1","RH_1_1_1","Pa_1_1_1","WD_1_1_1","MWS_1_1_1",
-                                          "PPFD_1_1_1","PPFDr_1_1_1","P_rain_1_1_1","SWC_1_1_1",
-                                          "Ts_1_1_1","SHF_1_1_1","SHF_1_2_1","SHF_2_1_1","SHF_2_2_1",
-                                          "LWin_1_1_1","LWout_1_1_1","SWout_1_1_1","Rg_1_1_1",
-                                          "Rn_1_1_1","date_time")],by="date_time")
-
-setnames(flux_add, c("Ta_1_1_1","Pa_1_1_1","PPFD_1_1_1","PPFDr_1_1_1","P_rain_1_1_1",
-                      "Ts_1_1_1","SHF_1_1_1","SHF_1_2_1","SHF_2_1_1","SHF_2_2_1",
-                      "LWin_1_1_1","LWout_1_1_1","SWout_1_1_1","Rg_1_1_1",
-                      "Rn_1_1_1"),
-         c("TA_1_1_1", "PA_1_1_1","PPFD_IN_1_1_1", "PPFD_OUT_1_1_1", "P_RAIN_1_1_1",
-           "TS_1_1_1", "G_1_1_1", "G_1_2_1", "G_2_1_1", "G_2_2_1", 
-           "LW_IN_1_1_1", "LW_OUT_1_1_1", "SW_OUT_1_1_1", "SW_IN_1_1_1",
-           "NETRAD_1_1_1"))
 
 # create a column for filtering CO2 flux
 # filter_fc = 1 to remove and = 0 to keep
-flux_add[,filter_fc := 0L]
-# get rid of QC code >2 and low signal strength
-flux_add[FC_SSITC_TEST>1 | CUSTOM_AGC_MEAN>50, filter_fc := 1L]
+flux[,filter_fc_open := 0L]
+# get rid of QC code >2 and low signal strength (AGC bounces between 50-56)
+flux[FC_SSITC_TEST_open>1 | CUSTOM_AGC_MEAN_open>56, filter_fc_open := 1L]
 # fluxes outside 30 umol/m2/s are unrealistic
-flux_add[FC<(-30)|FC>30, filter_fc := 1L]
+flux[FC_open<(-30)|FC_open>30, filter_fc_open := 1L]
+
+
+# filter_fc = 1 to remove and = 0 to keep
+flux[,filter_fc_closed := 0L]
+# get rid of QC code >2 and low signal strength
+flux[FC_SSITC_TEST_closed>1 , filter_fc_closed := 1L]
+# fluxes outside 30 umol/m2/s are unrealistic
+flux[FC_closed<(-30)|FC_closed>30, filter_fc_closed := 1L]
 
 
 # look at the fluxes by month for each year
-ggplot(flux_add[filter_fc !=1,],
-                 aes(date_time,FC))+
-  geom_point(aes(colour=factor(FC_SSITC_TEST)))+
+ggplot(flux[filter_fc_open !=1,],
+                 aes(date_time,FC_open))+
+  geom_point(aes(colour=factor(FC_SSITC_TEST_open)))+
   geom_line()+
   geom_hline(yintercept=c(-5,5))
+
+ggplot(flux[filter_fc_closed !=1,],
+       aes(date_time,FC_closed))+
+  geom_point(aes(colour=factor(FC_SSITC_TEST_closed)))+
+  geom_line()+
+  geom_hline(yintercept=c(-5,5))
+
+# graph FC open vs closed
+ggplot(flux[filter_fc_closed !=1 & filter_fc_open !=1,],
+       aes(FC_closed,FC_open))+
+  geom_point()+
+  geom_abline(intercept = 0, slope=1)
+
+# look at covariance
+
 
 ###### H ######
 # look at H  by month for each year
