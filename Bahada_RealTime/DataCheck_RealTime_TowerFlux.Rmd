@@ -18,11 +18,8 @@ library(tidyr)
 library(dplyr)
 
 # ENTER YEAR TO CHECK HERE
-<<<<<<< HEAD
+
 yeartocheck <- 2023 
-=======
-yeartocheck <- 2023
->>>>>>> 54fc026c197d6545690280df2263a049b6de1c2d
 
 # get windrose function, source directly from Github
 #source("~/Desktop/R/R_programs/Functions/plot.windrose.R")
