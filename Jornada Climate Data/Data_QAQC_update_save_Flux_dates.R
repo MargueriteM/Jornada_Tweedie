@@ -138,7 +138,7 @@ library(lattice)
 # panel_temp_Avg	C
 # batt_volt_Avg	V
 
-year_file <- 2023
+year_file <- 2024
 
 # import most recent file
 flux.loggerinfo <-fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
@@ -228,6 +228,7 @@ ggplot(flux_long[variable %in% c("lws_1_Avg", "lws_2_Avg"),],
 
 # 2022 lws_1 appears to be working only intermitently
 # 2023 lws_1 is working continuously....but values get lost in the re-scale. 
+# 2024 lws_1 is working continuously....but values get lost in the re-scale. 
 # rescale LWS between 0-100
 # remove values <250
 flux_long[variable %in% c("lws_1_Avg","lws_2_Avg") & value<250, value := NA]
@@ -244,7 +245,7 @@ ggplot(flux_long[variable %in% c("lws_1_Avg", "lws_2_Avg"),],
        aes(date_time, value))+geom_line()+
   facet_grid(variable~.,scales="free_y")
 
-# 2021, 2022, 2023: remove lws_1
+# 2021, 2022, 2023, 2024 (14 Mar 2024): remove lws_1
 flux_long[variable %in% c("lws_1_Avg"), value := NA]
 
 # radiation data
@@ -312,6 +313,7 @@ enddate <- (max(flux_wide_save$date_time))
 print(paste("#",year(enddate), "data processed until",enddate,sep=" "))
 # 2023 data processed until 2023-08-25 07:30:00
 # 2023 data processed until 2023-12-31 23:30:00
+# 2024 data processed until 2024-03-14 09:00:00
 
 # # Save to Qa/QC and Combined folder with only year name
 qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/QAQC/", sep="")
