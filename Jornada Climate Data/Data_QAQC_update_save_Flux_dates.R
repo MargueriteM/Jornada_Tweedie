@@ -267,7 +267,7 @@ ggplot(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Av
 #            value := NA]	
 
 # 2022 looks good until "2022-08-25 13:00:00 UTC"
-# 2023 looks good
+# 2023 looks good until "2023-12-31 23:30:00 UTC"
 
 # plot all radiation variables
 ggplot(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
@@ -311,7 +311,7 @@ enddate <- (max(flux_wide_save$date_time))
 # add comment about processing
 print(paste("#",year(enddate), "data processed until",enddate,sep=" "))
 # 2023 data processed until 2023-08-25 07:30:00
-# 2023 data processed until 2023-10-31 07:00:00
+# 2023 data processed until 2023-12-31 23:30:00
 
 # # Save to Qa/QC and Combined folder with only year name
 qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/QAQC/", sep="")
