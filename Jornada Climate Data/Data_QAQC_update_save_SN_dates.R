@@ -145,6 +145,7 @@ SN_long <- merge(SN_long, colnames2019, by="variable")
 startdate.check <- (min(SN_long$Date))
 enddate.check <- (max(SN_long$Date))
 
+#### SET UP and IMPORT, END ####
 
 # calculate half-hour means using ceiling date which takes each time to the next half-hour,
 # ie: 15:00:01 goes to 15:30, etc. 
@@ -188,6 +189,8 @@ ggplot(SN_30min[sensor=="battery",], aes(date_time, mean.val, colour=SN))+
 
 # 2022 (June 6): no voltage on SN5, SN6, SN7
 
+# 2023: no voltage on SN5, SN6, SN7 
+
 # SN1: rain (latr, prgl), lws (latr), solar rad (prgl, flce, flce104), PAR (prgl, flce, flce104)
 # SN2: rain (bare), lws (prgl), solar rad (latr, prgl), PAR (latr, prgl)
 # SN3: rain (latr, prgl), solar rad (dapu, up), PAr (dapu, up), soil moisture (prgl)
@@ -227,9 +230,22 @@ SN_30min[sensor=="rain" & (mean.val<0 | mean.val>50), mean.val := NA]
 
 # on Nov 12th 2021 ~10:15 cleaned rain bucket under PRGl and move tipping scale. 
 # remove "rain" on this day
- SN_30min[sensor=="rain" & date(date_time) == as.Date("2021-11-12") & veg=="PRGL" & mean.val>0 , mean.val := NA]
+# SN_30min[sensor=="rain" & date(date_time) == as.Date("2021-11-12") & veg=="PRGL" & mean.val>0 , mean.val := NA]
 
 # 2022: max value filter removes value ~800 in PRGL.
+# 2023: max value filtre removes several values >500 in PRGL and onee value >1500 in BARE
+
+# 2023 rain bucket checks/clean: 17 Feb (nothing logged), 27 Oct (nothing logged), 12 Dec (remove points for LATR and PRGL)
+ggplot(SN_30min[sensor=="rain" & (date_time > as.Date("2023-12-11") & date_time < as.Date("2023-12-13")),],
+       aes(date_time, mean.val, colour=SN))+
+  geom_point()+
+  geom_line()+
+  labs(title="Rain") +
+  facet_grid(veg~., scales="free_y")
+
+# 12 Dec 2023 remove rain values for PRGL and LATR for cleaning
+ SN_30min[sensor=="rain" & date(date_time) == as.Date("2023-12-12") & veg %in% c("PRGL","LATR") & mean.val>0 , mean.val := NA]
+
 
 # graph lws and rain, by cover type
 ggplot(SN_30min[sensor=="rain" | sensor =="lws",], aes(date_time, mean.val, colour=SN))+
@@ -274,67 +290,115 @@ ggplot(SN_30min[sensor%in%c("moisture","rain"),], aes(date_time, mean.val, colou
   facet_grid(sensor+veg~., scales="free_y")+
   theme_bw()
 
+# plot soil moisture only in BARE and all rainfall
+ggplot(SN_30min[sensor%in%c("rain")|
+                  (sensor %in% c("moisture") & veg %in% c("BARE")),],
+       aes(date_time, mean.val, colour=factor(depth)))+
+  geom_point(size=0.1)+
+  labs(title="Soil Moisture, and Rain") +
+  facet_grid(sensor+veg~., scales="free_y")+
+  theme_bw()
+
+# plot soil moisture with rain only for 5cm probe in bare and values > 0 
+ggplot(SN_30min[sensor%in%c("rain")|
+                  (sensor %in% c("moisture") & veg %in% c("BARE")) &
+                  (sensor %in% c("moisture") & veg %in% c("BARE") & depth==5 & mean.val>0),],
+       aes(date_time, mean.val, colour=factor(depth)))+
+  geom_point(size=0.1)+
+  labs(title="Soil Moisture, and Rain") +
+  facet_grid(sensor+veg~., scales="free_y")+
+  theme_bw()
+
+
+## 2023 only BARE has soil moisture (SN4)
+## BARE 5cm probe was recording poorly 2020-March 2023. 
+## After March 2023 there are some negative drops after rain spikes 
+## eliminiating all values < 0 results in reasonable dynamics with a dry baseline fluctuating around 0,
+## and moisture spikes aligned with rain events.
+
+
+
 # mid-2021 onward, only BARE has soil moisture (SN4)
-# BARE 5cm 2020 onward, after each rain event the 5cm soil moisture probe drops below baseline 
-# and fluctuates daily until it returns to 'baseline' (when the soil is dry?)
-# examine
+# # 2022: only BARE has soil moisture (SN4)
+# # LATR: SN5, SN data logger not working
+# # MUPO: SN7, , SN data logger not working
+# # PRGL: SN3, sensors got moved on ~19 June 2019
+
+# examine soil moistur in BARE specifically around rain events:
 # create a dataframe of dates with rain
-# rain.dates <- SN_30min[sensor=="rain"&mean.val>0,list(date = unique(as.Date(date_time)))]
+rain.dates <- SN_30min[sensor=="rain"&mean.val>0,
+                       list(date = unique(as.Date(date_time)))]
+
+raindateID <- 1
+
+ggplot(SN_30min[(sensor%in%c("rain") | (sensor%in%c("moisture") &veg=="BARE")) &
+                  date_time>rain.dates$date[raindateID] & date_time<rain.dates$date[raindateID]+20 ,],
+       aes(date_time, mean.val, colour=factor(depth)))+
+  geom_point(size=0.1)+
+  labs(title="Soil Moisture, and Rain") +
+  facet_grid(sensor+veg~., scales="free_y")+
+  theme_bw()
+
+# 2023 remove 5cm soil moisture from Bare only when mean.val<0,
+# the issue with negative values and fluctuation after rain events is pronounced in Jan-March
+# however, the rest of 2023 it's not so bad and the sensor does pick up useful information during rain
+ggplot(SN_30min[(sensor%in%c("rain") | (sensor%in%c("moisture") &veg=="BARE")) &
+                  date_time>rain.dates$date[raindateID] & date_time<rain.dates$date[raindateID]+20 &
+                  mean.val>0,],
+       aes(date_time, mean.val, colour=factor(depth)))+
+  geom_point(size=0.1)+
+  labs(title="Soil Moisture, and Rain") +
+  facet_grid(sensor+veg~., scales="free_y")+
+  theme_bw()
+
+# remove bare, 5cm, mean.val <0
+SN_30min[sensor=="moisture"&veg=="BARE"&depth==5& mean.val<0 &
+                       date_time >ymd_hms("2023-01-01 00:00:00 UTC"), mean.val := NA]
+
+# # remove BARE 5cm probe from 2020-2022 due to strange fluctuations after rain
+# # and frequent declines below zero after rain events. 
+# # The issue becomes progressively worse and most rain events are captured in BARE 10cm which has much more reliable dynamics
+# SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
+#            date_time >ymd_hms("2020-01-30 12:00:00 UTC"), mean.val := NA]
 # 
-# ggplot(SN_30min[sensor%in%c("moisture","rain") & veg=="BARE" &
-#                   date_time>rain.dates$date[1] & date_time<rain.dates$date[1]+20,], aes(date_time, mean.val, colour=factor(depth)))+
-#   geom_point(size=0.1)+
-#   labs(title="Leaf Wetness, Soil Moisture, and Rain") +
-#   facet_grid(sensor+veg~., scales="free_y")+
-#   theme_bw()
-
-# remove BARE 5cm probe from 2020-2023 due to strange fluctuations after rain
-# and frequent declines below zero after rain events. 
-# The issue becomes progressively worse and most rain events are captured in BARE 10cm which has much more reliable dynamics
-SN_30min[sensor=="moisture"&veg=="BARE"&depth==5&
-           date_time >ymd_hms("2020-01-30 12:00:00 UTC"), mean.val := NA]
+# 
 
 
-# 2022: only BARE has soil moisture (SN4)
-# LATR: SN5, SN data logger not working
-# MUPO: SN7, , SN data logger not working
-# PRGL: SN3, sensors got moved on ~19 June 2019
-
-# 2022 Bare 10cm is very highin September 15 - 19 2022
-# comes after some heavy rain but does not directly coincide with rain.
-# other depths do not show the pattern.
-# remove
- SN_30min[sensor=="moisture"&veg=="BARE"&depth==10&
-  date_time >ymd_hms("2022-09-14 22:30:00") &
-   date_time <ymd_hms("2022-09-19 02:30:00"), mean.val := NA]
-
-# MUPO 10cm: 13 July 2021 there was a baseline shift! Remove after this.
- SN_30min[sensor=="moisture"&veg=="MUPO"&depth==10&date_time>as.Date("2021-07-13"), mean.val := NA]
-
-# MUPO 20cm: in October 2018 there was a baseline shift! Remove after this.
- SN_30min[sensor=="moisture"&veg=="MUPO"&depth==20, mean.val := NA]
-
-# MUPO 30cm: 11 July 2021 there was a baseline shift! Remove after this.
- SN_30min[sensor=="moisture"&veg=="MUPO"&depth==30&date_time>as.Date("2021-07-11"), mean.val := NA]
-
-
-# PRGL remove all after January 2019 (sensors got moved on ~19 June 2019)
-#  SN_30min[sensor=="moisture"&veg=="PRGL"&date_time>=as.Date("2019-01-01"),
-#         mean.val := NA]
-
-
-# LATR 5cm: probe goes bad after 12 Feb 2017
-SN_30min[sensor=="moisture"&veg=="LATR"&depth==5&
-           date_time >= as.Date("2017-02-12"), mean.val := NA]
-
-# LATR 10cm: probe had a baseline shift 14 Feb 2019 at 23:30. Remove values after this.
-SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&#
-          (date_time>=as.POSIXct("2019-02-14 23:00:00", tz="UTC")), mean.val := NA]
-
-# LATR 20cm: had baseline shift after 28 Feb 2019 18:00 , remove
- SN_30min[sensor=="moisture"&veg=="LATR"&depth==20&
-          date_time >= as.POSIXct("2019-02-28 18:00:00", tz="UTC"), mean.val := NA]
-
+# # 2022 Bare 10cm is very highin September 15 - 19 2022
+# # comes after some heavy rain but does not directly coincide with rain.
+# # other depths do not show the pattern.
+# # remove
+#  SN_30min[sensor=="moisture"&veg=="BARE"&depth==10&
+#   date_time >ymd_hms("2022-09-14 22:30:00") &
+#    date_time <ymd_hms("2022-09-19 02:30:00"), mean.val := NA]
+# 
+# # MUPO 10cm: 13 July 2021 there was a baseline shift! Remove after this.
+#  SN_30min[sensor=="moisture"&veg=="MUPO"&depth==10&date_time>as.Date("2021-07-13"), mean.val := NA]
+# 
+# # MUPO 20cm: in October 2018 there was a baseline shift! Remove after this.
+#  SN_30min[sensor=="moisture"&veg=="MUPO"&depth==20, mean.val := NA]
+# 
+# # MUPO 30cm: 11 July 2021 there was a baseline shift! Remove after this.
+#  SN_30min[sensor=="moisture"&veg=="MUPO"&depth==30&date_time>as.Date("2021-07-11"), mean.val := NA]
+# 
+# 
+# # PRGL remove all after January 2019 (sensors got moved on ~19 June 2019)
+# #  SN_30min[sensor=="moisture"&veg=="PRGL"&date_time>=as.Date("2019-01-01"),
+# #         mean.val := NA]
+# 
+# 
+# # LATR 5cm: probe goes bad after 12 Feb 2017
+# SN_30min[sensor=="moisture"&veg=="LATR"&depth==5&
+#            date_time >= as.Date("2017-02-12"), mean.val := NA]
+# 
+# # LATR 10cm: probe had a baseline shift 14 Feb 2019 at 23:30. Remove values after this.
+# SN_30min[sensor=="moisture"&veg=="LATR"&depth==10&#
+#           (date_time>=as.POSIXct("2019-02-14 23:00:00", tz="UTC")), mean.val := NA]
+# 
+# # LATR 20cm: had baseline shift after 28 Feb 2019 18:00 , remove
+#  SN_30min[sensor=="moisture"&veg=="LATR"&depth==20&
+#           date_time >= as.POSIXct("2019-02-28 18:00:00", tz="UTC"), mean.val := NA]
+# 
 
 
 
@@ -355,19 +419,16 @@ ggplot(SN_30min[sensor%in%c("moisture","rain","lws"),], aes(date_time, mean.val,
 
 
 # par
+# graph
+ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
+  geom_line()+
+  labs(title="PAR") +
+  facet_grid(veg~., scales="free_y")
+
 # par can't be <0 
 SN_30min[sensor=="par" & mean.val<0, mean.val := NA]
 # downward-facing unlikely to be >1000
 SN_30min[sensor=="par" & veg!="UP" & mean.val>1000, mean.val := NA]
-
-# 2021 downward-facing sensors had sporadic outlying values >600. remove
- SN_30min[sensor=="par" & veg!="UP" & mean.val>500, mean.val := NA]
-# In May 2021 FLCE high value was not removed by >500 but if I use a lower cutoff then I'll remove January high values that could be real due to snow
- SN_30min[sensor=="par" & veg=="FLCE" & month==5 & mean.val>400, mean.val := NA]
-
-# From April 2023 solar on SN1 FLCE is mostly gone but has some weird sporadic spikes: remove all
-SN_30min[sensor=="par" & SN=="SN1" & veg == "FLCE" & date_time>as.Date("2023-04-01"),
-         mean.val := NA]
 
 # graph
 ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
@@ -375,14 +436,41 @@ ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
   labs(title="PAR") +
   facet_grid(veg~., scales="free_y")
 
+# Detailed corrections:
 # from 2022 PAR MUPO on SN8 is no longer good. remove all
 SN_30min[date_time>ymd("2021-12-31") &sensor=="par" & veg=="MUPO" & SN=="SN8", mean.val := NA]
+
+# After April 2023 par on SN1 FLCE is mostly gone but has some weird sporadic spikes, then returns in October:
+# remove 11 April 2023 to 27 Octobr 2023
+SN_30min[sensor=="par" & SN=="SN1" & veg == "FLCE" & date_time>as.Date("2023-04-10")& date_time<as.Date("2023-10-27"),
+         mean.val := NA]
+
+# August 2023 LATR PAR is sporadic, remove
+SN_30min[sensor=="par" & SN=="SN2" & veg == "LATR" & month(date_time)>=8 & month(date_time)<=9,
+         mean.val := NA]
+
+# PRGL on SN2 has a high outlying value (~400) in July 
+SN_30min[sensor=="par" & SN=="SN2" & veg == "PRGL" & mean.val>300,
+         mean.val := NA]
+
+# # 2021 downward-facing sensors had sporadic outlying values >600. remove
+#  SN_30min[sensor=="par" & veg!="UP" & mean.val>500, mean.val := NA]
+# # In May 2021 FLCE high value was not removed by >500 but if I use a lower cutoff then I'll remove January high values that could be real due to snow
+#  SN_30min[sensor=="par" & veg=="FLCE" & month==5 & mean.val>400, mean.val := NA]
+
+
+# graph after specific corrections
+ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
+  geom_line()+
+  labs(title="PAR") +
+  facet_grid(veg~., scales="free_y")
 
 # pressure
 # can't be negative
 # pressure: can't be <0
 SN_30min[sensor=="pressure" & mean.val<0, mean.val := NA]
 
+# 2023: pressure on SN5 which isn't working
 # 2022: pressure on SN5 which isn't working
 
 ggplot(SN_30min[sensor=="pressure",], aes(date_time, mean.val, colour=SN))+
@@ -395,10 +483,24 @@ ggplot(SN_30min[sensor=="pressure",], aes(date_time, mean.val, colour=SN))+
 # can't be negative
 SN_30min[sensor=="solar" & mean.val<0, mean.val := NA]
 
-# From April 2023 solar on SN1 FLCE is mostly gone but has some weird sporadic spikes: remove all
-SN_30min[sensor=="solar" & SN=="SN1" & veg == "FLCE" & date_time>as.Date("2023-04-01"),
-       mean.val := NA]
+# graph
+ggplot(SN_30min[sensor=="solar",],
+       aes(date_time, mean.val, colour=SN))+
+  geom_line()+
+  labs(title="Solar Radiation") +
+  facet_grid(veg~., scales="free_y")
 
+
+# After April 2023 solar on SN1 FLCE is mostly gone but has some weird sporadic spikes, then returns in October:
+# remove 11 April 2023 to 27 Octobr 2023
+SN_30min[sensor=="solar" & SN=="SN1" & veg == "FLCE" & date_time>as.Date("2023-04-10")& date_time<as.Date("2023-10-27"),
+         mean.val := NA]
+
+# August 2023 LATR solar is sporadic, remove
+SN_30min[sensor=="solar" & SN=="SN2" & veg == "LATR" & month(date_time)>=8 & month(date_time)<=9,
+         mean.val := NA]
+
+# graph after specific corrections
 ggplot(SN_30min[sensor=="solar",],
        aes(date_time, mean.val, colour=SN))+
   geom_line()+
@@ -435,7 +537,7 @@ ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
 
 # pressure
 # can't be negative
-# not logged in 2022 because SN5 is down
+# not logged in 2022, 2023 because SN5 is down
 ggplot(SN_30min[sensor=="pressure",], aes(date_time, mean.val, colour=SN))+
   geom_line()+
   labs(title="Pressure") +
@@ -472,11 +574,11 @@ startdate <- (min(SN_wide_save$date_time))
 enddate <- (max(SN_wide_save$date_time))
 
 # add comment about processing
-print(paste("#",year(enddate), "data processed until",enddate,sep=" "))
+print(paste("#",year(startdate), "data processed until",enddate,sep=" "))
 # 2020 data processed until 2020-12-31 23:30:00
 # 2021 data processed until 2021-12-31 23:30:00
 # 2022 data processed until 2022-12-31 23:30:00
-# 2023 data processed until 2023-08-03 10:30:00
+# 2023 data processed until 2024-01-01
 
 # # save in QAQC folder with start and end date in the file name
 qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/", sep="")
