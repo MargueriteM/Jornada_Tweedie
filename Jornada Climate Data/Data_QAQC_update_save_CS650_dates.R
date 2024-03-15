@@ -37,7 +37,7 @@ library(tidyverse)
 library(lubridate)
 library(ggplot2)
 
-year_file <- 2023
+year_file <- 2024
 
 # Based on data checks, no data form Met and CS650 from 16 Dec 17:30 to 17 Jan 2022
 
@@ -120,8 +120,10 @@ cs650 %>%
 
 # print that data looks good/has been checked up to enddata.check:
 print(paste("#",year(enddate.check), "data looks good until",enddate.check,sep=" "))
-# 2023 data looks good until 2023-12-31 23:30:00
+
 # 2022 data looks good until 2022-12-31 23:30:00
+# 2023 data looks good until 2023-12-31 23:30:00
+# 2024 data looks good until 2024-03-14 09:00:00
 
 # prepare for saving for L2 tables and combination with other data
 
@@ -174,8 +176,6 @@ write.table(run.info, "dataL2_Soil_DateRange.csv",
 
 
 # Combined folder: don't save individual year files to here, it's just a duplicatin of the QAQC folder
-difftime(startdate,enddate)
-
 
 # setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_CS650/Combined")
 # 
