@@ -141,7 +141,7 @@ library(corrplot)
 #############
 # IMPORT DATA
 #############
-year_file <- 2020
+year_file <- 2023
 # Sensor network data:
 SN_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
@@ -388,7 +388,7 @@ precip[SN2==0 & (SN6!=0 | tower!=0), SN2 := NA]
 precip[SN6==0 & (SN2!=0 | tower!=0), SN6 := NA]
 precip[tower==0 & (SN2!=0 | SN6!=0), tower := NA]
 
-# in 2021 and 2022 SN6 was not working, make all SN6 precip NA
+# in 2021, 2022, 2023 SN6 was not working, make all SN6 precip NA
 precip[, SN6 := NA]
 
 # now join the fixed precip data back to the env_30min
