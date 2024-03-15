@@ -120,8 +120,7 @@ cs650 %>%
 
 # print that data looks good/has been checked up to enddata.check:
 print(paste("#",year(enddate.check), "data looks good until",enddate.check,sep=" "))
-# 2023 data looks good until 2023-10-31 07:00:00
-# 2023 data looks good until 2023-08-25 07:30:00
+# 2023 data looks good until 2023-12-31 23:30:00
 # 2022 data looks good until 2022-12-31 23:30:00
 
 # prepare for saving for L2 tables and combination with other data
