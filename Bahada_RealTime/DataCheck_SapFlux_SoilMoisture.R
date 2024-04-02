@@ -70,7 +70,12 @@ sfn_soildat %>% filter(datetime>as.Date("2023-08-10")&
   geom_line()+
   facet_grid(metric~location,scales="free_y")
 
-# graph data by metric and color by number without 5cm 
+
+#data after this is after mesquite_23 probes were removed and placed at 5cm depth at bare, creosote_1,creosote_2 and mesquite_1
+#creosote_1 does not have 5cm probe sensor
+
+
+# graph data by metric and color by number 
 sfn_soildat %>% filter(datetime>as.Date("2023-10-27")&
                           #probe.num %in% c(NA,1,2,3)&
                           metric %in% c("T","Temp","VWC","WaterPot"))%>%
@@ -81,12 +86,12 @@ ggplot(., aes(datetime, value,color=factor(depth)))+
 #graph with VWC values less than one
 sfn_soildat %>% filter(datetime>as.Date("2023-10-27")&
                          #probe.num %in% c(NA,1,2,3)&
-                         (metric=="VWC"&value<=1))%>%
+                         ((metric=="VWC"&value<=1)|metric %in% c("T","Temp","WaterPot")))%>%
   ggplot(., aes(datetime, value,color=factor(depth)))+
   geom_line()+
   facet_grid(metric~location,scales="free_y")
 
-#graph VWC and T from CS650
+#graph VWC and T from CS650 without 5cm
 sfn_soildat %>% filter(datetime>as.Date("2023-10-27")&
                          #probe.num %in% c(NA,1,2,3)&
                          metric %in% c("T","VWC")&
@@ -97,7 +102,7 @@ sfn_soildat %>% filter(datetime>as.Date("2023-10-27")&
 
 
 # graph data only from 5cm 
-sfn_soildat %>% filter(datetime>as.Date("2023-08-10")&
+sfn_soildat %>% filter(datetime>as.Date("2023-10-27")&
                          #probe.num %in% c(NA,1,2,3)&
                          metric %in% c("T","Temp","VWC","WaterPot")&
                          depth==5)%>%
