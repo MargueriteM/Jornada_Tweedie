@@ -141,7 +141,7 @@ library(corrplot)
 #############
 # IMPORT DATA
 #############
-year_file <- 2023
+year_file <- 2024
 # Sensor network data:
 SN_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
@@ -358,10 +358,11 @@ levels(factor(env_30min$height))
   env_30min[,height := factor(height,levels=c("-100.5","-42.5","-30","-25.5","-20","-17.5","-15","-11.5",
                                              "-10","-5","50","500"))]
  
-# create a variable to show data coverage =1 with data 
+  # check the levels of height after ordering
+  levels(factor(env_30min$height))
+  
+  # create a variable to show data coverage =1 with data 
 env_30min[!is.na(mean.val), coverage := 1]
-
-
 
 
 # Precip: The rain buckets record 0 even if they are broken and not picking up rain
@@ -388,7 +389,7 @@ precip[SN2==0 & (SN6!=0 | tower!=0), SN2 := NA]
 precip[SN6==0 & (SN2!=0 | tower!=0), SN6 := NA]
 precip[tower==0 & (SN2!=0 | SN6!=0), tower := NA]
 
-# in 2021 and 2022 SN6 was not working, make all SN6 precip NA
+# in 2021, 2022, 2023, 2024 (March) SN6 was not working, make all SN6 precip NA
 precip[, SN6 := NA]
 
 # now join the fixed precip data back to the env_30min
@@ -697,10 +698,12 @@ ggplot(biomet2[variable %in% c("soilmoisture") & veg %in% c("LATR","PRGL","MUPO"
 
 #### Do Not Run, Need to keep SWC < 0 for Talveer to do rectification steps
 #### 2020-04-14: convert all VWC to % soil moisture, requested by Ameriflux QA/QC check.
-### biomet2[variable %in% c("soilmoisture"), mean.val := mean.val*100]
+
 #### make sure all SWC are >0
 ### biomet2[variable %in% c("soilmoisture") & mean.val<0, mean.val := NA]
 
+# Keep conversion of VWC to percent (re-implement for 2020-2023 on 2023-09-28)
+biomet2[variable %in% c("soilmoisture"), mean.val := mean.val*100]
 
  # Bare: 1
 biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="SN" & height=="-5"),

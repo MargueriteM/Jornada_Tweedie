@@ -14,10 +14,15 @@ library(ggplot2)
 library(bit64)
 
 # import filtered flux data file from Eddy Pro as data table
-setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/")
+setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out")
 
+# 2022
 flux_filter_sd <- fread("JER_flux_2022_EddyPro_Output_filtered_SD_JanSep.csv",sep=",", dec=".",
             header = TRUE, na.strings=c("na","NA","","-9999"))
+
+# # 2021
+# flux_filter_sd <- fread("JER_flux_2021_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
+#                         header = TRUE, na.strings=c("na","NA","","-9999"))
 
 
 # rename columns (only up to 2019 that had a timestamp/daylight savings issue)
@@ -83,20 +88,35 @@ ggplot(flux.biomet, aes(date_time, LE))+geom_line()
 ggplot(flux.biomet, aes(date_time, SW_OUT_1_1_1))+geom_line()
 ggplot(flux.biomet, aes(date_time, SW_IN_1_1_1))+geom_line()
 
+# for some reason 2022 data has a filter_h column. 
+# eliminate
+flux.biomet[,filter_h := NULL]
+
+
 # save to upload to ameriflux, save to server: 
 # <SITE_ID>_<RESOLUTION>_<TS-START>_<TS-END>_<OPTIONAL>.csv
-setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/Ameriflux_USJo1")
+setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Ameriflux_USJo1")
 
 # save file in Ameriflux format
 write.table(flux.biomet[,!c("date_time"),with=FALSE],
             file = paste("US-Jo1_HH_",min(flux.biomet$TIMESTAMP_END),"_",max(flux.biomet$TIMESTAMP_END),
-                  "_PRELIM.csv",sep=""),
+                  "_submit.csv",sep=""),
             sep=',', dec='.', row.names=FALSE, na="-9999", quote=FALSE)
+
+# also save to Dryland CZ One Drive
+setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Ameriflux")
+
+# save file in Ameriflux format
+write.table(flux.biomet[,!c("date_time"),with=FALSE],
+            file = paste("US-Jo1_HH_",min(flux.biomet$TIMESTAMP_END),"_",max(flux.biomet$TIMESTAMP_END),
+                         "_submit.csv",sep=""),
+            sep=',', dec='.', row.names=FALSE, na="-9999", quote=FALSE)
+
 
 # 19 Sep 2023 submitted following files and changed name to _PRELIM to submit
 #US-Jo1_HH_202001010000_202101010000submit
-#US-Jo1_HH_202012312330_202111302330submit
-#US-Jo1_HH_202201010000_202210010000submit
+#US-Jo1_HH_202101010000_202201010000_submit
+#US-Jo1_HH_202201010000_202210010000_submit
 
 # # save by years
 # for (i in 2010:2019){
