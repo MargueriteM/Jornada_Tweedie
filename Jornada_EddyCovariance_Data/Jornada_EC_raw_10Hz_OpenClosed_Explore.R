@@ -136,6 +136,15 @@ ec13 <- do.call("rbind", lapply(ec_files24[75:86], header = FALSE, fread, sep=",
                                             "AGC_7200_raw",	"tmpr_avg_7200_raw",	"press_tot_7200_raw")))
 
 
+ec14 <- do.call("rbind", lapply(ec_files24[89:101], header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
+                                na.strings=c(-9999,"#NAME?"),
+                                col.names=c("TIMESTAMP",
+                                            "RECORD",
+                                            "Ux",	"Uy",	"Uz",	"Ts",	"CO2",	"H2O",
+                                            "fw",	"press",	"diag_csat","diag_irga_raw",	"agc",	"t_hmp",	"e_hmp",
+                                            "atm_press",	"CO2_dry_7200_raw",	"H2O_dry_7200_raw",
+                                            "AGC_7200_raw",	"tmpr_avg_7200_raw",	"press_tot_7200_raw")))
+
 # subset every 60th row before merging
 ec10.sub <- ec10 %>%
   filter(row_number() %% 60 == 1)
@@ -149,6 +158,8 @@ ec12.sub <- ec12 %>%
 ec13.sub <- ec13 %>%
   filter(row_number() %% 60 == 1)
 
+ec14.sub <- ec14 %>%
+  filter(row_number() %% 60 == 1)
 
 ec.all <- rbind(ec10.sub, ec11.sub, ec12.sub, ec13.sub)
 #ec.all <- ec6
