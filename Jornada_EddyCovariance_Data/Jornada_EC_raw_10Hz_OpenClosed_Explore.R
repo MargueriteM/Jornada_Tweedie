@@ -145,23 +145,48 @@ ec14 <- do.call("rbind", lapply(ec_files24[89:101], header = FALSE, fread, sep="
                                             "atm_press",	"CO2_dry_7200_raw",	"H2O_dry_7200_raw",
                                             "AGC_7200_raw",	"tmpr_avg_7200_raw",	"press_tot_7200_raw")))
 
+ec15 <- do.call("rbind", lapply(ec_files24[102:115], header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
+                                na.strings=c(-9999,"#NAME?"),
+                                col.names=c("TIMESTAMP",
+                                            "RECORD",
+                                            "Ux",	"Uy",	"Uz",	"Ts",	"CO2",	"H2O",
+                                            "fw",	"press",	"diag_csat","diag_irga_raw",	"agc",	"t_hmp",	"e_hmp",
+                                            "atm_press",	"CO2_dry_7200_raw",	"H2O_dry_7200_raw",
+                                            "AGC_7200_raw",	"tmpr_avg_7200_raw",	"press_tot_7200_raw")))
+
+ec16 <- do.call("rbind", lapply(ec_files24[116:137], header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
+                                na.strings=c(-9999,"#NAME?"),
+                                col.names=c("TIMESTAMP",
+                                            "RECORD",
+                                            "Ux",	"Uy",	"Uz",	"Ts",	"CO2",	"H2O",
+                                            "fw",	"press",	"diag_csat","diag_irga_raw",	"agc",	"t_hmp",	"e_hmp",
+                                            "atm_press",	"CO2_dry_7200_raw",	"H2O_dry_7200_raw",
+                                            "AGC_7200_raw",	"tmpr_avg_7200_raw",	"press_tot_7200_raw")))
+
 # subset every 60th row before merging
 ec10.sub <- ec10 %>%
-  filter(row_number() %% 60 == 1)
+  filter(row_number() %% 600 == 1)
 
 ec11.sub <- ec11 %>%
-  filter(row_number() %% 60 == 1)
+  filter(row_number() %% 600 == 1)
 
 ec12.sub <- ec12 %>%
-  filter(row_number() %% 60 == 1)
+  filter(row_number() %% 600 == 1)
 
 ec13.sub <- ec13 %>%
-  filter(row_number() %% 60 == 1)
+  filter(row_number() %% 600 == 1)
 
 ec14.sub <- ec14 %>%
-  filter(row_number() %% 60 == 1)
+  filter(row_number() %% 600 == 1)
 
-ec.all <- rbind(ec10.sub, ec11.sub, ec12.sub, ec13.sub)
+ec15.sub <- ec15 %>%
+  filter(row_number() %% 600 == 1)
+
+ec16.sub <- ec16 %>%
+  filter(row_number() %% 600 == 1)
+
+
+ec.all <- rbind(ec15.sub, ec16.sub)
 #ec.all <- ec6
 ec.all[,':=' (hour=hour(TIMESTAMP), minute = minute(TIMESTAMP), second = second(TIMESTAMP))]
 
@@ -174,7 +199,7 @@ ec.sub <- ec.all
 
 
 # closed path
-ggplot(ec.sub[CO2_dry_7200_raw>300,], aes(TIMESTAMP, CO2_dry_7200_raw))+
+ggplot(ec.sub[CO2_dry_7200_raw>300 & CO2_dry_7200_raw<450,], aes(TIMESTAMP, CO2_dry_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)
 
