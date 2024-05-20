@@ -71,11 +71,14 @@ plot_grid(p.h2o.c,p.h2o.o)
 p.sigs.c <-ggplot(ts[AGC_7200_raw>20], aes(TIMESTAMP, AGC_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)+
+  geom_hline(yintercept=100, colour="green")+
   labs(title="Closed Path 7200 Signal Strength: 100 when clean")
 
 
 p.agc.o <-ggplot(ts[agc>-9999,], aes(TIMESTAMP, agc))+
   geom_point()+
+  geom_hline(yintercept=50, colour="green")+
+  geom_hline(yintercept=56, colour="green")+
   labs(title="Open Path 7500 AGC: 50-56 when clean, high is bad")
 
 # graph open-path and closed-path signal strength and AGC next to each other
