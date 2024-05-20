@@ -1,5 +1,7 @@
-# Code to check raw LI-7200 data
+# Code to check raw LI-7500 and LI-7200 data
 # from 1 minute sub-sampled files of ts_data_2
+# COMPARE open and closed patch, check notes for each variable on comparison
+
 # written by M. Mauritz 20 May 2024
 
 # Load Libraries
@@ -25,6 +27,7 @@ ts <- do.call("rbind", lapply(ts_files, header = FALSE, fread, sep=",", skip = 4
 # Check data for LI-7200 and compare to LI-7500
 
 # CO2 concentrations
+# Check: how well do patterns match between open and closed path
 p.co2.c <-ggplot(ts[CO2_dry_7200_raw>300 & CO2_dry_7200_raw<450,], aes(TIMESTAMP, CO2_dry_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)+
@@ -36,9 +39,11 @@ p.co2.o <- ggplot(ts[CO2>500&CO2<800], aes(TIMESTAMP, CO2))+
   labs(title="Open Path 7500 CO2 concentration (limited range 500-800)")
 
 # graph open-path and closed-path CO2 concentrations next to each other
+# Check: do patterns match?
 plot_grid(p.co2.c,p.co2.o)
 
 # H2O concentrations
+# Check: how well to patterns match between open and closed?
 p.h2o.c <-ggplot(ts[H2O_dry_7200_raw>=0 & H2O_dry_7200_raw<50], aes(TIMESTAMP, H2O_dry_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)+
@@ -50,10 +55,12 @@ p.h2o.o <-ggplot(ts[H2O>(-9999) & H2O<40], aes(TIMESTAMP, H2O))+
   labs(title="Open Path 7500 H2O concentration (limited range 0-40)")
 
 # graph open-path and closed-path H2O concentrations next to each other
+# Check: do patterns match?
 plot_grid(p.h2o.c,p.h2o.o)
 
 
 # agc and signal strength
+# Check: if AGC_7200 is declining or low, need to clean, if open path AGC is high, need to clean
 p.sigs.c <-ggplot(ts[AGC_7200_raw>20], aes(TIMESTAMP, AGC_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)+
@@ -65,10 +72,11 @@ p.agc.o <-ggplot(ts[agc>-9999,], aes(TIMESTAMP, agc))+
   labs(title="Open Path 7500 AGC: 50-56 when clean, high is bad")
 
 # graph open-path and closed-path signal strength and AGC next to each other
+# Check: if AGC_7200 is declining or low, need to clean, if open path AGC is high, need to clean
 plot_grid(p.sigs.c,p.agc.o)
 
 # graph temperature of closed path and sonic
-
+# Check: do patterns and magnitudes match?
 p.T.c <- ggplot(ts[tmpr_avg_7200_raw>(-9999),], aes(TIMESTAMP, tmpr_avg_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)+
@@ -80,10 +88,12 @@ p.T.sonic <- ggplot(ts[Ts>(-9999),], aes(TIMESTAMP, Ts))+
   labs(title="Sonic Anemometer Air Temperature")
 
 # graph closed path and sonice temperature side-by-side
+# Check: do patterns and magnitudes match?
 plot_grid(p.T.c, p.T.sonic)
 
 
 # graph atmospheric pressure from closed path 7200
+# Check: should be between 83 and 85
 ggplot(ts[press_tot_7200_raw>(-9999),], aes(TIMESTAMP, press_tot_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)+
