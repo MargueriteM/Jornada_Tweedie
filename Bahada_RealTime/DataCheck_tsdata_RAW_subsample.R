@@ -31,12 +31,17 @@ ts <- do.call("rbind", lapply(ts_files, header = FALSE, fread, sep=",", skip = 4
 p.co2.c <-ggplot(ts[CO2_dry_7200_raw>300 & CO2_dry_7200_raw<450,], aes(TIMESTAMP, CO2_dry_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)+
-  labs(title="Closed Path 7200 CO2 concentration (limited range 300-450)")
+  labs(title="Closed Path 7200 CO2 umol/mol (limited range 300-450)")
 
-p.co2.o <- ggplot(ts[CO2>500&CO2<800], aes(TIMESTAMP, CO2))+
+
+# define R, universal gas constant, to convert CO2 in mg/m3 to umol/mol
+# CO2_mm_m3*R*(t_hmp+273.15)/press*1000
+R.gc <- 8.3143e-3
+
+p.co2.o <- ggplot(ts[CO2>500&CO2<800], aes(TIMESTAMP, (CO2/44)*R.gc*(t_hmp+273.14)/press*1000))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)+
-  labs(title="Open Path 7500 CO2 concentration (limited range 500-800)")
+  labs(title="Open Path 7500 CO2 umol/mol (limited range 500-800)")
 
 # graph open-path and closed-path CO2 concentrations next to each other
 # Check: do patterns match?
@@ -47,12 +52,14 @@ plot_grid(p.co2.c,p.co2.o)
 p.h2o.c <-ggplot(ts[H2O_dry_7200_raw>=0 & H2O_dry_7200_raw<50], aes(TIMESTAMP, H2O_dry_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)+
-  labs(title="Closed Path 7200 H2O concentration (limited range 0-50)")
+  labs(title="Closed Path 7200 H2O mmol/mol (limited range 0-50)")
 
-p.h2o.o <-ggplot(ts[H2O>(-9999) & H2O<40], aes(TIMESTAMP, H2O))+
+# convert H2O from mg/m3 to mmol/mol
+# H2O_mm_m = H2O_mm_m3*R*(t_hmp+273.15)/press
+p.h2o.o <-ggplot(ts[H2O>(-9999) & H2O<40], aes(TIMESTAMP, (H2O/0.018)*R.gc*(t_hmp+273.14)/press))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)+
-  labs(title="Open Path 7500 H2O concentration (limited range 0-40)")
+  labs(title="Open Path 7500 H2O mmol/mol (limited range 0-40)")
 
 # graph open-path and closed-path H2O concentrations next to each other
 # Check: do patterns match?
@@ -74,6 +81,9 @@ p.agc.o <-ggplot(ts[agc>-9999,], aes(TIMESTAMP, agc))+
 # graph open-path and closed-path signal strength and AGC next to each other
 # Check: if AGC_7200 is declining or low, need to clean, if open path AGC is high, need to clean
 plot_grid(p.sigs.c,p.agc.o)
+
+# plot signal strength with CO2 concentration to see alignment
+plot_grid(p.co2.c,p.co2.o,p.sigs.c,p.agc.o, align="hv")
 
 # graph temperature of closed path and sonic
 # Check: do patterns and magnitudes match?
