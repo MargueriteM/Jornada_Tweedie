@@ -16,7 +16,7 @@ ts_files <- list.files(path="/Volumes/Data/Bahada/CR3000/L1/EddyCovariance_ts_2/
 
 # read and merge all files
 ts <- do.call("rbind", lapply(ts_files, header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
-                              na.strings=c(-9999,-9999.0,-9999.00, -9999.000,"#NAME?"),
+                              na.strings=c(-9999,"#NAME?"),
                               col.names=c("TIMESTAMP",
                                           "RECORD",
                                           "Ux",	"Uy",	"Uz",	"Ts",	"CO2",	"H2O",
@@ -31,6 +31,7 @@ ts <- do.call("rbind", lapply(ts_files, header = FALSE, fread, sep=",", skip = 4
 p.co2.c <-ggplot(ts[CO2_dry_7200_raw>300 & CO2_dry_7200_raw<450,], aes(TIMESTAMP, CO2_dry_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)+
+  ylim(c(350,500))+
   labs(title="Closed Path 7200 CO2 umol/mol (limited range 300-450)")
 
 
@@ -41,6 +42,7 @@ R.gc <- 8.3143e-3
 p.co2.o <- ggplot(ts[CO2>500&CO2<800], aes(TIMESTAMP, (CO2/44)*R.gc*(t_hmp+273.14)/press*1000))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)+
+  ylim(c(350,500))+
   labs(title="Open Path 7500 CO2 umol/mol (limited range 500-800)")
 
 # graph open-path and closed-path CO2 concentrations next to each other
@@ -52,13 +54,15 @@ plot_grid(p.co2.c,p.co2.o)
 p.h2o.c <-ggplot(ts[H2O_dry_7200_raw>=0 & H2O_dry_7200_raw<50], aes(TIMESTAMP, H2O_dry_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)+
+  ylim(c(0,50))+
   labs(title="Closed Path 7200 H2O mmol/mol (limited range 0-50)")
 
 # convert H2O from mg/m3 to mmol/mol
 # H2O_mm_m = H2O_mm_m3*R*(t_hmp+273.15)/press
-p.h2o.o <-ggplot(ts[H2O>(-9999) & H2O<40], aes(TIMESTAMP, (H2O/0.018)*R.gc*(t_hmp+273.14)/press))+
+p.h2o.o <-ggplot(ts[H2O>=(0) & H2O<40], aes(TIMESTAMP, (H2O/0.018)*R.gc*(t_hmp+273.14)/press))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)+
+  ylim(c(0,50))+
   labs(title="Open Path 7500 H2O mmol/mol (limited range 0-40)")
 
 # graph open-path and closed-path H2O concentrations next to each other
@@ -75,7 +79,7 @@ p.sigs.c <-ggplot(ts[AGC_7200_raw>20], aes(TIMESTAMP, AGC_7200_raw))+
   labs(title="Closed Path 7200 Signal Strength: 100 when clean")
 
 
-p.agc.o <-ggplot(ts[agc>-9999,], aes(TIMESTAMP, agc))+
+p.agc.o <-ggplot(ts, aes(TIMESTAMP, agc))+
   geom_point()+
   geom_hline(yintercept=50, colour="green")+
   geom_hline(yintercept=56, colour="green")+
@@ -90,12 +94,12 @@ plot_grid(p.co2.c,p.co2.o,p.sigs.c,p.agc.o, align="hv")
 
 # graph temperature of closed path and sonic
 # Check: do patterns and magnitudes match?
-p.T.c <- ggplot(ts[tmpr_avg_7200_raw>(-9999),], aes(TIMESTAMP, tmpr_avg_7200_raw))+
+p.T.c <- ggplot(ts, aes(TIMESTAMP, tmpr_avg_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)+
   labs(title="Closed Path 7200 Air Temperature")
 
-p.T.sonic <- ggplot(ts[Ts>(-9999),], aes(TIMESTAMP, Ts))+
+p.T.sonic <- ggplot(ts, aes(TIMESTAMP, Ts))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)+
   labs(title="Sonic Anemometer Air Temperature")
@@ -104,10 +108,15 @@ p.T.sonic <- ggplot(ts[Ts>(-9999),], aes(TIMESTAMP, Ts))+
 # Check: do patterns and magnitudes match?
 plot_grid(p.T.c, p.T.sonic)
 
+# graph 1:1 of sonic and open path temp
+ggplot(ts, aes(Ts, tmpr_avg_7200_raw))+
+  geom_point(size=1)+
+  geom_abline(intercept=0,slope=1, colour="red", linetype="dashed")+
+  labs(title="Air Temp: Sonic vs Closed Path")
 
 # graph atmospheric pressure from closed path 7200
 # Check: should be between 83 and 85
-ggplot(ts[press_tot_7200_raw>(-9999),], aes(TIMESTAMP, press_tot_7200_raw))+
+ggplot(ts, aes(TIMESTAMP, press_tot_7200_raw))+
   geom_point(size=1)+
   geom_line(linewidth=0.5)+
   labs(title="Closed Path 7200 Atmospheric Pressure")
