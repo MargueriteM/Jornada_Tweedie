@@ -2,7 +2,7 @@
 # probes installed 11 August 2023
 # script author: Marguerite Mauritz
 # 17 August 2023
-
+ 
 # load libraries
 library(data.table)
 library(ggplot2)
@@ -48,10 +48,10 @@ sfn_soildat <- sfn_soildat %>%
   mutate(datetime = ymd_hms(TIMESTAMP, tz="UTC")) %>%
   pivot_longer(!c(TIMESTAMP, datetime, RECORD),names_to="measurement", values_to="value")
 
-# separate columns from probe into metric and probe.number
 # specify columns to skip
 rows_to_skip <- c("BattV_Avg","PTemp_C_Avg")
 
+# separate columns from probe into metric and probe.number
 sfn_soildat <- sfn_soildat %>%
   filter(!measurement %in% rows_to_skip) %>% 
   tidyr::separate(measurement, into=c("metric","probe.num"), sep = "_", remove=FALSE, fill="right", extra="drop") %>%
