@@ -13,19 +13,28 @@ library(data.table)
 library(ggplot2)
 library(gridExtra)
 library(lubridate)
-#library(plotly)
+library(plotly)
 library(tidyr)
 library(dplyr)
 
 # ENTER YEAR TO CHECK HERE
-yeartocheck <- 2023
+
+<<<<<<< HEAD
+yeartocheck <- 2024 
+=======
+yeartocheck <- 2023 
+>>>>>>> ff494eeb9a4bef4dbfabaadc7984d7667bdf277f
 
 # get windrose function, source directly from Github
 #source("~/Desktop/R/R_programs/Functions/plot.windrose.R")
 source(paste0("https://raw.githubusercontent.com/MargueriteM/R_functions/master/plot.windrose.R"))
 
 
-basedir <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower"
+<<<<<<< HEAD
+basedir <- "C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/Tower"
+=======
+basedir <- "C:/Users/memauritz/OneDrive - University of Texas at El Paso/Bahada/Tower"
+>>>>>>> ff494eeb9a4bef4dbfabaadc7984d7667bdf277f
 
 # /Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/
 
@@ -86,8 +95,13 @@ setwd(paste(basedir,"/SoilSensor_CS650/",yeartocheck,"/Raw_Data/ASCII",sep=""))
 
 
 # load headers of file and data
-cs650names <- colnames(read.table("dataL1_Soil_2022.csv", sep=",", skip=1,heade=TRUE))
-cs650wide <- read.table("dataL1_Soil_2022.csv", sep=",", skip=4, col.names = cs650names, na.strings="-9999")
+<<<<<<< HEAD
+cs650names <- colnames(read.table("dataL1_Soil_2024.csv", sep=",", skip=1,heade=TRUE))
+cs650wide <- read.table("dataL1_Soil_2024.csv", sep=",", skip=4, col.names = cs650names, na.strings="-9999")
+=======
+cs650names <- colnames(read.table("dataL1_Soil_2023.csv", sep=",", skip=1,heade=TRUE))
+cs650wide <- read.table("dataL1_Soil_2023.csv", sep=",", skip=4, col.names = cs650names, na.strings="-9999")
+>>>>>>> ff494eeb9a4bef4dbfabaadc7984d7667bdf277f
 
 
 #cs650names <- colnames(read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=1,heade=TRUE))
@@ -182,7 +196,9 @@ radioButtons("variable2", "Biomet variables:",
                "Soil Heat Flux 1 (W/m2)" = "hfp01_1_Avg",
                "Soil Heat Flux 2 (W/m2)" = "hfp01_2_Avg",
                "Soil Heat Flux 3 (W/m2)" = "hfp01_3_Avg",
-              "Soil Heat Flux 4 (W/m2)" = "hfp01_4_Avg"))
+              "Soil Heat Flux 4 (W/m2)" = "hfp01_4_Avg",
+              "Wind Speed (m/s)" = "wnd_spd",
+              "Wind Direction (degrees)" = "wnd_dir_compass"))
 
 # numericInput("range_met_max","Max range of Biomet graph",
     #       value = 40)
