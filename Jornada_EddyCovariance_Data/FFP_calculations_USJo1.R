@@ -209,14 +209,14 @@ ffp_data$WD
 
 # Try running model for 1 half-hour
 
-FFP <- calc_footprint_FFP(lat=flux$BADM_LOCATION_LAT[100],
+FFP <- calc_footprint_FFP(#lat=ffp_data$BADM_LOCATION_LAT[100],
                               zm= z - 0.67,
-                              z0=flux$ROUGHNESS_LENGTH[100],
+                              z0=ffp_data$ROUGHNESS_LENGTH[100],
                               umean=NaN, # if z0 is given, it will be used instead of umean
-                              ol=flux$MO_LENGTH[100], 
-                              sigmav=flux$V_SIGMA[100], 
-                              ustar=flux$USTAR[100], 
-                              wind_dir=flux$WD[100],
+                              ol=ffp_data$MO_LENGTH[100], 
+                              sigmav=ffp_data$V_SIGMA[100], 
+                              ustar=ffp_data$USTAR[100], 
+                              wind_dir=ffp_data$WD[100],
                               r=NULL,
                               nx = NULL,
                               rslayer = NULL,
@@ -227,11 +227,11 @@ ffp_x <- c(FFP$x_2d)
 ffp_y <- c(FFP$y_2d)
 ffp_f <- c(FFP$f_2d)
 
-quilt.plot(ffp_x,ffp_y,ffp_f,nx=1000,xlim=c(-100,1000),ylim=c(-100,1000))
+quilt.plot(ffp_x,ffp_y,ffp_f,nx=1000,xlim=c(-100,150),ylim=c(-100,150))
 for(i in 1:8)lines(FFP$xr[[i]],FFP$yr[[i]],type="l",col="red")
 
 
-test <- flux %>%
+test <- ffp_data %>%
   filter(as.Date(date_time) == as.Date("2012-07-01"))%>%
   group_by(.,date_time) %>%
   tidyr::nest() %>% 

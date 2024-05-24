@@ -50,7 +50,7 @@ source(paste0("https://raw.githubusercontent.com/MargueriteM/R_functions/master/
 # CO2_raw: mmol/m3
 # H2O_raw: mmol/m3
 
-year_file <- 2023
+year_file <- 2024
 
 # Based on data checks, no data form Met and CS650 from 16 Dec 17:30 to 17 Jan 2022
 
@@ -120,8 +120,8 @@ ggplot(climate_30min, aes(date_time, wnd_dir))+geom_line()
 climate_wind <- copy(climate_30min[!is.na(wnd_dir) | !is.na(wnd_spd),])
 plot.windrose(climate_wind,climate_wind$wnd_spd, climate_wind$wnd_dir)
 
-fig.precip <- ggplot(climate_30min, aes(date_time, precip_tot))+geom_line()+scale_x_datetime(date_breaks="1 month", date_labels="%b")+labs(title="Bajada US-Jo1 Rainfall, 2021", y="Total 30 min Rainfall (mm)")
-fig.lws <- ggplot(climate_30min, aes(date_time, lws_5m))+geom_line()
+fig.precip <- ggplot(climate_30min, aes(date_time, precip_tot))+geom_line()+scale_x_datetime(date_breaks="1 month", date_labels="%b")+labs(title="Bajada US-Jo1 Rainfall, 2023", y="Total 30 min Rainfall (mm)")
+fig.lws <- ggplot(climate_30min, aes(date_time, lws_5m))+geom_line()+scale_x_datetime(date_breaks="1 month", date_labels="%b")+labs(title="Bajada US-Jo1 LWS, 2023", y="LWS")
 
 # Precip: check patterns with LWS to see if events are misssing.
 # LWS and Rain should have similar appearance of spikes
@@ -212,10 +212,10 @@ ggplot(met30_long[variable%in% c("up_tot", "dn_tot")], aes(date_time, value, col
 ggplot(met30_long[variable%in% c("net_rs", "net_ri")], aes(date_time, value, colour=variable))+geom_point()+
   labs(title="net_rs and net_rl")
 
-# 2022 looks good up to "2022-08-25 12:00:00 UTC"
-# 2022 looks good up to "2022-10-13 08:00:00 UTC"
+
 # 2022 looks good up to 2022-12-31
-# 2023 looks goo up to "2023-08-25 07:30:00 UTC"
+# 2023 looks good up to "2024-01-01 UTC"
+# 2024 looks good up to "2024-03-14 09:30:00 UTC"
 
 # if up or dn is NA then albedo and net are also NA
 dn_tot_na <- copy(met30_long[variable == "dn_tot" & is.na(value), (date_time)])

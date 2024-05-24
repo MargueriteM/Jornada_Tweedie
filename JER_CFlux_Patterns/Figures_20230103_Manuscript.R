@@ -285,7 +285,7 @@ flux.ep <- rbind(edata2010,flux.ep2011,flux.ep2012,flux.ep2013,flux.ep2014,flux.
 
 # save the data to have a compiled file easy to access
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20221209_2010_2019/")
-save(file="REddyResults_2010_2022_Compiled.Rdata",flux.ep)
+# save(file="REddyResults_2010_2022_Compiled.Rdata",flux.ep)
 
 # plot to check
 # NEE_U95_f graph should have 2010 missing

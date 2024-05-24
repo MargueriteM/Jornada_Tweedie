@@ -271,10 +271,11 @@ flux_filter_sd_hour <- flux_filter_sd[,':='(year=year(date_time),
                                        ]
 
 ggplot(flux_filter_sd_hour, aes(x=factor(hour)))+
-  #geom_point(aes(y=co2_flux), colour="black", size=0.2)+
+  geom_point(aes(y=co2_flux), colour="black", size=0.2)+
  # geom_smooth(aes(y=co2_flux), colour="black", alpha=0, linewidth=0.3)+
   geom_point(aes(y=fc_wpl_adjust), colour="green", size=0.2)+
   #geom_smooth(aes(y=fc_wpl_adjust), colour="green", alpha=0, linewidth=0.3)+
+  labs(y="hourly flux (umol/m2/sec)")+
   facet_grid(year~month)+
   theme_bw()
   

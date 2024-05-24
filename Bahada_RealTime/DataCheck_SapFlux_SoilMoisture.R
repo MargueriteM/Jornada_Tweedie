@@ -59,6 +59,7 @@ bind_rows(filter(sfn_soildat, measurement %in% rows_to_skip))%>%
   mutate(metric=case_when (measurement %in% rows_to_skip ~ as.character(measurement),
                            TRUE ~ as.character(metric)))
 
+
 # add metadata to data file
 sfn_soildat <- right_join(sfn_soildat,sfn_metadata, by="measurement")
 
