@@ -35,7 +35,7 @@ rm(flux_filter_sd_all)
 # or read demofile instead
 # in 2021 IRGA diag column was added on 15 June 2021. From 16 June 2021 onward change EddyPro metadata to use IRGA diag value
 # 2022: data processed in one batch Jan - Sep
-flux_add <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/eddypro_JER_2022_JanSep_fluxnet_2022-10-14T112031_exp.csv",
+flux_add <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/eddypro_JER_2022_JanSep_fluxnet_2022-10-14T112031_exp.csv",
                    sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
 
 flux_add[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
@@ -63,11 +63,11 @@ ggplot(flux_add[!(FILENAME_HF %in% ("not_enough_data")),],aes(date_time,P_RAIN_1
 
 # load biomet data
 #2022
-biomet2022.names <- colnames(fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2022.csv",
+biomet2022.names <- colnames(fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2022.csv",
                                    header=TRUE))
 
 
-biomet2022 <- fread("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2022.csv",
+biomet2022 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2022.csv",
                     skip=2, header=FALSE, col.names=biomet2022.names, na.strings=c("-9999"))
 
 
