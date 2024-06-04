@@ -141,7 +141,7 @@ library(corrplot)
 #############
 # IMPORT DATA
 #############
-year_file <- 2024
+year_file <- 2020
 # Sensor network data:
 SN_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
@@ -380,9 +380,9 @@ precip <- dcast(precip,date_time ~SN)
 #ggplot(precip,aes(date_time,SN2))+geom_line()
 #ggplot(precip,aes(date_time,SN6))+geom_line()
 
-#ggplot(precip,aes(tower,SN2))+geom_point()
-#ggplot(precip,aes(tower,SN6))+geom_point()
-#ggplot(precip,aes(SN2,SN6))+geom_point()
+#ggplot(precip,aes(tower,SN2))+geom_point()+geom_abline(intercept=0,slope=1)
+#ggplot(precip,aes(tower,SN6))+geom_point()+geom_abline(intercept=0,slope=1)
+#ggplot(precip,aes(SN2,SN6))+geom_point()+geom_abline(intercept=0,slope=1)
 
 # if any row has 0 in one column and >0 in another, make the 0 = NA
 precip[SN2==0 & (SN6!=0 | tower!=0), SN2 := NA]
