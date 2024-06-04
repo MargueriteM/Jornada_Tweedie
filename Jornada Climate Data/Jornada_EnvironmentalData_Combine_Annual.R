@@ -437,6 +437,7 @@ ggplot(env_30min[variable %in% c("soilmoisture","soiltemp"),],
 # look at PAR UP from tower and SN
 ggplot(env_30min[variable == "par"& veg %in% c("UP"),], aes(date_time, mean.val,colour=SN))+
   geom_line()+
+  geom_hline(yintercept=c(2400,2500))+
   facet_grid(paste(variable,location,sep="_")~., scales="free_y")
 
 # look at downward PAR over Veg from SN
