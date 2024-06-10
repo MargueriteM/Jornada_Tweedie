@@ -52,10 +52,15 @@ library(gridExtra)
 library(lattice)
 
 # Get sensor network data from server, using compiled files
-infile.path <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/"
 
+# assign paths for data input and qaqc
+infile.path <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/"
+qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/", sep="")
+
+# assign year to read
 year_file <- 2024
 
+# import data
 SN <- fread(paste(infile.path,"Data/WSN_",year_file,".csv",sep=""),
               header = TRUE, sep=",",
             na.strings=c(-9999,-888.88,"#NAME?"))
@@ -587,7 +592,6 @@ print(paste("#",year(startdate), "data processed until",enddate,sep=" "))
 # 2023 data processed until 2024-01-01
 
 # # save in QAQC folder with start and end date in the file name
-qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/", sep="")
 setwd(qaqc.path)
 
 # # FOR INCOMPLETE YEARS
