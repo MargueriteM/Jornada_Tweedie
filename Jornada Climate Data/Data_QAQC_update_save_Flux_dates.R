@@ -140,16 +140,21 @@ library(lattice)
 
 year_file <- 2024
 
+# create paths
+infile.path <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/"
+qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/QAQC/", sep="")
+
+
 # import most recent file
-flux.loggerinfo <-fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
+flux.loggerinfo <-fread(paste(infile.path,year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
                            header = FALSE, sep=",", skip = 0,fill=TRUE,
                            na.strings=c(-9999,"#NAME?"))[1,]
 
 
-flux.colnames <-colnames(fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
+flux.colnames <-colnames(fread(paste(infile.path,year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
                          header = TRUE, sep=","))
 
-flux <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
+flux <- fread(paste(infile.path,year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
                  header = FALSE, sep=",", skip = 4,fill=TRUE,
                  na.strings=c(-9999,"#NAME?"),
               col.names=flux.colnames)
@@ -176,6 +181,15 @@ enddate.check <- (max(flux_long$date_time))
 # hfp01_4_Avg	W/m^2 Soil heat flux (5cm/15cm) 10 bush ... (channel 8L (=16 SE). Field label: 10B)
 
 # all hfp 
+
+# without free y-scales
+ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg"),],#&
+       # date_time>as.Date("2021-05-28") &date_time<as.Date("2021-06-04"),],
+       aes(date_time, value))+
+  geom_line()+
+  facet_grid(variable~.)
+
+# with free y-scales
 ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg"),],#&
                   # date_time>as.Date("2021-05-28") &date_time<as.Date("2021-06-04"),],
        aes(date_time, value))+
@@ -245,7 +259,7 @@ ggplot(flux_long[variable %in% c("lws_1_Avg", "lws_2_Avg"),],
        aes(date_time, value))+geom_line()+
   facet_grid(variable~.,scales="free_y")
 
-# 2021, 2022, 2023, 2024 (14 Mar 2024): remove lws_1
+# 2021, 2022, 2023, 2024 (10 June 2024): remove lws_1
 flux_long[variable %in% c("lws_1_Avg"), value := NA]
 
 # radiation data
@@ -314,9 +328,9 @@ print(paste("#",year(enddate), "data processed until",enddate,sep=" "))
 # 2023 data processed until 2023-08-25 07:30:00
 # 2023 data processed until 2023-12-31 23:30:00
 # 2024 data processed until 2024-03-14 09:00:00
+# 2024 data processed until 2024-06-04 09:30:00
 
 # # Save to Qa/QC and Combined folder with only year name
-qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/QAQC/", sep="")
 setwd(qaqc.path)
 
 ###################### with start and end date in the file name ##################
