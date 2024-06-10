@@ -217,5 +217,7 @@ file.copy(from = rstudioapi::getActiveDocumentContext()$path,
                          #to = file.path("~/Desktop",                
                          paste("Data_QAQC_Code_",year_file, ".csv",sep="")))
 
+# If response: [TRUE] the code save worked. If [FALSE], the file already exists. Remove and run again. 
+
 
 
