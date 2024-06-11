@@ -141,7 +141,7 @@ library(corrplot)
 #############
 # IMPORT DATA
 #############
-year_file <- 2020
+year_file <- 2024
 # Sensor network data:
 SN_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
                    sep=",", header=TRUE)
@@ -391,6 +391,7 @@ precip[tower==0 & (SN2!=0 | SN6!=0), tower := NA]
 
 # in 2021, 2022, 2023, 2024 (March) SN6 was not working, make all SN6 precip NA
 precip[, SN6 := NA]
+# SN2 precip is logging 1/4 the rain compared to tower... gets removed below
 
 # now join the fixed precip data back to the env_30min
 precip <- melt(precip,measure.vars=c("tower","SN2","SN6"), variable.name="SN",value.name="mean.val")
@@ -452,7 +453,7 @@ ggplot(env_30min[variable == "precip.tot"& veg=="BARE",], aes(date_time, mean.va
   geom_line()+
   facet_grid(paste(variable,location,veg,sep="_")~., scales="free_y")
 
-# 2023 precip.tot in SN2 is always logging ~1/4 the rain captured at the tower
+# 2024 (until June 4) and 2023 precip.tot in SN2 is always logging ~1/4 the rain captured at the tower
 # perhaps something is wrong with the bucket? LATR and PRGL buckets captured more... 
 # exclude SN2 precip
 env_30min[variable == "precip.tot"& SN=="SN2",mean.val := NA]
@@ -574,7 +575,14 @@ setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/
 source("~/Desktop/R/R_programs/Functions/SaveFiles_Biomet_EddyPro.R")
 
 # save
+startdate <- (min(biomet$date_time))
+enddate <- (max(biomet$date_time))
+
+# add comment about processing
+print(paste("# Biomet",year(startdate), "data processed until",enddate,sep=" "))
+
 # 2023-08-29: save 2022, 2023 (do not re-write 2020 and 2021)
+# Biomet 2024 data processed until 2024-06-04 09:30:00
 savebiomet(biomet,year_file,year_file)
 
 
