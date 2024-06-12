@@ -993,9 +993,11 @@ saveyears <- function(data,startyear,endyear) {
 # save 
  saveyears(biomet2_wide,year_file,year_file)
 
-## also save to Biomet One Drive preliminary folder
- setwd("~/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Biomet/Preliminary")
-
+## also save to CZ Biomet One Drive preliminary folder
+# setwd("~/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Biomet/Preliminary")
+## OR save to CZ Biomet One Drive folder
+# setwd("~/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Biomet")
+ 
  saveyears(biomet2_wide,year_file,year_file)
 
 #### End of routine processing ####
