@@ -26,6 +26,9 @@ ts <- do.call("rbind", lapply(ts_files, header = FALSE, fread, sep=",", skip = 4
 
 # Check data for LI-7200 and compare to LI-7500
 
+# Print most recent record in dataset
+max(ts$TIMESTAMP)
+
 # CO2 concentrations
 # Check: how well do patterns match between open and closed path
 p.co2.c <-ggplot(ts[CO2_dry_7200_raw>300 & CO2_dry_7200_raw<450,], aes(TIMESTAMP, CO2_dry_7200_raw))+
