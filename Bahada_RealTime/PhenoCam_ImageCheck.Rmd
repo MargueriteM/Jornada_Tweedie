@@ -25,17 +25,18 @@ library(data.table)
 ```
 
 ```{r, load info for camera 1}
-yeartocheck <- 2023
+yeartocheck <- 2024
+monthtocheck <- "Apr"
 
-cam1_wd <- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Phenocam/TwrPhenocam/Cam1_Tram/",yeartocheck,"/",sep="")
+#cam1_wd <- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Phenocam/TwrPhenocam/Cam1_Tram/",yeartocheck,"/",sep="")
+cam1_wd <- paste("C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/Phenocam/L0/Bahada_Cam1_Tram/RC/pic/RGB/",yeartocheck,"/",monthtocheck,"/",sep="")
 
-
-cam1files <- list.files(path=cam1_wd)
+cam1files <- list.files(cam1_wd)
 
 cam1_latest <- max(cam1files)
 
 
-cam1_date <- ymd(paste(str_split_n(cam1_latest,"_",3),str_split_n(cam1_latest,"_",4)))
+cam1_date <- ymd_hms(str_split_i(cam1_latest,"_",5),tz="MST")
 
 print(cam1_date)
 
@@ -51,16 +52,18 @@ getwd()
 
 
 ```{r, load info for camera 2}
-yeartocheck <- 2022
+yeartocheck <- 2024
+monthtocheck <- "Mar"
 
-cam2_wd <- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Phenocam/TwrPhenocam/Cam2_West/",yeartocheck,"/",sep="")
+#cam2_wd <- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Phenocam/TwrPhenocam/Cam2_West/",yeartocheck,"/",sep="")
+cam2_wd <- paste("C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/Phenocam/L0/Bahada_Cam2_West/RC/pic/RGB/",yeartocheck,"/",monthtocheck,"/",sep="")
 
 cam2files <- list.files(path=cam2_wd)
 
 cam2_latest <- max(cam2files)
 
 
-cam2_date <- ymd(paste(str_split_n(cam2_latest,"_",3),str_split_n(cam1_latest,"_",4)))
+cam2_date <- ymd_hms(paste(str_split_i(cam2_latest,"_",5)))
 
 print(cam2_date)
 
@@ -74,16 +77,19 @@ getwd()
 ```
 
 ```{r, load info for camera 3}
-yeartocheck <- 2022
+yeartocheck <- 2024
+monthtocheck <- "Apr"
 
-cam3_wd <- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Phenocam/TwrPhenocam/cam3_SouthWest/",yeartocheck,"/",sep="")
+#cam3_wd <- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Phenocam/TwrPhenocam/cam3_SouthWest/",yeartocheck,"/",sep="")
+
+cam3_wd <- paste("C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/Phenocam/L0/Bahada_cam3_SouthWest/RC/pic/RGB/",yeartocheck,"/",monthtocheck,"/",sep="")
+
 
 cam3files <- list.files(path=cam3_wd)
 
 cam3_latest <- max(cam3files)
 
-
-cam3_date <- ymd(paste(str_split_n(cam3_latest,"_",3),str_split_n(cam1_latest,"_",4)))
+cam3_date <- ymd_hms(paste(str_split_i(cam3_latest,"_",5)),tz="MST")
 
 print(cam3_date)
 
@@ -97,16 +103,17 @@ getwd()
 ```
 
 ```{r, load info for camera 4}
-yeartocheck <- 2022
+yeartocheck <- 2024
+monthtocheck <- "Apr"
 
-cam4_wd <- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Phenocam/TwrPhenocam/cam4_South/",yeartocheck,"/",sep="")
+#cam4_wd <- paste("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Phenocam/TwrPhenocam/cam4_South/",yeartocheck,"/",sep="")
+cam4_wd <- paste("C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/Phenocam/L0/Bahada_cam3_SouthWest/RC/pic/RGB/",yeartocheck,"/",monthtocheck,"/",sep="")
 
 cam4files <- list.files(path=cam4_wd)
 
 cam4_latest <- max(cam4files)
 
-
-cam4_date <- ymd(paste(str_split_n(cam4_latest,"_",3),str_split_n(cam1_latest,"_",4)))
+cam4_date <- ymd_hms(paste(str_split_i(cam3_latest,"_",5)),tz="MST")
 
 print(cam4_date)
 
