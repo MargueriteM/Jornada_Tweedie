@@ -121,14 +121,8 @@ ggplot(flux_add[filter_fc!=1],
 #               15/17 Dec -> loaner (AGC baseline: 63)
 #              8 Apr 21 -> remove loaner & re-install lab IRGA (AGC: 56)
 
-# filter AGC by values less than 65 prior to 8 April
-flux_add[date_time < as.Date ("2022-04-08") & 
-           (CUSTOM_AGC_MEAN<48 & CUSTOM_AGC_MEAN>65),
-         filter_fc := 1L]
-
-# filter AGC by values between 50 to 65 after 8th Apr
-flux_add[date_time > as.Date ("2022-04-08") & 
-           (CUSTOM_AGC_MEAN<50 & CUSTOM_AGC_MEAN>65),
+# 2023 filter AGC by values between 50 to 65 
+flux_add[(CUSTOM_AGC_MEAN<50 & CUSTOM_AGC_MEAN>65),
          filter_fc := 1L]
 
 
@@ -167,14 +161,9 @@ flux_add[H_SSITC_TEST>1 | is.na(H_SSITC_TEST), filter_h := 1L]
 #               15/17 Dec -> loaner (AGC baseline: 63)
 #              8 Apr 21 -> remove loaner & re-install lab IRGA (AGC: 56)
 
-# filter AGC by values less than 65 prior to 8 April
-flux_add[date_time < as.Date ("2022-04-08") & 
-           (CUSTOM_AGC_MEAN<48 & CUSTOM_AGC_MEAN>65),
-         filter_H := 1L]
 
-# filter AGC by values between 50 to 65 after 8th Apr
-flux_add[date_time > as.Date ("2022-04-08") & 
-           (CUSTOM_AGC_MEAN<50 & CUSTOM_AGC_MEAN>65),
+# 2023 filter AGC by values between 50 to 65 
+flux_add[(CUSTOM_AGC_MEAN<50 & CUSTOM_AGC_MEAN>65),
          filter_H := 1L]
 
 
@@ -207,14 +196,8 @@ flux_add[LE_SSITC_TEST>1 | is.na(LE_SSITC_TEST), filter_LE := 1L]
 #               15/17 Dec -> loaner (AGC baseline: 63)
 #              8 Apr 21 -> remove loaner & re-install lab IRGA (AGC: 56)
 
-# filter AGC by values less than 65 prior to 8 April
-flux_add[date_time < as.Date ("2022-04-08") & 
-           (CUSTOM_AGC_MEAN<48 & CUSTOM_AGC_MEAN>65),
-         filter_LE := 1L]
-
-# filter AGC by values between 50 to 65 after 8th Apr
-flux_add[date_time > as.Date ("2022-04-08") & 
-           (CUSTOM_AGC_MEAN<50 & CUSTOM_AGC_MEAN>65),
+# 2023 filter AGC by values between 50 to 65 
+flux_add[(CUSTOM_AGC_MEAN<50 & CUSTOM_AGC_MEAN>65),
          filter_LE := 1L]
 
 
@@ -249,7 +232,7 @@ flux_add[P_RAIN_1_1_1>0, ':=' (filter_fc = 1L, filter_LE = 1L, filter_H = 1L)]
 
 # Before the rolling mean, add two weeks of prior data
 
-flux_add <- rbind(flux_filter_sd[date_time > as.Date("2021-12-15") & date_time < as.Date("2022-01-01") ],
+flux_add <- rbind(flux_filter_sd[date_time > as.Date("2022-12-15") & date_time < as.Date("2023-01-01") ],
                   flux_add, fill=TRUE)
 
 # make sure the data are ordered:
@@ -310,12 +293,12 @@ flux_add[FC>FC_rollmean3_daynight+threshold*FC_rollsd3_daynight|
        FC<FC_rollmean3_daynight-threshold*FC_rollsd3_daynight, filter_fc_roll_daynight := 2L]
 
 # view the marked fluxes in ~25 day chunks
-ggplot(flux_add[filter_fc_roll!=1&DOY_START>=150&DOY_START<=365,], aes(DOY_START, FC))+
+ggplot(flux_add[filter_fc_roll!=1&DOY_START>=300&DOY_START<=365,], aes(DOY_START, FC))+
   geom_line()+
   geom_point(aes(colour=factor(filter_fc_roll)), size=0.5)
 
 # view the marked fluxes in ~25 day chunks for day/night
-ggplot(flux_add[filter_fc_roll_daynight!=1&DOY_START>=350&DOY_START<=365,], aes(DOY_START, FC))+
+ggplot(flux_add[filter_fc_roll_daynight!=1&DOY_START>=300&DOY_START<=365,], aes(DOY_START, FC))+
   geom_line()+
   geom_point(aes(colour=factor(filter_fc_roll_daynight)), size=0.5)
 
@@ -371,7 +354,7 @@ flux_add[LE>LE_rollmean3_daynight+threshold*LE_rollsd3_daynight|
 
 
 # view the marked flux_addes in ~25 day chunks
-ggplot(flux_add[filter_le_roll!=1&DOY_START>=100&DOY_START<=300,], aes(DOY_START, LE, colour=factor(filter_le_roll)))+
+ggplot(flux_add[filter_le_roll!=1&DOY_START>=330&DOY_START<=365,], aes(DOY_START, LE, colour=factor(filter_le_roll)))+
   geom_point()
 
 # view the marked flux_addes in ~25 day chunks for day/night
@@ -453,7 +436,7 @@ ggplot(flux_add[filter_h_roll_daynight==0,], aes(DOY_START, H))+
 # Prior to saving, filter data and remove unnecessary columns
 # c("date_time_orig","TIMESTAMP_START","TIMESTAMP_END","DOY_START","DOY_END","time_diff","SW_IN_POT_AF") 
 # date_time_orig, time_diff and SW_IN_POT_AF probably won't be in files after 2019 because they were used for the timestamp corrections needed prior to 2019
-flux_add_filter_sd <- copy(flux_add[date_time>=as.Date("2022-01-01"),
+flux_add_filter_sd <- copy(flux_add[date_time>=as.Date("2023-01-01"),
                                     !(c("date","month","year","DOY_START","DOY_END")),with=FALSE])
 flux_add_filter_sd[filter_fc_roll_daynight!=0, FC := NA]
 flux_add_filter_sd[filter_h_roll_daynight!=0, H := NA]
@@ -464,7 +447,7 @@ ggplot(flux_add_filter_sd,aes(date_time, FC))+geom_point()
 summary(flux_add_filter_sd$date_time)
 
 # append new data to previous
-flux_filter_sd_all <- rbind(flux_filter_sd[date_time<as.Date("2022-01-01"),], flux_add_filter_sd,fill=TRUE)
+flux_filter_sd_all <- rbind(flux_filter_sd[date_time<as.Date("2023-01-01"),], flux_add_filter_sd,fill=TRUE)
 
 # graph all
 ggplot(flux_filter_sd_all,aes(yday(date_time), FC))+
@@ -474,14 +457,14 @@ ggplot(flux_filter_sd_all,aes(yday(date_time), FC))+
 # include TIMESTAMP_START and TIMESTAMP_END 
 # save 2021 and 2022 data with biomet data from input biomet2021/2022, not EddyPro output
 # save to server
-setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/")
+setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2023/EddyPro_Out/")
 
 #write.table(flux_add_filter_sd,
 #            file="JER_flux_2022_EddyPro_Output_filtered_SD_JanSep.csv",sep=",", dec=".",
 #            row.names=FALSE)
 
 write.table(flux_add_filter_sd,
-            file="JER_flux_2022_EddyPro_Output_filtered_SD_JanDec.csv",sep=",", dec=".",
+            file="JER_flux_2023_EddyPro_Output_filtered_SD_JanDec.csv",sep=",", dec=".",
             row.names=FALSE)
 
 # save filtered data with SD filter for all years 2010-current
@@ -489,7 +472,8 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filt
 
 # 20211229 (redo on 20220103 with TIMESTAMP_START and TIMESTAMP_END included)
 # 20221023 - with updates 2021 (Dec + AGC fies and with 2022 Jan - Sep)
-# 20221230 - with all 2022 updated on 2024-06-17
+# 20221231 - with all 2022 updated on 2024-06-17
+# 20231231 - with all 2023 updated on 2024-06-17
 save(flux_filter_sd_all,
-     file="JER_flux_2010_EddyPro_Output_filtered_SD_20221231.Rdata")
+     file="JER_flux_2010_EddyPro_Output_filtered_SD_20231231.Rdata")
 
