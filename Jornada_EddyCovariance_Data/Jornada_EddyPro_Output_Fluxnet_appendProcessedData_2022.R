@@ -35,11 +35,19 @@ rm(flux_filter_sd_all)
 # or read demofile instead
 # in 2021 IRGA diag column was added on 15 June 2021. From 16 June 2021 onward change EddyPro metadata to use IRGA diag value
 # 2022: data processed in one batch Jan - Sep
-flux_add <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/eddypro_JER_2022_JanSep_fluxnet_2022-10-14T112031_exp.csv",
-                   sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
+# flux_add <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/eddypro_JER_2022_JanSep_fluxnet_2022-10-14T112031_exp.csv",
+#                  sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
+
+# flux_add[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
+#  ,':='(date=as.Date.POSIXct(date_time),month=month(date_time),year=year(date_time))]
+
+# add Oct-Dec 2022
+flux_add <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/eddypro_JER_2022_OctDec_fluxnet_2024-03-15T230111_exp.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
 
 flux_add[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
   ,':='(date=as.Date.POSIXct(date_time),month=month(date_time),year=year(date_time))]
+
 
 # remove data from Jan - Dec data set that comes after the start of flux_add2
 # flux_add1 <- copy(flux_add1[date_time<min(flux_add2$date_time),])
