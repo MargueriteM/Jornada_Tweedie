@@ -86,8 +86,8 @@ setwd(paste(basedir,"/SoilSensor_CS650/",yeartocheck,"/Raw_Data/ASCII",sep=""))
 
 
 # load headers of file and data
-cs650names <- colnames(read.table("dataL1_Soil_2022.csv", sep=",", skip=1,heade=TRUE))
-cs650wide <- read.table("dataL1_Soil_2022.csv", sep=",", skip=4, col.names = cs650names, na.strings="-9999")
+cs650names <- colnames(read.table("dataL1_Soil_2023.csv", sep=",", skip=1,heade=TRUE))
+cs650wide <- read.table("dataL1_Soil_2023.csv", sep=",", skip=4, col.names = cs650names, na.strings="-9999")
 
 
 #cs650names <- colnames(read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=1,heade=TRUE))

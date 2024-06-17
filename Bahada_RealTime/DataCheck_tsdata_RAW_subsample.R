@@ -93,7 +93,8 @@ p.agc.o <-ggplot(ts, aes(TIMESTAMP, agc))+
 plot_grid(p.sigs.c,p.agc.o)
 
 # plot signal strength with CO2 concentration to see alignment
-plot_grid(p.co2.c,p.co2.o,p.sigs.c,p.agc.o, align="hv")
+plot_grid(p.co2.c,p.co2.o,
+          p.sigs.c,p.agc.o, align="hv")
 
 # graph temperature of closed path and sonic
 # Check: do patterns and magnitudes match?
