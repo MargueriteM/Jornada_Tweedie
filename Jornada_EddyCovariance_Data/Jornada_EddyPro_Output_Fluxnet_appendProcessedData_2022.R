@@ -519,5 +519,5 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filt
 # 20221023 - with updates 2021 (Dec + AGC fies and with 2022 Jan - Sep)
 # 20221230 - with all 2022 updated on 2024-06-17
 save(flux_filter_sd_all,
-     file="JER_flux_2010_EddyPro_Output_filtered_SD_20221230.Rdata")
+     file="JER_flux_2010_EddyPro_Output_filtered_SD_20221231.Rdata")
 
