@@ -35,22 +35,25 @@ rm(flux_filter_sd_all)
 # or read demofile instead
 # in 2021 IRGA diag column was added on 15 June 2021. From 16 June 2021 onward change EddyPro metadata to use IRGA diag value
 # 2022: data processed in one batch Jan - Sep
-# flux_add <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/eddypro_JER_2022_JanSep_fluxnet_2022-10-14T112031_exp.csv",
-#                  sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
-
-# flux_add[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
-#  ,':='(date=as.Date.POSIXct(date_time),month=month(date_time),year=year(date_time))]
-
-# add Oct-Dec 2022
-flux_add <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/eddypro_JER_2022_OctDec_fluxnet_2024-03-15T230111_exp.csv",
+ flux_add1 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/eddypro_JER_2022_JanSep_fluxnet_2022-10-14T112031_exp.csv",
                   sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
 
-flux_add[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
+ flux_add1[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
+  ,':='(date=as.Date.POSIXct(date_time),month=month(date_time),year=year(date_time))]
+
+# add Oct-Dec 2022
+flux_add2 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/eddypro_JER_2022_OctDec_fluxnet_2024-03-15T230111_exp.csv",
+                  sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
+
+flux_add2[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
   ,':='(date=as.Date.POSIXct(date_time),month=month(date_time),year=year(date_time))]
 
 
 # remove data from Jan - Dec data set that comes after the start of flux_add2
 # flux_add1 <- copy(flux_add1[date_time<min(flux_add2$date_time),])
+
+# combine (CUSTOM_DIAG_75_MEAN missing from flux_add2)
+flux_add <- rbind(flux_add1, flux_add2, fill=TRUE)
 
 # remove duplicate data
 flux_add <- (flux_add[!(duplicated(flux_add, by=c("TIMESTAMP_START")))])
@@ -152,7 +155,7 @@ flux_add[date_time < as.Date ("2022-04-08") &
          filter_fc := 1L]
 
 # filter AGC by values between 50 to 65 after 8th Apr
-flux_add[date_time < as.Date ("2022-04-08") & 
+flux_add[date_time > as.Date ("2022-04-08") & 
            (CUSTOM_AGC_MEAN<50 & CUSTOM_AGC_MEAN>65),
          filter_fc := 1L]
 
@@ -198,17 +201,13 @@ flux_add[date_time < as.Date ("2022-04-08") &
          filter_H := 1L]
 
 # filter AGC by values between 50 to 65 after 8th Apr
-flux_add[date_time < as.Date ("2022-04-08") & 
+flux_add[date_time > as.Date ("2022-04-08") & 
            (CUSTOM_AGC_MEAN<50 & CUSTOM_AGC_MEAN>65),
          filter_H := 1L]
 
 
 # remove H < -120 and > 560, these are not typical values.
 flux_add[H < (-120) | H > 560, filter_H := 1L]
-# in 2015 March there's one H > 400 that's an outlier
-flux_add[year==2015 & month==3 & H>400, filter_H := 1L]
-# in 2018 Jan there's one H>400 that's an outlier
-flux_add[year==2018 & month==1 & H>400, filter_H := 1L]
 
 # look at all filtered H
 ggplot(flux_add[filter_H!=1,],
@@ -242,7 +241,7 @@ flux_add[date_time < as.Date ("2022-04-08") &
          filter_LE := 1L]
 
 # filter AGC by values between 50 to 65 after 8th Apr
-flux_add[date_time < as.Date ("2022-04-08") & 
+flux_add[date_time > as.Date ("2022-04-08") & 
            (CUSTOM_AGC_MEAN<50 & CUSTOM_AGC_MEAN>65),
          filter_LE := 1L]
 
@@ -265,7 +264,7 @@ ggplot(flux_add[filter_LE!=1,],
 # this graph shows all rain events in flux data
 ggplot()+
   geom_line(data=flux_add[filter_fc !=1], aes(DOY_START,FC),alpha=0.5)+
-  geom_point(data=flux_add[P_RAIN_1_1_1>0], aes(DOY_START,FC), colour="red",size=0.25)+
+  geom_point(data=flux_add[filter_fc !=1 & P_RAIN_1_1_1>0], aes(DOY_START,FC), colour="red",size=0.25)+
   facet_grid(year~.)
 
 # this graph shows additional data removed due to rain
@@ -278,11 +277,15 @@ flux_add[P_RAIN_1_1_1>0, ':=' (filter_fc = 1L, filter_LE = 1L, filter_H = 1L)]
 
 # Before the rolling mean, add two weeks of prior data
 
-flux_add <- rbind(flux_filter_sd[date_time > as.Date("2021-12-15")],
+flux_add <- rbind(flux_filter_sd[date_time > as.Date("2021-12-15") & date_time < as.Date("2022-01-01") ],
                   flux_add, fill=TRUE)
 
 # make sure the data are ordered:
 flux_add <- flux_add[order(date_time),]
+
+# remove duplicates
+flux_add <- (flux_add[!(duplicated(flux_add, by=c("date_time")))])
+
 
 # APPLY ROLLING MEANS APPROACH TO FILTER Fc, LE, H
 # use rollmeanr from zoo
