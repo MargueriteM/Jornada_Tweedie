@@ -308,12 +308,12 @@ threshold <- 3
 
 # graph the 3 and 5 day SD ribbons around measured flux_add
 ggplot(flux_add[filter_fc!=1,])+
-  geom_line(aes(DOY_START, FC))+
+  geom_line(aes(yday(date_time), FC))+
   #geom_line(aes(DOY_START, FC_rollmean), colour="green")+
-  geom_ribbon(aes(x=DOY_START, ymin=FC_rollmean3-threshold*FC_rollsd3, ymax=FC_rollmean3+threshold*FC_rollsd3), alpha=0.5)+
-  geom_ribbon(aes(x=DOY_START, ymin=FC_rollmean7-threshold*FC_rollsd7, ymax=FC_rollmean7+threshold*FC_rollsd7), colour="blue",alpha=0.3)+
+  geom_ribbon(aes(x=yday(date_time), ymin=FC_rollmean3-threshold*FC_rollsd3, ymax=FC_rollmean3+threshold*FC_rollsd3), alpha=0.5)+
+  geom_ribbon(aes(x=yday(date_time), ymin=FC_rollmean7-threshold*FC_rollsd7, ymax=FC_rollmean7+threshold*FC_rollsd7), colour="blue",alpha=0.3)+
   
-  facet_grid(year~.)
+  facet_grid(year(date_time)~.)
 
 # graph the 3 day SD ribbons around measured flux_add by day/night
 ggplot(flux_add[filter_fc!=1,])+
@@ -338,24 +338,18 @@ flux_add[FC>FC_rollmean3_daynight+threshold*FC_rollsd3_daynight|
        FC<FC_rollmean3_daynight-threshold*FC_rollsd3_daynight, filter_fc_roll_daynight := 2L]
 
 # view the marked fluxes in ~25 day chunks
-ggplot(flux_add[filter_fc_roll!=1&DOY_START>=1&DOY_START<=60,], aes(DOY_START, FC, colour=factor(filter_fc_roll)))+
-  geom_point()
+ggplot(flux_add[filter_fc_roll!=1&DOY_START>=150&DOY_START<=365,], aes(DOY_START, FC))+
+  geom_line()+
+  geom_point(aes(colour=factor(filter_fc_roll)), size=0.5)
 
 # view the marked fluxes in ~25 day chunks for day/night
-ggplot(flux_add[filter_fc_roll_daynight!=1&DOY_START>=1&DOY_START<=31,], aes(DOY_START, FC, colour=factor(filter_fc_roll_daynight)))+
-  geom_point()
+ggplot(flux_add[filter_fc_roll_daynight!=1&DOY_START>=350&DOY_START<=365,], aes(DOY_START, FC))+
+  geom_line()+
+  geom_point(aes(colour=factor(filter_fc_roll_daynight)), size=0.5)
 
 # graph with the fluxes from the 3SD 3day day/night filter removed
 ggplot(flux_add[filter_fc_roll_daynight==0,], aes(DOY_START, FC))+
   geom_line()
-
-# graph fluxes with the 3SD 3day day/night filter removed and with my manual filter
-# HERE THIS DOESN'T REALLY APPLY, I HAVE DONE LESS MANUAL FILTERING AND AM RELYING ON THE RUNNING MEAN SMOOTH
-# this comparison was for previous years. It's nice to have the code handy, if needed
-ggplot()+
-  geom_line(data=flux_add[filter_fc==0], aes(DOY_START, FC, colour="manual"), colour="blue")+
-  geom_line(data=flux_add[filter_fc_roll_daynight==0], aes(DOY_START, FC, colour="SD day/night"), colour="green")
-
 
 # SD filter for LE
 # COMPARE ROLLING MEANS APPROACH TO FILTER Fc, LE, H
@@ -409,19 +403,13 @@ ggplot(flux_add[filter_le_roll!=1&DOY_START>=100&DOY_START<=300,], aes(DOY_START
   geom_point()
 
 # view the marked flux_addes in ~25 day chunks for day/night
-ggplot(flux_add[filter_le_roll_daynight!=1&DOY_START>=100&DOY_START<=300,], aes(DOY_START, LE, colour=factor(filter_le_roll_daynight)))+
-  geom_point()
+ggplot(flux_add[filter_le_roll_daynight!=1&DOY_START>=350&DOY_START<=365,], aes(DOY_START, LE))+
+  geom_line()+
+  geom_point(aes(colour=factor(filter_le_roll_daynight)), size=0.5)
 
 # graph with the flux_addes from the 3SD 3day day/night filter removed
 ggplot(flux_add[filter_le_roll_daynight==0,], aes(DOY_START, LE))+
   geom_line()
-
-# graph fluxes with the 3SD 3day day/night filter removed and with my manual filter
-# HERE THIS DOESN'T REALLY APPLY, I HAVE DONE LESS MANUAL FILTERING AND AM RELYING ON THE RUNNING MEAN SMOOTH
-# this comparison was for previous years. It's nice to have the code handy, if needed
-ggplot()+
-  geom_line(data=flux_add[filter_LE==0], aes(DOY_START, LE, colour="manual"), colour="blue")+
-  geom_line(data=flux_add[filter_le_roll_daynight==0], aes(DOY_START, LE, colour="SD day/night"), colour="green")
 
 # SD filter for H
 # COMPARE ROLLING MEANS APPROACH TO FILTER Fc, LE, H
@@ -472,23 +460,18 @@ flux_add[H>H_rollmean3_daynight+threshold*H_rollsd3_daynight|
 
 
 # view the marked flux_addes in ~25 day chunks
-ggplot(flux_add[filter_h_roll!=1&DOY_START>=1&DOY_START<=50,], aes(DOY_START, H, colour=factor(filter_h_roll)))+
-  geom_point()
+ggplot(flux_add[filter_h_roll!=1&DOY_START>=1&DOY_START<=50,], aes(DOY_START, H))+
+  geom_line()+
+  geom_point(aes(colour=factor(filter_h_roll)), size=0.5)
 
 # view the marked flux_addes in ~25 day chunks for day/night
-ggplot(flux_add[filter_h_roll_daynight!=1&DOY_START>=1&DOY_START<=100,], aes(DOY_START, H, colour=factor(filter_h_roll_daynight)))+
-  geom_point()
+ggplot(flux_add[filter_h_roll_daynight!=1&DOY_START>=70&DOY_START<=95,], aes(DOY_START, H))+
+  geom_line()+
+  geom_point(aes(colour=factor(filter_h_roll_daynight)), size=0.5)
 
 # graph with the fluxes from the 3SD 3day day/night filter removed
 ggplot(flux_add[filter_h_roll_daynight==0,], aes(DOY_START, H))+
   geom_line()
-
-# graph fluxes with the 3SD 3day day/night filter removed and with my manual filter
-# HERE THIS DOESN'T REALLY APPLY, I HAVE DONE LESS MANUAL FILTERING AND AM RELYING ON THE RUNNING MEAN SMOOTH
-# this comparison was for previous years. It's nice to have the code handy, if needed
-ggplot()+
-  geom_line(data=flux_add[filter_H==0], aes(DOY_START, H, colour="manual"), colour="blue")+
-  geom_line(data=flux_add[filter_h_roll_daynight==0], aes(DOY_START, H, colour="SD day/night"), colour="green")
 
 
 #########
@@ -509,16 +492,24 @@ ggplot(flux_add_filter_sd,aes(date_time, FC))+geom_point()
 summary(flux_add_filter_sd$date_time)
 
 # append new data to previous
-flux_filter_sd_all <- rbind(flux_filter_sd, flux_add_filter_sd,fill=TRUE)
+flux_filter_sd_all <- rbind(flux_filter_sd[date_time<as.Date("2022-01-01"),], flux_add_filter_sd,fill=TRUE)
 
+# graph all
+ggplot(flux_filter_sd_all,aes(yday(date_time), FC))+
+  geom_line(size=0.6)+
+  facet_grid(year(date_time)~.)
 
 # include TIMESTAMP_START and TIMESTAMP_END 
-# save 2021 data with biomet data from input biomet2021, not EddyPro output
+# save 2021 and 2022 data with biomet data from input biomet2021/2022, not EddyPro output
 # save to server
-setwd("/Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/")
+setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/")
+
+#write.table(flux_add_filter_sd,
+#            file="JER_flux_2022_EddyPro_Output_filtered_SD_JanSep.csv",sep=",", dec=".",
+#            row.names=FALSE)
 
 write.table(flux_add_filter_sd,
-            file="JER_flux_2022_EddyPro_Output_filtered_SD_JanSep.csv",sep=",", dec=".",
+            file="JER_flux_2022_EddyPro_Output_filtered_SD_JanDec.csv",sep=",", dec=".",
             row.names=FALSE)
 
 # save filtered data with SD filter for all years 2010-current
@@ -526,6 +517,7 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filt
 
 # 20211229 (redo on 20220103 with TIMESTAMP_START and TIMESTAMP_END included)
 # 20221023 - with updates 2021 (Dec + AGC fies and with 2022 Jan - Sep)
+# 20221230 - with all 2022 updated on 2024-06-17
 save(flux_filter_sd_all,
-     file="JER_flux_2010_EddyPro_Output_filtered_SD_20221023.Rdata")
+     file="JER_flux_2010_EddyPro_Output_filtered_SD_20221230.Rdata")
 
