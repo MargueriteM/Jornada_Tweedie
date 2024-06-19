@@ -457,7 +457,7 @@ ggplot(flux_filter_sd_all,aes(yday(date_time), FC))+
 # include TIMESTAMP_START and TIMESTAMP_END 
 # save 2021 and 2022 data with biomet data from input biomet2021/2022, not EddyPro output
 # save to server
-setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2023/EddyPro_Out/")
+setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2023/EddyPro_Out/OpenPath")
 
 #write.table(flux_add_filter_sd,
 #            file="JER_flux_2022_EddyPro_Output_filtered_SD_JanSep.csv",sep=",", dec=".",
