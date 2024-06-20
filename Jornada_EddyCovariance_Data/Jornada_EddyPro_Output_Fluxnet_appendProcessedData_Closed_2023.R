@@ -461,7 +461,7 @@ flux_filter_sd_all <- flux_add_filter_sd
 # include TIMESTAMP_START and TIMESTAMP_END 
 # save 2021 and 2022 data with biomet data from input biomet2021/2022, not EddyPro output
 # save to server
-setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2024/EddyPro_Out/ClosedPath")
+setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2023/EddyPro_Out/ClosedPath")
 
 #write.table(flux_add_filter_sd,
 #            file="JER_flux_2022_EddyPro_Output_filtered_SD_JanSep.csv",sep=",", dec=".",
