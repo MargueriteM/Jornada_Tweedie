@@ -508,13 +508,22 @@ flux_filter_sd_2023 <- copy(flux_filter_sd[(!is.na(filename)& year==2023)&!(file
 
 setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2023/EddyPro_Out/ClosedPath/")
 
- save(flux_filter_sd,file="JER_flux_2023_EddyPro_FullOutput_filterSD_JuneDec_Closed.Rdata")
+ save(flux_filter_sd_2023,file="JER_flux_2023_EddyPro_FullOutput_filterSD_JuneDec_Closed.Rdata")
 
+ write.table(flux_filter_sd_2023,
+             file="JER_flux_2023_EddyPro_FullOutput_filterSD_JuneDec_Closed.csv",sep=",", dec=".",
+             row.names=FALSE)
+ 
+ 
  # save for 2024
  flux_filter_sd_2024 <- copy(flux_filter_sd[(!is.na(filename)& year==2024)&!(filename%in%"not_enough_data"),])
  
  setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2024/EddyPro_Out/ClosedPath/")
  
- save(flux_filter_sd,file="JER_flux_2024_EddyPro_FullOutput_filterSD_JanMay_Closed.Rdata")
+ save(flux_filter_sd_2024,file="JER_flux_2024_EddyPro_FullOutput_filterSD_JanMay_Closed.Rdata")
+ 
+ write.table(flux_filter_sd_2024,
+             file="JER_flux_2024_EddyPro_FullOutput_filterSD_JanMay_Closed.csv",sep=",", dec=".",
+             row.names=FALSE)
  
  
