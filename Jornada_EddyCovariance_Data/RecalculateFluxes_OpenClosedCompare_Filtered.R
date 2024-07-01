@@ -258,8 +258,8 @@ fig.time.cov <- ggplot()+
   geom_line(aes(x=date_time, y=`w/co2_cov_closed`,colour="Closed path"), data=flux, size=0.2)+
   ylim(c(-0.2,0.2))+
   theme_bw()+
-  scale_color_manual(values=cols2, breaks=c("Open path","Closed path"))
-
+  scale_color_manual(values=cols2, breaks=c("Open path","Closed path")) +
+  labs(title="w/CO2 Time-Series", y="w/co2 covariance")
 
 
 # graph open corrected and closed w/co2 covariance
@@ -271,20 +271,34 @@ ggplot()+
   scale_color_manual(values=c("Closed path" = "#7fcdbb", "Open path adj" = "#fdae6b"),
                      breaks=c("Closed path","Open path adj"))
 
-# open and closed covariance as density plot
-plot_grid(ggplot()+
-          geom_density(aes(`w/co2_cov_closed`, fill="closed path"), data = flux,alpha=0.5)+
-          #geom_density(aes(`w/co2_cov_open`, fill="open path"), data=flux,alpha=0.5)+
-           theme_bw()+
-            ylim(c(0,200))+
-            theme(legend.position="bottom"),
+# graph the spectral correction and wpl corrections to compare magnitude
+fig.time.scf <- ggplot(flux, aes(x=date_time))+
+  geom_point(aes(y=co2_scf_open, colour="Open path"), size=0.4)+
+  geom_point(aes(y=co2_scf_closed, colour="Closed path"), size=0.4)+
+  scale_color_manual(values=cols2, breaks=c("Open path","Closed path"))+
+  theme_bw()+
+  labs(title="Spectral Correction Factors", y="SCF")
+
+
+fig.time.wpl <- ggplot(flux, aes(x=date_time))+
+  geom_point(aes(y=(corrc1a_open+corrc2a_open)/(44.01/1e6), colour="Open WPL"), size=0.4)+
+  geom_point(aes(y=wco2_open, colour="Open wco2"), size=0.4)+
+  theme_bw()+
+  labs(title="Open Path W/CO2 covariance and WPL correction", y="covariance and WPL")
+
+# graph SCF, w/co2, and WPL together
+plot_grid(fig.time.scf+theme(legend.position="bottom"),
+          fig.time.cov+theme(legend.position="bottom")+ylim(c(-0.2,0.3)),
+          fig.time.wpl+theme(legend.position="bottom")+ylim(c(-0.2,0.3)),
           ggplot()+
-           #geom_density(aes(`w/co2_cov_closed`, fill="closed path"), data = flux,alpha=0.5)+
-           geom_density(aes(`w/co2_cov_open`, fill="open path"), data=flux,alpha=0.5)+
-           theme_bw()+
+            geom_density(aes(`w/co2_cov_open`, fill="Open path"), data=flux,alpha=0.5)+
+            geom_density(aes(`w/co2_cov_closed`, fill="Closed path"), data = flux,alpha=0.5)+
+            theme_bw()+
             ylim(c(0,200))+
+            scale_fill_manual(values=cols2, breaks=c("Open path","Closed path"))+
+            labs(title="w/CO2 density")+
             theme(legend.position="bottom"),
-          ncol=2, align="h")
+          align="hv")
 
 # graph the time-series of CO2 molar density
 fig.time.co2.moldens <- ggplot(flux, aes(x=date_time))+
@@ -347,11 +361,19 @@ flux[,':='(month = month(date_time),
 flux.diurn <- flux[,.(fc_open = mean(co2_flux_open, na.rm=TRUE),
                       fc_adj_open = mean(fc_wpl_adjust_open, na.rm=TRUE),
                       fc_closed = mean(co2_flux_closed, na.rm=TRUE),
+                      scf_open = mean(co2_scf_open, na.rm=TRUE),
+                      scf_closed = mean(co2_scf_closed, na.rm=TRUE),
+                      wpl_open = mean((corrc1a_open+corrc2a_open)/(44.01/1e6), na.rm=TRUE),
+                      wco2_open = mean(wco2_open, na.rm=TRUE),
                       fc_open_sd = sd(co2_flux_open, na.rm=TRUE),
                       fc_adj_open_sd = sd(fc_wpl_adjust_open, na.rm=TRUE),
-                      fc_closed_sd = sd(co2_flux_closed, na.rm=TRUE)),
+                      fc_closed_sd = sd(co2_flux_closed, na.rm=TRUE), 
+                      scf_open_sd = sd(co2_scf_open, na.rm=TRUE),
+                      scf_closed_sd = sd(co2_scf_closed, na.rm=TRUE),
+                      wpl_open_sd = sd((corrc1a_open+corrc2a_open)/(44.01/1e6), na.rm=TRUE),
+                      wco2_open_sd = sd(wco2_open, na.rm=TRUE)),
                    by="year,month,hour"]
-
+# graph diurnal fluxes
 ggplot(flux.diurn, aes(x=hour))+
   geom_line(aes(y=fc_open, colour="Open path"), linewidth=0.3)+
   geom_point(aes(y=fc_open, colour="Open path") , size=0.3)+
@@ -368,6 +390,33 @@ ggplot(flux.diurn, aes(x=hour))+
   scale_color_manual(values=cols3, breaks=c("Open path","Closed path","Open path adj"), )+
   labs(y="Mean Hourly Flux Rate (umol/m2/s)", x="Hour")
 
+# graph diurnal scf
+ggplot(flux.diurn, aes(x=hour))+
+  geom_line(aes(y=scf_open, colour="Open path"), linewidth=0.3)+
+  geom_point(aes(y=scf_open, colour="Open path") , size=0.3)+
+  geom_errorbar(aes(ymin=scf_open-scf_open_sd,ymax=scf_open+scf_open_sd, colour="Open path") , size=0.2, width=0.1)+
+  geom_line(aes(y=scf_closed, colour="Closed path") , linewidth=0.3)+
+  geom_point(aes(y=scf_closed, colour="Closed path") , size=0.3)+
+  geom_errorbar(aes(ymin=scf_closed-scf_closed_sd,ymax=scf_closed+scf_closed_sd, colour="Closed path") , size=0.2, width=0.1)+
+   #ylim(c(-10,10))+
+  theme_bw()+
+  facet_wrap(year~month)+
+  scale_color_manual(values=cols2, breaks=c("Open path","Closed path"), )+
+  labs(y="Mean Hourly SCF", x="Hour")
+
+# graph diurnal wpl with wco2
+ggplot(flux.diurn, aes(x=hour))+
+  geom_line(aes(y=wpl_open, colour="Open WPL"), linewidth=0.3)+
+  geom_point(aes(y=wpl_open, colour="Open WPL") , size=0.3)+
+  geom_errorbar(aes(ymin=wpl_open-wpl_open_sd,ymax=wpl_open+wpl_open_sd, colour="Open WPL") , size=0.2, width=0.1)+
+  geom_line(aes(y=wco2_open, colour="Open w/co2"), linewidth=0.3)+
+  geom_point(aes(y=wco2_open, colour="Open w/co2") , size=0.3)+
+  geom_errorbar(aes(ymin=wco2_open-wco2_open_sd,ymax=wco2_open+wco2_open_sd, colour="Open w/co2") , size=0.2, width=0.1)+
+  #ylim(c(-10,10))+
+  theme_bw()+
+  facet_wrap(year~month)+
+ # scale_color_manual(values=cols2, breaks=c("Open path","Closed path") )+
+  labs(y="Mean Hourly WPL and w/co2", x="Hour")
 
 # calculate the daily fluxes from open, open adjusted, and closed
 flux.daily <- flux[,.(fc_open = mean(co2_flux_open, na.rm=TRUE),
@@ -375,11 +424,12 @@ flux.daily <- flux[,.(fc_open = mean(co2_flux_open, na.rm=TRUE),
                       fc_closed = mean(co2_flux_closed, na.rm=TRUE),
                       fc_open_sd = sd(co2_flux_open, na.rm=TRUE),
                       fc_adj_open_sd = sd(fc_wpl_adjust_open, na.rm=TRUE),
-                      fc_closed_sd = sd(co2_flux_closed, na.rm=TRUE)),
+                      fc_closed_sd = sd(co2_flux_closed, na.rm=TRUE),
+                      precip = sum(P_rain_1_1_1_open)),
                       by="date"]
 
 # graph daily
-ggplot(flux.daily, aes(x=date))+
+fig.flux.daily <- ggplot(flux.daily, aes(x=date))+
   geom_line(aes(y=fc_open, colour="Open path"),linewidth=0.4)+
   #geom_errorbar(aes(ymin=fc_open-fc_open_sd,ymax=fc_open+fc_open_sd,colour="Open path") , size=0.2, width=0.1)+
   geom_line(aes(y=fc_adj_open, colour="Open path adj"),linewidth=0.4)+
@@ -391,8 +441,23 @@ ggplot(flux.daily, aes(x=date))+
   scale_color_manual(values=cols3, breaks=c("Open path","Closed path","Open path adj"))+
   labs(y="Mean Daily Flux Rate (umol/m2/s)", x="Date")
 
-  
- 
+# graph daily rainfall
+fig.rain.daily <- ggplot(flux.daily, aes(x=date))+
+  geom_col(aes(y=precip, fill="Daily Rainfall"))+
+  #geom_errorbar(aes(ymin=fc_open-fc_open_sd,ymax=fc_open+fc_open_sd,colour="Open path") , size=0.2, width=0.1)+
+   theme_bw()+
+  facet_grid(.~year(date), scales="free_x")+
+  scale_fill_manual(values=c("blue"))+
+  labs(y="Daily total Rainfall (mm)", x="Date")
+
+
+# graph daily flux with daily rain
+plot_grid(fig.flux.daily+theme(axis.text.x = element_blank(),axis.title.x = element_blank()), 
+          fig.rain.daily,
+          nrow=2,
+          align="v")
+
+
 #
 # # from James: scf and wpl corrections
 # wco2 = mat2(:,173);  % covariance from EddyPro File
