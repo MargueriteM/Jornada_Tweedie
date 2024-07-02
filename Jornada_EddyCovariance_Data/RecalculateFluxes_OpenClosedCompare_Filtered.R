@@ -143,6 +143,24 @@ ggplot(flux,
   geom_point(size=0.2)+
   geom_abline(intercept=0,slope=1)
 
+# compare molar density by month and graph with AGC
+plot_grid(ggplot(flux,
+       aes(co2_molar_density_closed,co2_molar_density_open))+
+  geom_point(size=0.2)+
+  geom_abline(intercept=0,slope=1)+
+  facet_grid(.~month(date_time)),
+
+
+ggplot(flux, aes(x=date_time))+
+  geom_point(aes(y=agc_mean_open, colour="Open path"), size=0.4)+
+  geom_point(aes(y=agc_mean_closed, colour="Closed path"), size=0.4)+
+  facet_grid(.~month(date_time), scales="free_x")+
+  theme(legend.position="bottom"),
+nrow=2,
+align="v")
+
+
+
 # compare co2 mole fraction
 ggplot(flux,
        aes(co2_mole_fraction_closed,co2_mole_fraction_open))+
