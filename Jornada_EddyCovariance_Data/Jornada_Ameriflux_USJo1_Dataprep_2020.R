@@ -13,8 +13,15 @@ library(lubridate)
 library(ggplot2)
 library(bit64)
 
+# create working directories for all locations needed: 
+dir.eddypro <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2020/EddyPro_Out"
+dir.biomet2 <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Ameriflux_USJo1/Biomet2_20201227/"
+dir.ameriflux <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Ameriflux_USJo1"
+dir.CZshare <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Ameriflux"
+
+
 # import filtered flux data file from Eddy Pro as data table
-setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out")
+setwd(dir.eddypro)
 
 # 2022
 flux_filter_sd <- fread("JER_flux_2022_EddyPro_Output_filtered_SD_JanSep.csv",sep=",", dec=".",
@@ -22,8 +29,11 @@ flux_filter_sd <- fread("JER_flux_2022_EddyPro_Output_filtered_SD_JanSep.csv",se
 
 # # 2021
 # flux_filter_sd <- fread("JER_flux_2021_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
-#                         header = TRUE, na.strings=c("na","NA","","-9999"))
+#                        header = TRUE, na.strings=c("na","NA","","-9999"))
 
+# # 2020
+# flux_filter_sd <- fread("JER_flux_2020_EddyPro_Output_filtered_SD.csv",sep=",", dec=".",
+#                       header = TRUE)
 
 # rename columns (only up to 2019 that had a timestamp/daylight savings issue)
 # TIMESTAMP_START = TIMESTAMP_START_correct
@@ -54,15 +64,20 @@ flux_filter_sd[,BADM_INST_SA_GILL_ALIGN:=NA]
 # flux <- flux_filter_sd[!(FILENAME_HF == "dataL1_ts_20191231_0000.csv")]
 
 # import biomet2 which contains all sensors as individual datastreams
-setwd("~/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Biomet/Preliminary")
+setwd(dir.biomet2)
 
-biomet_all <- fread("Biomet_USJo1_wide_2022_.csv", sep=",",dec=".", header=TRUE)
+biomet_all <- fread("Biomet_USJo1_wide_2020_.csv", sep=",",dec=".", header=TRUE)
 
+# may not need if date_time is reading as POSIXCT
 biomet_all[,':=' (date_time = parse_date_time(date_time,"Ymd HMS",tz="UTC"))]
 
 # graph
 ggplot(biomet_all, aes(date_time,P_RAIN_1_1_1))+
-  geom_line()
+  geom_point(size=0.5)
+
+# check soil water (should be % based)
+ggplot(biomet_all, aes(date_time,SWC_3_2_1))+
+  geom_point(size=0.5)
 
 # merge the flux data and biomet2 data
 # first remove the biomet columns from the flux data
@@ -87,6 +102,7 @@ ggplot(flux.biomet, aes(date_time, TA_1_1_1))+geom_line()
 ggplot(flux.biomet, aes(date_time, LE))+geom_line()
 ggplot(flux.biomet, aes(date_time, SW_OUT_1_1_1))+geom_line()
 ggplot(flux.biomet, aes(date_time, SW_IN_1_1_1))+geom_line()
+ggplot(flux.biomet, aes(date_time, SWC_3_2_1))+geom_line()
 
 # for some reason 2022 data has a filter_h column. 
 # eliminate
@@ -95,23 +111,23 @@ flux.biomet[,filter_h := NULL]
 
 # save to upload to ameriflux, save to server: 
 # <SITE_ID>_<RESOLUTION>_<TS-START>_<TS-END>_<OPTIONAL>.csv
-setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Ameriflux_USJo1")
+setwd(dir.ameriflux)
 
 # save file in Ameriflux format
-write.table(flux.biomet[,!c("date_time"),with=FALSE],
-            file = paste("US-Jo1_HH_",min(flux.biomet$TIMESTAMP_END),"_",max(flux.biomet$TIMESTAMP_END),
-                  "_submit.csv",sep=""),
-            sep=',', dec='.', row.names=FALSE, na="-9999", quote=FALSE)
+# write.table(flux.biomet[,!c("date_time"),with=FALSE],
+#             file = paste("US-Jo1_HH_",min(flux.biomet$TIMESTAMP_END),"_",max(flux.biomet$TIMESTAMP_END),
+#                   "_submit.csv",sep=""),
+#             sep=',', dec='.', row.names=FALSE, na="-9999", quote=FALSE)
 
 # also save to Dryland CZ One Drive
-setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Ameriflux")
+setwd(dir.CZshare)
 
 # save file in Ameriflux format
-write.table(flux.biomet[,!c("date_time"),with=FALSE],
-            file = paste("US-Jo1_HH_",min(flux.biomet$TIMESTAMP_END),"_",max(flux.biomet$TIMESTAMP_END),
-                         "_submit.csv",sep=""),
-            sep=',', dec='.', row.names=FALSE, na="-9999", quote=FALSE)
-
+# write.table(flux.biomet[,!c("date_time"),with=FALSE],
+#             file = paste("US-Jo1_HH_",min(flux.biomet$TIMESTAMP_END),"_",max(flux.biomet$TIMESTAMP_END),
+#                          "_submit.csv",sep=""),
+#             sep=',', dec='.', row.names=FALSE, na="-9999", quote=FALSE)
+# 
 
 # 19 Sep 2023 submitted following files and changed name to _PRELIM to submit
 #US-Jo1_HH_202001010000_202101010000submit
