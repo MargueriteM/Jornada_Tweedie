@@ -28,6 +28,24 @@ library(cowplot)
 # # read only the first row to get the units
 # flux.units.open <- (fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ClosedPath/EddyPro_Out/eddypro_JER_2023_0811_1010_ClosedPathCompare2_full_output_2023-10-18T121739_adv.csv",header=TRUE,skip=1))[1,]
 
+# Cove: 12 July 2024 & Russ agrees!
+# Can we get to cause of why instruments disagree?
+# Is it self-heating?
+# Could it be under-estimate of heat-flux that causes open path CO2 to be over-estimated? 
+
+# Self-heating: 
+# apply Burba correction to fluxes, what's the effect?
+# what magnitude of self-heating is needed to produce this offset?
+
+# Under-estimated heat-flux:
+# calculate energy balance closure and correct EC-based H to close EB
+# apply the inflated H to the WPL correction and see what it does to open-path fluxes
+
+# also double check EddyPro processing for closed path. Based on molar ratio?
+# 7200 is measuring mole fraction of co2 and h2o
+# also cell temp and pressure which allows mixing ratios to be calculated and no wpl is needed. 
+# https://www.licor.com/env/support/EddyPro/topics/converting-to-mixing-ratio.html 
+
 
 # closed path
 fileinfo_closed <- scan("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2023/EddyPro_Out/ClosedPath/JER_flux_2023_EddyPro_FullOutput_filterSD_JuneDec_Closed.csv",
@@ -263,11 +281,11 @@ fig.time.co2 <- ggplot()+
  # geom_point(aes(x=date_time,y=co2_flux_open,colour="Open path"), data = flux , size=0.1)+
   geom_line(aes(x=date_time, y=co2_flux_closed,colour="Closed path"), data=flux , size=0.3)+
   #geom_point(aes(x=date_time, y=co2_flux_closed,colour="Closed path"), data=flux , size=0.1)+
-  geom_line(aes(x=date_time, y=fc_wpl_adjust_open,colour="Open path adj"), data=flux , size=0.3)+
+ # geom_line(aes(x=date_time, y=fc_wpl_adjust_open,colour="Open path adj"), data=flux , size=0.3)+
  # geom_point(aes(x=date_time, y=fc_wpl_adjust_open,colour="Open path adj"), data=flux , size=0.)+
   ylim(c(-10,10))+
   theme_bw()+
-  scale_color_manual(values=cols3, breaks=c("Open path","Closed path","Open path adj"))+
+  #scale_color_manual(values=cols3, breaks=c("Open path","Closed path","Open path adj"))+
   labs(y="CO2 flux (umol/m2/s)", x="Date")
 
 # graph covariance time-series together
