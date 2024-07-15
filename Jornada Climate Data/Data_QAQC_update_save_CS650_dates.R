@@ -41,8 +41,12 @@ year_file <- 2024
 
 # Based on data checks, no data form Met and CS650 from 16 Dec 17:30 to 17 Jan 2022
 
-# set working directory to server
-setwd(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_CS650/",year_file,"/Raw_Data/ASCII",sep=""))
+# assign working directories for data input and saving qaqc data:
+input.path <- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_CS650/",year_file,"/Raw_Data/ASCII",sep="")
+qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_CS650/",year_file,"/QAQC/", sep="")
+
+# set working directory to server with input data
+setwd(input.path)
 
 # load headers of file and data
 cs650names <- colnames(read.table(paste("dataL1_Soil_",year_file,".csv",sep=""), sep=",", skip=1,heade=TRUE))
@@ -124,6 +128,7 @@ print(paste("#",year(enddate.check), "data looks good until",enddate.check,sep="
 # 2022 data looks good until 2022-12-31 23:30:00
 # 2023 data looks good until 2023-12-31 23:30:00
 # 2024 data looks good until 2024-03-14 09:00:00
+# 2024 data looks good until 2024-06-04 09:30:00
 
 # prepare for saving for L2 tables and combination with other data
 
@@ -142,7 +147,6 @@ cs650.save <- cs650 %>%
 # climate.save <- rbind(climate.loggerinfo,climate.colnames, climate.save)
 
 # # save in QAQC folder with start and end date in the file name
-qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_CS650/",year_file,"/QAQC/", sep="")
 setwd(qaqc.path)
 
 
@@ -207,10 +211,13 @@ write.table(run.info, "dataL2_Soil_DateRange.csv",
 #                                 sprintf("%02d",(second(enddate))), ".csv",sep="")))
 setwd(qaqc.path)
 
+# If saved successfully, R will print '[1] TRUE' in the console
 file.copy(from = rstudioapi::getActiveDocumentContext()$path,
           to = file.path(qaqc.path,
                          #to = file.path("~/Desktop",                
                          paste("Data_QAQC_Code_",year_file, ".csv",sep="")))
+
+# If response: [TRUE] the code save worked. If [FALSE], the file already exists. Remove and run again. 
 
 
 

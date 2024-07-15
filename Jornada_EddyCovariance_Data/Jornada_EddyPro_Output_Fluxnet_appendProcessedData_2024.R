@@ -26,7 +26,7 @@ library(zoo)
 # 20200427: corrected timestamps!
 # save filtered data with SD filter for all years 2010-current
 # 20221023 file has 2021 december data and adjusted AGC filter to accomodate IRGA changes
-load("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered/JER_flux_2010_EddyPro_Output_filtered_SD_20221023.Rdata")
+load("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered/JER_flux_2010_EddyPro_Output_filtered_SD_20231231.Rdata")
 
 flux_filter_sd <- flux_filter_sd_all
 rm(flux_filter_sd_all)
@@ -35,25 +35,26 @@ rm(flux_filter_sd_all)
 # or read demofile instead
 # in 2021 IRGA diag column was added on 15 June 2021. From 16 June 2021 onward change EddyPro metadata to use IRGA diag value
 # 2022: data processed in one batch Jan - Sep
- flux_add1 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/eddypro_JER_2022_JanSep_fluxnet_2022-10-14T112031_exp.csv",
+# 2023 processed Jan - June and Jul-Dec (in ts_data_2)
+# 2024 processed Jan - May (in ts_data_2)
+ flux_add1 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2024/EddyPro_Out/OpenPath/eddypro_JER_2024_JanMay_tsdata2_Open_fluxnet_2024-06-11T182618_exp.csv",
                   sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
 
  flux_add1[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
   ,':='(date=as.Date.POSIXct(date_time),month=month(date_time),year=year(date_time))]
 
-# add Oct-Dec 2022
-flux_add2 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/eddypro_JER_2022_OctDec_fluxnet_2024-03-15T230111_exp.csv",
+# add from ts_data_2 Open Path
+flux_add2 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower//ts_data_2/2024/EddyPro_Out/OpenPath/",
                   sep=",", header=TRUE, na.strings=c("-9999"),fill=TRUE)
 
 flux_add2[,':=' (date_time = parse_date_time(TIMESTAMP_END,"YmdHM",tz="UTC"))][
   ,':='(date=as.Date.POSIXct(date_time),month=month(date_time),year=year(date_time))]
 
 
-# remove data from Jan - Dec data set that comes after the start of flux_add2
-# flux_add1 <- copy(flux_add1[date_time<min(flux_add2$date_time),])
 
-# combine (CUSTOM_DIAG_75_MEAN missing from flux_add2)
-flux_add <- rbind(flux_add1, flux_add2, fill=TRUE)
+# combine
+flux_add <- flux_add1
+# flux_add <- rbind(flux_add1, flux_add2)
 
 # remove duplicate data
 flux_add <- (flux_add[!(duplicated(flux_add, by=c("TIMESTAMP_START")))])
@@ -68,51 +69,25 @@ ggplot(flux_add,aes(date_time,P_RAIN_1_1_1))+geom_line()
 # a bug in eddy pro means that when data are insufficient, biomet alignment goes wrong
 ggplot(flux_add[!(FILENAME_HF %in% ("not_enough_data")),],aes(date_time,P_RAIN_1_1_1))+geom_line()
 
-# The biomet data is processing weirdly but I am not sure why. 
-# after emailing with Jiahong, the issue appears to be a bug that causes biomet columns to shift or 
-# erroneous data insertion when ts files have not_enough_data
+# 2023: biomet processing is OK. See 2022 code to sub biomet data in flux files with biomet input to EddyPro
+# 2024: biomet is OK
 
-# load biomet data
+# load biomet data just to check
 #2022
-biomet2022.names <- colnames(fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2022.csv",
+biomet2024.names <- colnames(fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2024.csv",
                                    header=TRUE))
 
 
-biomet2022 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2022.csv",
-                    skip=2, header=FALSE, col.names=biomet2022.names, na.strings=c("-9999"))
+biomet2024 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2024.csv",
+                    skip=2, header=FALSE, col.names=biomet2024.names, na.strings=c("-9999"))
 
 
-biomet2022 <- biomet2022[,':='
+biomet2024 <- biomet2024[,':='
                          (date_time=ymd_hm(paste(timestamp_1,timestamp_2,timestamp_3,timestamp_4,timestamp_5, sep=" ")))]
 
-ggplot(biomet2022, aes(date_time,P_rain_1_1_1))+
+ggplot(biomet2024, aes(date_time,P_rain_1_1_1))+
   geom_line()
 
-
-# cut out biomet columns from eddypro fluxnet data and append from the biomet import data
-flux_add[,':='(TA_1_1_1=NULL, RH_1_1_1=NULL, PA_1_1_1=NULL, WD_1_1_1=NULL, MWS_1_1_1=NULL,
-               PPFD_IN_1_1_1=NULL, PPFD_OUT_1_1_1=NULL, P_RAIN_1_1_1=NULL, SWC_1_1_1=NULL, 
-               TS_1_1_1=NULL, G_1_1_1=NULL, G_1_2_1=NULL, G_2_1_1=NULL, G_2_2_1=NULL, 
-               LW_IN_1_1_1=NULL, LW_OUT_1_1_1=NULL, SW_OUT_1_1_1=NULL, SW_IN_1_1_1=NULL,
-               NETRAD_1_1_1=NULL)]
-
-flux_add <- merge(flux_add, biomet2022[,c("Ta_1_1_1","RH_1_1_1","Pa_1_1_1","WD_1_1_1","MWS_1_1_1",
-                                          "PPFD_1_1_1","PPFDr_1_1_1","P_rain_1_1_1","SWC_1_1_1",
-                                          "Ts_1_1_1","SHF_1_1_1","SHF_1_2_1","SHF_2_1_1","SHF_2_2_1",
-                                          "LWin_1_1_1","LWout_1_1_1","SWout_1_1_1","Rg_1_1_1",
-                                          "Rn_1_1_1","date_time")],by="date_time")
-
-setnames(flux_add, c("Ta_1_1_1","Pa_1_1_1","PPFD_1_1_1","PPFDr_1_1_1","P_rain_1_1_1",
-                     "Ts_1_1_1","SHF_1_1_1","SHF_1_2_1","SHF_2_1_1","SHF_2_2_1",
-                     "LWin_1_1_1","LWout_1_1_1","SWout_1_1_1","Rg_1_1_1",
-                     "Rn_1_1_1"),
-         c("TA_1_1_1", "PA_1_1_1","PPFD_IN_1_1_1", "PPFD_OUT_1_1_1", "P_RAIN_1_1_1",
-           "TS_1_1_1", "G_1_1_1", "G_1_2_1", "G_2_1_1", "G_2_2_1", 
-           "LW_IN_1_1_1", "LW_OUT_1_1_1", "SW_OUT_1_1_1", "SW_IN_1_1_1",
-           "NETRAD_1_1_1"))
-
-# graph again after merging with biomet
-ggplot(flux_add,aes(date_time,P_RAIN_1_1_1))+geom_line()
 
 # create a column for filtering CO2 flux
 # look at Fc  by month for each year
@@ -149,16 +124,9 @@ ggplot(flux_add[filter_fc!=1],
 #               15/17 Dec -> loaner (AGC baseline: 63)
 #              8 Apr 21 -> remove loaner & re-install lab IRGA (AGC: 56)
 
-# filter AGC by values less than 65 prior to 8 April
-flux_add[date_time < as.Date ("2022-04-08") & 
-           (CUSTOM_AGC_MEAN<48 & CUSTOM_AGC_MEAN>65),
+# 2024 filter AGC by values between 50 to 65 
+flux_add[(CUSTOM_AGC_MEAN<50 & CUSTOM_AGC_MEAN>65),
          filter_fc := 1L]
-
-# filter AGC by values between 50 to 65 after 8th Apr
-flux_add[date_time > as.Date ("2022-04-08") & 
-           (CUSTOM_AGC_MEAN<50 & CUSTOM_AGC_MEAN>65),
-         filter_fc := 1L]
-
 
 
 # fluxes outside 30 umol/m2/s are unrealistic
@@ -195,14 +163,9 @@ flux_add[H_SSITC_TEST>1 | is.na(H_SSITC_TEST), filter_h := 1L]
 #               15/17 Dec -> loaner (AGC baseline: 63)
 #              8 Apr 21 -> remove loaner & re-install lab IRGA (AGC: 56)
 
-# filter AGC by values less than 65 prior to 8 April
-flux_add[date_time < as.Date ("2022-04-08") & 
-           (CUSTOM_AGC_MEAN<48 & CUSTOM_AGC_MEAN>65),
-         filter_H := 1L]
 
-# filter AGC by values between 50 to 65 after 8th Apr
-flux_add[date_time > as.Date ("2022-04-08") & 
-           (CUSTOM_AGC_MEAN<50 & CUSTOM_AGC_MEAN>65),
+# 2024 filter AGC by values between 50 to 65 
+flux_add[(CUSTOM_AGC_MEAN<50 & CUSTOM_AGC_MEAN>65),
          filter_H := 1L]
 
 
@@ -235,14 +198,8 @@ flux_add[LE_SSITC_TEST>1 | is.na(LE_SSITC_TEST), filter_LE := 1L]
 #               15/17 Dec -> loaner (AGC baseline: 63)
 #              8 Apr 21 -> remove loaner & re-install lab IRGA (AGC: 56)
 
-# filter AGC by values less than 65 prior to 8 April
-flux_add[date_time < as.Date ("2022-04-08") & 
-           (CUSTOM_AGC_MEAN<48 & CUSTOM_AGC_MEAN>65),
-         filter_LE := 1L]
-
-# filter AGC by values between 50 to 65 after 8th Apr
-flux_add[date_time > as.Date ("2022-04-08") & 
-           (CUSTOM_AGC_MEAN<50 & CUSTOM_AGC_MEAN>65),
+# 2024 filter AGC by values between 50 to 65 
+flux_add[(CUSTOM_AGC_MEAN<50 & CUSTOM_AGC_MEAN>65),
          filter_LE := 1L]
 
 
@@ -277,7 +234,7 @@ flux_add[P_RAIN_1_1_1>0, ':=' (filter_fc = 1L, filter_LE = 1L, filter_H = 1L)]
 
 # Before the rolling mean, add two weeks of prior data
 
-flux_add <- rbind(flux_filter_sd[date_time > as.Date("2021-12-15") & date_time < as.Date("2022-01-01") ],
+flux_add <- rbind(flux_filter_sd[date_time > as.Date("2023-12-15") & date_time < as.Date("2024-01-01") ],
                   flux_add, fill=TRUE)
 
 # make sure the data are ordered:
@@ -338,12 +295,12 @@ flux_add[FC>FC_rollmean3_daynight+threshold*FC_rollsd3_daynight|
        FC<FC_rollmean3_daynight-threshold*FC_rollsd3_daynight, filter_fc_roll_daynight := 2L]
 
 # view the marked fluxes in ~25 day chunks
-ggplot(flux_add[filter_fc_roll!=1&DOY_START>=150&DOY_START<=365,], aes(DOY_START, FC))+
+ggplot(flux_add[filter_fc_roll!=1&DOY_START>=120&DOY_START<=180,], aes(DOY_START, FC))+
   geom_line()+
   geom_point(aes(colour=factor(filter_fc_roll)), size=0.5)
 
 # view the marked fluxes in ~25 day chunks for day/night
-ggplot(flux_add[filter_fc_roll_daynight!=1&DOY_START>=350&DOY_START<=365,], aes(DOY_START, FC))+
+ggplot(flux_add[filter_fc_roll_daynight!=1&DOY_START>=1&DOY_START<=60,], aes(DOY_START, FC))+
   geom_line()+
   geom_point(aes(colour=factor(filter_fc_roll_daynight)), size=0.5)
 
@@ -399,7 +356,7 @@ flux_add[LE>LE_rollmean3_daynight+threshold*LE_rollsd3_daynight|
 
 
 # view the marked flux_addes in ~25 day chunks
-ggplot(flux_add[filter_le_roll!=1&DOY_START>=100&DOY_START<=300,], aes(DOY_START, LE, colour=factor(filter_le_roll)))+
+ggplot(flux_add[filter_le_roll!=1&DOY_START>=180&DOY_START<=240,], aes(DOY_START, LE, colour=factor(filter_le_roll)))+
   geom_point()
 
 # view the marked flux_addes in ~25 day chunks for day/night
@@ -460,7 +417,7 @@ flux_add[H>H_rollmean3_daynight+threshold*H_rollsd3_daynight|
 
 
 # view the marked flux_addes in ~25 day chunks
-ggplot(flux_add[filter_h_roll!=1&DOY_START>=1&DOY_START<=50,], aes(DOY_START, H))+
+ggplot(flux_add[filter_h_roll!=1&DOY_START>=120&DOY_START<=180,], aes(DOY_START, H))+
   geom_line()+
   geom_point(aes(colour=factor(filter_h_roll)), size=0.5)
 
@@ -481,7 +438,7 @@ ggplot(flux_add[filter_h_roll_daynight==0,], aes(DOY_START, H))+
 # Prior to saving, filter data and remove unnecessary columns
 # c("date_time_orig","TIMESTAMP_START","TIMESTAMP_END","DOY_START","DOY_END","time_diff","SW_IN_POT_AF") 
 # date_time_orig, time_diff and SW_IN_POT_AF probably won't be in files after 2019 because they were used for the timestamp corrections needed prior to 2019
-flux_add_filter_sd <- copy(flux_add[date_time>=as.Date("2022-01-01"),
+flux_add_filter_sd <- copy(flux_add[date_time>=as.Date("2024-01-01"),
                                     !(c("date","month","year","DOY_START","DOY_END")),with=FALSE])
 flux_add_filter_sd[filter_fc_roll_daynight!=0, FC := NA]
 flux_add_filter_sd[filter_h_roll_daynight!=0, H := NA]
@@ -492,7 +449,17 @@ ggplot(flux_add_filter_sd,aes(date_time, FC))+geom_point()
 summary(flux_add_filter_sd$date_time)
 
 # append new data to previous
-flux_filter_sd_all <- rbind(flux_filter_sd[date_time<as.Date("2022-01-01"),], flux_add_filter_sd,fill=TRUE)
+flux_filter_sd_all <- rbind(flux_filter_sd[date_time<as.Date("2024-01-01"),], flux_add_filter_sd,fill=TRUE)
+
+# remove potential date duplicates
+flux_filter_sd_all <- (flux_filter_sd_all[!(duplicated(flux_filter_sd_all, by=c("date_time")))])
+
+# count and plot number of records per day, should not be >48
+rec.day <- flux_filter_sd_all[!is.na(FC),.(records = length(FC)), by=as.Date(date_time)]
+
+ggplot(rec.day, aes(as.Date, records))+
+  geom_point()+
+  geom_hline(yintercept=48, colour="green")
 
 # graph all
 ggplot(flux_filter_sd_all,aes(yday(date_time), FC))+
@@ -502,14 +469,14 @@ ggplot(flux_filter_sd_all,aes(yday(date_time), FC))+
 # include TIMESTAMP_START and TIMESTAMP_END 
 # save 2021 and 2022 data with biomet data from input biomet2021/2022, not EddyPro output
 # save to server
-setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/2022/EddyPro_Out/")
+setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2024/EddyPro_Out/OpenPath")
 
 #write.table(flux_add_filter_sd,
 #            file="JER_flux_2022_EddyPro_Output_filtered_SD_JanSep.csv",sep=",", dec=".",
 #            row.names=FALSE)
 
 write.table(flux_add_filter_sd,
-            file="JER_flux_2022_EddyPro_Output_filtered_SD_JanDec.csv",sep=",", dec=".",
+            file="JER_flux_2024_EddyPro_Output_filtered_SD_JanMay.csv",sep=",", dec=".",
             row.names=FALSE)
 
 # save filtered data with SD filter for all years 2010-current
@@ -517,7 +484,8 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filt
 
 # 20211229 (redo on 20220103 with TIMESTAMP_START and TIMESTAMP_END included)
 # 20221023 - with updates 2021 (Dec + AGC fies and with 2022 Jan - Sep)
-# 20221230 - with all 2022 updated on 2024-06-17
+# 20221231 - with all 2022 updated on 2024-06-17
+# 20231231 - with all 2023 updated on 2024-06-17
 save(flux_filter_sd_all,
-     file="JER_flux_2010_EddyPro_Output_filtered_SD_20221231.Rdata")
+     file="JER_flux_2010_EddyPro_Output_filtered_SD_20240531.Rdata")
 

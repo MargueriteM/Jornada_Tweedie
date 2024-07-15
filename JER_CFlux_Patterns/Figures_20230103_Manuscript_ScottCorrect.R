@@ -21,6 +21,7 @@ library(cowplot)
 library(scales)
 library(tidyr)
 library(egg) # for tag_facet function to add a,b,c etc to individual facets in ggplot
+library(bigleaf) # for ET conversion
 
 # create a path for saving figures
 figpath <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/MauritzLab_Personal/Manuscripts/JRN_Patterns_Controls/Figures"
@@ -202,6 +203,11 @@ gapfill.perc <- gapfill.perc[,':='(NEE_meas_gap_perc = round(NEE_count/NEE_U50_c
                                    LE_meas_gap_perc = round(LE_count/LE_f_count,2)*100,
                                    NEE_unfilled_gap_perc = round(NEE_U50_count/total_count,2)*100,
                                    LE_unfilled_gap_perc = round(LE_f_count/total_count,2)*100)]
+
+# calculate ET using big leaf function
+flux.ep <- as.data.table(flux.ep)
+flux.ep[,':='(ET.bl= LE.to.ET(LE,Tair))]
+
 
 # graph time-series of NEE, Tair, Precip
 
@@ -434,6 +440,10 @@ daily_sum <- full_join(daily_sum_ec,precip_daily)
 # add a year label to day 365 of each year
 daily_sum <- daily_sum[,year_lab := ifelse(yday(date)==360, Year, NA)]
 
+# save the daily sum data to share with Habibur
+# write.table(daily_sum[Year>2020&!is.na(NEE_daily),.SD,.SDcols=c("Year","DoY","date","NEE_daily","ET_daily","Tair_mean","precip.tot")],
+#            "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/US_Jo1_Share_Habibur/US_Jo1_daily_20210101_20220930",
+#            na="NA", row.names=FALSE)
 
 # calculate cumulative sums
 annual_cum <- daily_sum[Year>2010,list(NEE_cum.ann = sum(NEE_daily),

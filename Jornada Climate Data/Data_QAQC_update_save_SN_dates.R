@@ -52,16 +52,25 @@ library(gridExtra)
 library(lattice)
 
 # Get sensor network data from server, using compiled files
+
 setwd("C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/SensorNetwork/Data/")
 
+
+# assign paths for data input and qaqc
+infile.path <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/"
+qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/", sep="")
+
+# assign year to read
 year_file <- 2024
 
-SN <- fread(paste("C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/SensorNetwork/Data/WSN_",year_file,".csv",sep=""),
+
+SN <- fread(paste(infile.path,"Data/WSN_",year_file,".csv",sep=""),
               header = TRUE, sep=",",
             na.strings=c(-9999,-888.88,"#NAME?"))
 
 # column names with units
-colnames2019 <- fread(file="C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/SensorNetwork/MetaData/JER_SensorNetwork_ColumnNames_2019.csv",
+
+colnames2019 <- fread(file=paste(infile.path,"MetaData/JER_SensorNetwork_ColumnNames_2019.csv",sep=""),
                       sep=",",
                       header=TRUE) 
 
@@ -588,7 +597,9 @@ print(paste("#",year(startdate), "data processed until",enddate,sep=" "))
 # 2024 data processed until 2024-05-29 08:30:00
 
 # # save in QAQC folder with start and end date in the file name
+
 qaqc.path<- paste("C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/SensorNetwork/Data/QAQC/", sep="")
+
 setwd(qaqc.path)
 
 # # FOR INCOMPLETE YEARS

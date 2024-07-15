@@ -380,9 +380,9 @@ precip <- dcast(precip,date_time ~SN)
 #ggplot(precip,aes(date_time,SN2))+geom_line()
 #ggplot(precip,aes(date_time,SN6))+geom_line()
 
-#ggplot(precip,aes(tower,SN2))+geom_point()
-#ggplot(precip,aes(tower,SN6))+geom_point()
-#ggplot(precip,aes(SN2,SN6))+geom_point()
+#ggplot(precip,aes(tower,SN2))+geom_point()+geom_abline(intercept=0,slope=1)
+#ggplot(precip,aes(tower,SN6))+geom_point()+geom_abline(intercept=0,slope=1)
+#ggplot(precip,aes(SN2,SN6))+geom_point()+geom_abline(intercept=0,slope=1)
 
 # if any row has 0 in one column and >0 in another, make the 0 = NA
 precip[SN2==0 & (SN6!=0 | tower!=0), SN2 := NA]
@@ -391,6 +391,7 @@ precip[tower==0 & (SN2!=0 | SN6!=0), tower := NA]
 
 # in 2021, 2022, 2023, 2024 (March) SN6 was not working, make all SN6 precip NA
 precip[, SN6 := NA]
+# SN2 precip is logging 1/4 the rain compared to tower... gets removed below
 
 # now join the fixed precip data back to the env_30min
 precip <- melt(precip,measure.vars=c("tower","SN2","SN6"), variable.name="SN",value.name="mean.val")
@@ -437,6 +438,7 @@ ggplot(env_30min[variable %in% c("soilmoisture","soiltemp"),],
 # look at PAR UP from tower and SN
 ggplot(env_30min[variable == "par"& veg %in% c("UP"),], aes(date_time, mean.val,colour=SN))+
   geom_line()+
+  geom_hline(yintercept=c(2400,2500))+
   facet_grid(paste(variable,location,sep="_")~., scales="free_y")
 
 # look at downward PAR over Veg from SN
@@ -451,7 +453,7 @@ ggplot(env_30min[variable == "precip.tot"& veg=="BARE",], aes(date_time, mean.va
   geom_line()+
   facet_grid(paste(variable,location,veg,sep="_")~., scales="free_y")
 
-# 2023 precip.tot in SN2 is always logging ~1/4 the rain captured at the tower
+# 2024 (until June 4) and 2023 precip.tot in SN2 is always logging ~1/4 the rain captured at the tower
 # perhaps something is wrong with the bucket? LATR and PRGL buckets captured more... 
 # exclude SN2 precip
 env_30min[variable == "precip.tot"& SN=="SN2",mean.val := NA]
@@ -573,7 +575,14 @@ setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/
 source("~/Desktop/R/R_programs/Functions/SaveFiles_Biomet_EddyPro.R")
 
 # save
+startdate <- (min(biomet$date_time))
+enddate <- (max(biomet$date_time))
+
+# add comment about processing
+print(paste("# Biomet",year(startdate), "data processed until",enddate,sep=" "))
+
 # 2023-08-29: save 2022, 2023 (do not re-write 2020 and 2021)
+# Biomet 2024 data processed until 2024-06-04 09:30:00
 savebiomet(biomet,year_file,year_file)
 
 
@@ -984,9 +993,11 @@ saveyears <- function(data,startyear,endyear) {
 # save 
  saveyears(biomet2_wide,year_file,year_file)
 
-## also save to Biomet One Drive preliminary folder
- setwd("~/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Biomet/Preliminary")
-
+## also save to CZ Biomet One Drive preliminary folder
+# setwd("~/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Biomet/Preliminary")
+## OR save to CZ Biomet One Drive folder
+# setwd("~/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Biomet")
+ 
  saveyears(biomet2_wide,year_file,year_file)
 
 #### End of routine processing ####
