@@ -52,16 +52,16 @@ library(gridExtra)
 library(lattice)
 
 # Get sensor network data from server, using compiled files
-setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/")
+setwd("C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/SensorNetwork/Data/")
 
 year_file <- 2024
 
-SN <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/WSN_",year_file,".csv",sep=""),
+SN <- fread(paste("C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/SensorNetwork/Data/WSN_",year_file,".csv",sep=""),
               header = TRUE, sep=",",
             na.strings=c(-9999,-888.88,"#NAME?"))
 
 # column names with units
-colnames2019 <- fread(file="/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/MetaData/JER_SensorNetwork_ColumnNames_2019.csv",
+colnames2019 <- fread(file="C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/SensorNetwork/MetaData/JER_SensorNetwork_ColumnNames_2019.csv",
                       sep=",",
                       header=TRUE) 
 
@@ -189,8 +189,8 @@ ggplot(SN_30min[sensor=="battery",], aes(date_time, mean.val, colour=SN))+
 
 # 2022 (June 6): no voltage on SN5, SN6, SN7
 # 2023: no voltage on SN5, SN6, SN7 
-# 2024: no voltage on SN5, SN6, SN7 
-
+# 2024: no voltage on SN5, SN6, SN7
+# 2024: no voltage on SN2 since mid April
 
 # SN1: rain (latr, prgl), lws (latr), solar rad (prgl, flce, flce104), PAR (prgl, flce, flce104)
 # SN2: rain (bare), lws (prgl), solar rad (latr, prgl), PAR (latr, prgl)
@@ -585,9 +585,10 @@ print(paste("#",year(startdate), "data processed until",enddate,sep=" "))
 # 2021 data processed until 2021-12-31 23:30:00
 # 2022 data processed until 2022-12-31 23:30:00
 # 2023 data processed until 2024-01-01
+# 2024 data processed until 2024-05-29 08:30:00
 
 # # save in QAQC folder with start and end date in the file name
-qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/", sep="")
+qaqc.path<- paste("C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/SensorNetwork/Data/QAQC/", sep="")
 setwd(qaqc.path)
 
 # # FOR INCOMPLETE YEARS
