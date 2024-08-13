@@ -127,8 +127,7 @@ print(paste("#",year(enddate.check), "data looks good until",enddate.check,sep="
 
 # 2022 data looks good until 2022-12-31 23:30:00
 # 2023 data looks good until 2023-12-31 23:30:00
-# 2024 data looks good until 2024-03-14 09:00:00
-# 2024 data looks good until 2024-06-04 09:30:00
+# 2024 data looks good until 2024-08-06 08:30:00
 
 # prepare for saving for L2 tables and combination with other data
 

@@ -259,7 +259,7 @@ ggplot(flux_long[variable %in% c("lws_1_Avg", "lws_2_Avg"),],
        aes(date_time, value))+geom_line()+
   facet_grid(variable~.,scales="free_y")
 
-# 2021, 2022, 2023, 2024 (10 June 2024): remove lws_1
+# 2021, 2022, 2023, 2024 (6 Aug 2024): remove lws_1
 flux_long[variable %in% c("lws_1_Avg"), value := NA]
 
 # radiation data
@@ -327,8 +327,7 @@ enddate <- (max(flux_wide_save$date_time))
 print(paste("#",year(enddate), "data processed until",enddate,sep=" "))
 # 2023 data processed until 2023-08-25 07:30:00
 # 2023 data processed until 2023-12-31 23:30:00
-# 2024 data processed until 2024-03-14 09:00:00
-# 2024 data processed until 2024-06-04 09:30:00
+# 2024 data processed until 2024-08-06 08:30:00
 
 # # Save to Qa/QC and Combined folder with only year name
 setwd(qaqc.path)
