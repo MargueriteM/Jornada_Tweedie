@@ -379,22 +379,24 @@ precip <- dcast(precip,date_time ~SN)
 #ggplot(precip,aes(date_time,tower))+geom_line()
 #ggplot(precip,aes(date_time,SN2))+geom_line()
 #ggplot(precip,aes(date_time,SN6))+geom_line()
+#ggplot(precip,aes(date_time,SN3))+geom_line() # added BARE June 2024
 
 #ggplot(precip,aes(tower,SN2))+geom_point()+geom_abline(intercept=0,slope=1)
-#ggplot(precip,aes(tower,SN6))+geom_point()+geom_abline(intercept=0,slope=1)
-#ggplot(precip,aes(SN2,SN6))+geom_point()+geom_abline(intercept=0,slope=1)
+#ggplot(precip,aes(tower,SN3))+geom_point()+geom_abline(intercept=0,slope=1)
+#ggplot(precip,aes(SN2,SN3))+geom_point()+geom_abline(intercept=0,slope=1)
 
+# August 2024: changed all SN6 to SN3 because SN6 is no longer running and SN3 has a bare/open rain bucket added
 # if any row has 0 in one column and >0 in another, make the 0 = NA
-precip[SN2==0 & (SN6!=0 | tower!=0), SN2 := NA]
-precip[SN6==0 & (SN2!=0 | tower!=0), SN6 := NA]
-precip[tower==0 & (SN2!=0 | SN6!=0), tower := NA]
+precip[SN2==0 & (SN3!=0 | tower!=0), SN2 := NA]
+precip[SN3==0 & (SN2!=0 | tower!=0), SN3 := NA]
+precip[tower==0 & (SN2!=0 | SN3!=0), tower := NA]
 
 # in 2021, 2022, 2023, 2024 (March) SN6 was not working, make all SN6 precip NA
 precip[, SN6 := NA]
 # SN2 precip is logging 1/4 the rain compared to tower... gets removed below
 
 # now join the fixed precip data back to the env_30min
-precip <- melt(precip,measure.vars=c("tower","SN2","SN6"), variable.name="SN",value.name="mean.val")
+precip <- melt(precip,measure.vars=c("tower","SN2","SN6","SN3"), variable.name="SN",value.name="mean.val")
 
 # ggplot(precip, aes(date_time, mean.val, colour=SN))+geom_line()
 
@@ -453,10 +455,10 @@ ggplot(env_30min[variable == "precip.tot"& veg=="BARE",], aes(date_time, mean.va
   geom_line()+
   facet_grid(paste(variable,location,veg,sep="_")~., scales="free_y")
 
-# 2024 (until June 4) and 2023 precip.tot in SN2 is always logging ~1/4 the rain captured at the tower
+# 2024 (until July 11) and 2023 precip.tot in SN2 is always logging ~1/4 the rain captured at the tower
 # perhaps something is wrong with the bucket? LATR and PRGL buckets captured more... 
 # exclude SN2 precip
-env_30min[variable == "precip.tot"& SN=="SN2",mean.val := NA]
+env_30min[variable == "precip.tot"& SN=="SN2" & date_time < as.Date("2024-07-11"),mean.val := NA]
 
 # look at heat flux plate data from tower
 ggplot(env_30min[variable == "hfp",], aes(date_time, mean.val,colour=veg))+
@@ -687,6 +689,10 @@ biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN" & SN=="SN2"
 biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN" & SN=="SN6",
         ameriflux.id := "P_RAIN_3_1_1"]
 
+biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN" & SN=="SN3",
+        ameriflux.id := "P_RAIN_4_1_1"]
+
+
 # NA in ameriflux.id are the rainbuckets underneath shrubs
 ggplot(biomet2[variable %in% c("precip.tot"),], aes(date_time, mean.val))+
   geom_line()+facet_grid(ameriflux.id~.)
@@ -782,7 +788,7 @@ biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="tower" & 
 
 biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="tower" & height=="-100.5"),
         ameriflux.id := "SWC_5_5_1"]
-
+# graph. double-check y-axis range is 0-100 ... ameriflux is allowing zeros but unit must be %
 ggplot(biomet2[variable %in% c("soilmoisture"),], aes(date_time, mean.val))+
   geom_line()+
   facet_grid(ameriflux.id~.)
