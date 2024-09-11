@@ -1,5 +1,5 @@
 ---
-title: "Jornada Bahada Site Data Check: Flux Table"
+title: "Jornada Bajada US-Jo1 Data Check"
 author: "Marguerite Mauritz"
 output: flexdashboard::flex_dashboard
 runtime: shiny
@@ -21,20 +21,14 @@ library(dplyr)
 
 <<<<<<< HEAD
 yeartocheck <- 2024 
-=======
-yeartocheck <- 2023 
->>>>>>> ff494eeb9a4bef4dbfabaadc7984d7667bdf277f
 
 # get windrose function, source directly from Github
 #source("~/Desktop/R/R_programs/Functions/plot.windrose.R")
 source(paste0("https://raw.githubusercontent.com/MargueriteM/R_functions/master/plot.windrose.R"))
 
 
-<<<<<<< HEAD
-basedir <- "C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/Tower"
-=======
-basedir <- "C:/Users/memauritz/OneDrive - University of Texas at El Paso/Bahada/Tower"
->>>>>>> ff494eeb9a4bef4dbfabaadc7984d7667bdf277f
+
+basedir <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/"
 
 # /Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/
 
