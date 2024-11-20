@@ -177,6 +177,12 @@ ggplot(climate_30min)+
 # keep the data with 30mins mean, removing NA
 met30_long <- melt.data.table(climate_30min,c("date_time","ceiling_date","year","doy","date"))
 
+# ALL DATA
+# there's a low airtemp and atm_press blip 2024-08-06 13:00:00
+# remove this time point for airtemp, rh, e, atm_press
+met30_long[date_time==ymd_hms("2024-08-06 13:00:00")&variable%in%c("airtemp","rh","e","atm_press"),value:=NA]
+View(met30_long[date_time==ymd_hms("2024-08-06 13:00:00")&variable%in%c("airtemp","rh","e","atm_press"),])
+
 # Precip: check patterns with LWS to see if events are misssing.
 # LWS and Rain should have similar appearance of spikes
 grid.arrange(fig.precip, fig.lws, nrow=2)
@@ -242,6 +248,7 @@ ggplot(met30_long[variable%in% c("net_rs", "net_ri")], aes(date_time, value, col
 # 2023 looks good up to "2024-01-01 UTC"
 # 2024 looks good up to "2024-03-14 09:30:00 UTC"
 # 2024 looks good until "2024-08-06 09:00:00 UTC"
+# 2024 looks good until "2024-11-07 07:30:00 UTC"
 
 # if up or dn is NA then albedo and net are also NA
 dn_tot_na <- copy(met30_long[variable == "dn_tot" & is.na(value), (date_time)])
