@@ -141,7 +141,10 @@ library(lattice)
 year_file <- 2024
 
 # create paths
+# From 2024-04-01, Climate data is also going to CZO Data sharepoint in the new folder structure. Add path
+
 infile.path <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/"
+infile.path1 <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L1/Flux/"
 qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/QAQC/", sep="")
 
 
@@ -158,6 +161,21 @@ flux <- fread(paste(infile.path,year_file,"/Raw_Data/ASCII/dataL1_flux_",year_fi
                  header = FALSE, sep=",", skip = 4,fill=TRUE,
                  na.strings=c(-9999,"#NAME?"),
               col.names=flux.colnames)
+
+# read from CZO Data CR3000/L1
+flux1 <- fread(paste(infile.path1,"Bahada_CR3000_flux_L1_",year_file,".csv",sep=""),
+              header = FALSE, sep=",", skip = 4,fill=TRUE,
+              na.strings=c(-9999,"#NAME?"),
+              col.names=flux.colnames)
+
+# join flux and flux1 to have one dataframe from 2024-01-01 onward
+# remove duplicates
+min(flux1$TIMESTAMP)
+
+flux2 <- rbind(flux[TIMESTAMP<min(flux1$TIMESTAMP),],flux1)
+checkdups <- flux2[duplicated(flux2)]
+
+
 
 # convert the time stamp to a posixct format
 flux[,date_time := parse_date_time(TIMESTAMP, c("%Y!-%m-%d %H:%M:%S",
