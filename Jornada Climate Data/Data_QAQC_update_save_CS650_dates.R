@@ -68,7 +68,7 @@ checkdups <- cs650wide2[duplicated(cs650wide2)]
 
 
 # convert to long format
-cs650 <- cs650wide %>%
+cs650 <- cs650wide2 %>%
   pivot_longer(-c(TIMESTAMP,RECORD),names_to="IDcol") %>%
   separate(IDcol, c(NA,"metric","probe",NA), sep="_")
 
@@ -143,6 +143,7 @@ print(paste("#",year(enddate.check), "data looks good until",enddate.check,sep="
 # 2022 data looks good until 2022-12-31 23:30:00
 # 2023 data looks good until 2023-12-31 23:30:00
 # 2024 data looks good until 2024-08-06 08:30:00
+# 2024 data looks good until 2024-11-07 07:00:00
 
 # prepare for saving for L2 tables and combination with other data
 
