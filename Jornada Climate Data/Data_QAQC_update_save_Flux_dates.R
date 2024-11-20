@@ -176,13 +176,12 @@ flux2 <- rbind(flux[TIMESTAMP<min(flux1$TIMESTAMP),],flux1)
 checkdups <- flux2[duplicated(flux2)]
 
 
-
 # convert the time stamp to a posixct format
-flux[,date_time := parse_date_time(TIMESTAMP, c("%Y!-%m-%d %H:%M:%S",
+flux2[,date_time := parse_date_time(TIMESTAMP, c("%Y!-%m-%d %H:%M:%S",
                                                     "%m-%d-%y %H:%M"))]
 
 # change data to long format and drop timestamp and record variables.
-flux_long <- melt.data.table(flux[,!c("TIMESTAMP","RECORD")],c("date_time"))
+flux_long <- melt.data.table(flux2[,!c("TIMESTAMP","RECORD")],c("date_time"))
 
 flux_long[,':=' (year=year(date_time),month=month(date_time),doy=yday(date_time))]
 
@@ -232,21 +231,21 @@ ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "h
 # align with a rain event - leave these values in. 
 
 # 2023 has low value on May 21 (all) and Sep 13 (mainly hfp 3) that aligns with rain event. Leave it in. 
-
-#zoom to understand low point date_time>as.Date("2022-08-04") &date_time<as.Date("2022-08-06")
-# general code for zooming
-ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg") &
-                    date_time>as.Date("2023-05-15") &date_time<as.Date("2023-05-22"),],
-       aes(date_time, value))+
-  geom_point()+
-  facet_grid(variable~.,scales="free_y")
-
-# graph with rain to see if change in HFP aligns with rain
-  ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg","precip_Tot") &
-                     date_time>as.Date("2023-09-11") &date_time<as.Date("2023-09-16"),],
-         aes(date_time, value))+
-    geom_point()+
-    facet_grid(variable~.,scales="free_y")
+# 
+# #zoom to understand low point date_time>as.Date("2022-08-04") &date_time<as.Date("2022-08-06")
+# # general code for zooming
+# ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg") &
+#                     date_time>as.Date("2023-05-15") &date_time<as.Date("2023-05-22"),],
+#        aes(date_time, value))+
+#   geom_point()+
+#   facet_grid(variable~.,scales="free_y")
+# 
+# # graph with rain to see if change in HFP aligns with rain
+#   ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg","precip_Tot") &
+#                      date_time>as.Date("2023-09-11") &date_time<as.Date("2023-09-16"),],
+#          aes(date_time, value))+
+#     geom_point()+
+#     facet_grid(variable~.,scales="free_y")
 
 # align with rain and HFP 3 and 4: both under shrub. Leave these in. 
   
@@ -346,6 +345,7 @@ print(paste("#",year(enddate), "data processed until",enddate,sep=" "))
 # 2023 data processed until 2023-08-25 07:30:00
 # 2023 data processed until 2023-12-31 23:30:00
 # 2024 data processed until 2024-08-06 08:30:00
+# 2024 data processed until 2024-11-07 07:00:00
 
 # # Save to Qa/QC and Combined folder with only year name
 setwd(qaqc.path)
