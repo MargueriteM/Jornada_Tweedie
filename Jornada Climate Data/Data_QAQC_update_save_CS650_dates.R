@@ -42,15 +42,30 @@ year_file <- 2024
 # Based on data checks, no data form Met and CS650 from 16 Dec 17:30 to 17 Jan 2022
 
 # assign working directories for data input and saving qaqc data:
-input.path <- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_CS650/",year_file,"/Raw_Data/ASCII",sep="")
+# From "2024-10-14 19:30:00", CS650 data is also going to CZO Data sharepoint in the new folder structure. 
+
+input.path <- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_CS650/",year_file,"/Raw_Data/ASCII/",sep="")
+input.path1 <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L1/SoilSensor_CS650/"
 qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_CS650/",year_file,"/QAQC/", sep="")
+
 
 # set working directory to server with input data
 setwd(input.path)
 
 # load headers of file and data
-cs650names <- colnames(read.table(paste("dataL1_Soil_",year_file,".csv",sep=""), sep=",", skip=1,heade=TRUE))
-cs650wide <- read.table(paste("dataL1_Soil_",year_file,".csv",sep=""), sep=",", skip=4, col.names = cs650names, na.strings="-9999")
+cs650names <- colnames(fread(paste(input.path,"dataL1_Soil_",year_file,".csv",sep=""), sep=",", skip=1,heade=TRUE))
+cs650wide <- fread(paste(input.path,"dataL1_Soil_",year_file,".csv",sep=""), sep=",", skip=4, col.names = cs650names, na.strings="-9999")
+# CR3000/L1 data
+cs650wide1 <- fread(paste(input.path1,"Bahada_CR3000_Soil_L1_",year_file,".csv",sep=""), sep=",", skip=4, col.names = cs650names, na.strings="-9999")
+
+
+# join cs650wide and cs650wide1 to have one dataframe from "2024-10-14 19:30:00" onward
+# remove duplicates
+min(cs650wide1$TIMESTAMP)
+
+cs650wide2 <- rbind(cs650wide[TIMESTAMP<min(cs650wide1$TIMESTAMP),],cs650wide1)
+checkdups <- cs650wide2[duplicated(cs650wide2)]
+
 
 # convert to long format
 cs650 <- cs650wide %>%
