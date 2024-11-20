@@ -326,6 +326,7 @@ ggplot(SN_30min[sensor%in%c("rain")|
 ## 2024 only BARE has soil moisture (SN4)
 ## BARE 5cm probe is behaving. 
 ## has a baseline shift upward after a rain event around Feb 15 -> no correction or removal
+## in October there are some strange drops in the data below the new baseline of 0.3: Remove
 
 ## 2023 only BARE has soil moisture (SN4)
 ## BARE 5cm probe was recording poorly 2020-March 2023. 
@@ -344,15 +345,36 @@ ggplot(SN_30min[sensor%in%c("rain")|
 rain.dates <- SN_30min[sensor=="rain"&mean.val>0,
                        list(date = unique(as.Date(date_time)))]
 
-raindateID <- 1
+raindateID <- 11
 
 ggplot(SN_30min[(sensor%in%c("rain") | (sensor%in%c("moisture") &veg=="BARE")) &
-                  date_time>rain.dates$date[raindateID] & date_time<rain.dates$date[raindateID]+20 ,],
+                  date_time>rain.dates$date[raindateID] & date_time<rain.dates$date[raindateID]+10 ,],
        aes(date_time, mean.val, colour=factor(depth)))+
   geom_point(size=0.1)+
   labs(title="Soil Moisture, and Rain") +
   facet_grid(sensor+veg~., scales="free_y")+
   theme_bw()
+
+# 2024
+# plot soil moisture with rain only for 5cm probe in bare and values > 0 
+# in October there are some strange drops in the data below the new baseline of 0.3
+# remove those
+
+ggplot(SN_30min[month(date_time)==10 &
+                  (sensor%in%c("rain")|
+                  (sensor %in% c("moisture") & veg %in% c("BARE")) &
+                  (sensor %in% c("moisture") & veg %in% c("BARE") & depth==5 & mean.val>0)),],
+       aes(date_time, mean.val, colour=factor(depth)))+
+  geom_point(size=0.1)+
+  labs(title="Soil Moisture, and Rain") +
+  facet_grid(sensor+veg~., scales="free_y")+
+  theme_bw()
+
+# remove
+ SN_30min[sensor=="moisture"&veg=="BARE"&depth==5& mean.val<0.3 &
+                        date_time >ymd_hms("2024-10-01 00:00:00 UTC") &
+            date_time <ymd_hms("2024-11-01 00:00:00 UTC"), mean.val := NA]
+
 
 # # 2023 remove 5cm soil moisture from Bare only when mean.val<0,
 # # the issue with negative values and fluctuation after rain events is pronounced in Jan-March
@@ -452,17 +474,18 @@ ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
   facet_grid(veg~., scales="free_y")
 
 # Detailed corrections:
-# from 2022 - March 2024 PAR MUPO on SN8 is no longer good. remove all
+# from 2022 - Oct 2024 PAR MUPO on SN8 is no longer good. remove all
 SN_30min[date_time>ymd("2021-12-31") &sensor=="par" & veg=="MUPO" & SN=="SN8", mean.val := NA]
 
-# # After April 2023 par on SN1 FLCE is mostly gone but has some weird sporadic spikes, then returns in October:
-# # remove 11 April 2023 to 27 Octobr 2023
- SN_30min[sensor=="par" & SN=="SN1" & veg == "FLCE" & date_time>as.Date("2023-04-10"),
+# # After April 2024 par on SN1 FLCE is mostly gone but has some weird sporadic spikes, then returns in October:
+# # remove 11 April 2024 to 27 Octobr 2024
+ SN_30min[sensor=="par" & SN=="SN1" & veg == "FLCE" & date_time>as.Date("2024-04-10"),
           mean.val := NA]
 
-# # August 2023 LATR PAR is sporadic, remove
- SN_30min[sensor=="par" & SN=="SN2" & veg == "LATR",
-          mean.val := NA]
+# 2024 LATR PAR on SN2 is OK
+ # # August 2023 LATR PAR is sporadic, remove
+# SN_30min[sensor=="par" & SN=="SN2" & veg == "LATR",
+ #         mean.val := NA]
  
 # # PRGL on SN2 has a high outlying value (~400) in July 
 # SN_30min[sensor=="par" & SN=="SN2" & veg == "PRGL" & mean.val>300,
@@ -532,6 +555,7 @@ ggplot(SN_30min[sensor=="solar",],
 # plot all data in succession, after corrections
 
 # battery/current: that will tell me which networks are completely out.
+# 2024-11-07: SN1, SN3, SN5, SN6, SN7 not seding data by end of this time series
 ggplot(SN_30min[sensor=="battery",], aes(date_time, mean.val, colour=SN))+
   geom_line()+
   labs(title="Battery Voltage") +
@@ -602,6 +626,7 @@ print(paste("#",year(startdate), "data processed until",enddate,sep=" "))
 # 2022 data processed until 2022-12-31 23:30:00
 # 2023 data processed until 2024-01-01
 # 2024 data processed until 2024-08-06 08:00:00
+# 2024 data processed until 2024-11-07 07:00:00
 
 # # save in QAQC folder with start and end date in the file name
 setwd(qaqc.path)
