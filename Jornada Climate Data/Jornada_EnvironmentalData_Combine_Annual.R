@@ -457,7 +457,8 @@ ggplot(env_30min[variable == "precip.tot"& veg=="BARE",], aes(date_time, mean.va
 
 # 2024 (until July 11) and 2023 precip.tot in SN2 is always logging ~1/4 the rain captured at the tower
 # perhaps something is wrong with the bucket? LATR and PRGL buckets captured more... 
-# exclude SN2 precip
+# exclude SN2 precip prior to July 11
+# SN2 was re-calibrated and added back for logging July 11
 env_30min[variable == "precip.tot"& SN=="SN2" & date_time < as.Date("2024-07-11"),mean.val := NA]
 
 # look at heat flux plate data from tower
@@ -587,6 +588,8 @@ print(paste("# Biomet",year(startdate), "data processed until",enddate,sep=" "))
 # Biomet 2024 data processed until 2024-06-04 09:30:00
 savebiomet(biomet,year_file,year_file)
 
+# Process log:
+# Biomet 2024 data processed until 2024-11-07 07:30:00
 
 ##################################################
 # BIOMET2: Expanded format for Ameriflux submission
