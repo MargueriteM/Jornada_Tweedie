@@ -1009,6 +1009,13 @@ saveyears <- function(data,startyear,endyear) {
  
  saveyears(biomet2_wide,year_file,year_file)
 
+ 
+# add comment about processing
+ print(paste("# Biomet2",year(startdate), "data processed until",enddate,sep=" "))
+ 
+# Process log:
+# Biomet2 2024 data processed until 2024-11-07 07:30:00
+ 
 #### End of routine processing ####
 
 
