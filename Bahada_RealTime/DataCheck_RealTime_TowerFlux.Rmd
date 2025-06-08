@@ -22,6 +22,7 @@ library(dplyr)
 
 yeartocheck <- 2024 
 
+
 #yeartocheck <- 2023 
 
 
@@ -32,7 +33,6 @@ source(paste0("https://raw.githubusercontent.com/MargueriteM/R_functions/master/
 
 basedir <- "C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/Tower"
 
-#basedir <- "C:/Users/memauritz/OneDrive - University of Texas at El Paso/Bahada/Tower"
 
 
 # /Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/

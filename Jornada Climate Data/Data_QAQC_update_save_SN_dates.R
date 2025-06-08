@@ -70,11 +70,13 @@ SN <- fread(paste(infile.path,"Data/WSN_",year_file,".csv",sep=""),
 
 # column names with units
 
-colnames2019 <- fread(file=paste(infile.path,"MetaData/JER_SensorNetwork_ColumnNames_2019.csv",sep=""),
+#colnames2019 <- fread(file=paste(infile.path,"MetaData/JER_SensorNetwork_ColumnNames_2019.csv",sep=""),
+=======
+colnames2024 <- fread(file=paste(infile.path,"MetaData/JER_SensorNetwork_ColumnNames_2024.csv",sep=""),
                       sep=",",
                       header=TRUE) 
 
-colnames2019[, ':=' (sensor = sapply(strsplit(as.character(R_column_names),"_"),"[",1),
+colnames2024[, ':=' (sensor = sapply(strsplit(as.character(R_column_names),"_"),"[",1),
                      SN = sapply(strsplit(as.character(R_column_names),"_"),"[",2),
                      veg = sapply(strsplit(as.character(R_column_names),"_"),"[",3),
                      depth = sapply(strsplit(as.character(R_column_names),"_"),"[",4))]
@@ -140,7 +142,7 @@ fix_columns <- function(SNdata,colnames_data) {
 
 # some columns get imported as logical. No idea why. 
 # fix logical columns here
-SN_fx <- fix_columns(SN,colnames2019)
+SN_fx <- fix_columns(SN,colnames2024)
 SN_fx_data <- SN_fx[[1]]
 colcheck_logi <- SN_fx[[2]]
 
@@ -148,7 +150,7 @@ SN_long <- melt.data.table(SN_fx_data,c("Date"))
 
 # merge the column names to the data and split into additional descriptors
 # descriptors are: sensor, SN, veg, depth
-SN_long <- merge(SN_long, colnames2019, by="variable")
+SN_long <- merge(SN_long, colnames2024, by="variable")
 
 # check start and end dates of data
 startdate.check <- (min(SN_long$Date))
@@ -198,12 +200,17 @@ ggplot(SN_30min[sensor=="battery",], aes(date_time, mean.val, colour=SN))+
 
 # 2022 (June 6): no voltage on SN5, SN6, SN7
 # 2023: no voltage on SN5, SN6, SN7 
+
 # 2024: no voltage on SN5, SN6, SN7
 # 2024: no voltage on SN2 since mid April
+=======
+# 2024: no voltage on SN5, SN6, SN7, SN2 (from April 12 ... removed for calibration of rain buckets on SN2 and SN6)
+# 2024: SN2 back in June and added rain bucket (Open/Bare) to SN3
+
 
 # SN1: rain (latr, prgl), lws (latr), solar rad (prgl, flce, flce104), PAR (prgl, flce, flce104)
 # SN2: rain (bare), lws (prgl), solar rad (latr, prgl), PAR (latr, prgl)
-# SN3: rain (latr, prgl), solar rad (dapu, up), PAr (dapu, up), soil moisture (prgl)
+# SN3: rain (latr, prgl, bare (June 2024)), solar rad (dapu, up), PAr (dapu, up), soil moisture (prgl)
 # SN4: rain (bare), lws (down, up), solar rad (bare), PAr (bare), soil moisture (bare)
 # SN5: solar rad (latr), PAr (latr), soil moisture (latr)
 # SN6: rain (bare), lws (latr), solar rad (mupo, dapu, latr), PAR ((mupo, dapu, latr)
@@ -221,6 +228,9 @@ ggplot(SN_30min[sensor=="lws",], aes(date_time, mean.val, colour=SN))+
   geom_line()+
   labs(title="Leaf Wetness") +
   facet_grid(veg~., scales="free_y")
+
+# 2024: lws in LATR and SN1 is behaving poorly. Remove
+SN_30min[sensor=="lws"&veg=="LATR"&SN=="SN1",mean.val:=NA]
 
 # rain
 # can't be negative
@@ -247,7 +257,7 @@ SN_30min[sensor=="rain" & (mean.val<0 | mean.val>50), mean.val := NA]
 
 # 2024 rain bucket checks/clean: 19 Jan (nothing logged)
 # 2023 rain bucket checks/clean: 17 Feb (nothing logged), 27 Oct (nothing logged), 12 Dec (remove points for LATR and PRGL)
-ggplot(SN_30min[sensor=="rain" & (date_time > as.Date("2024-01-17") & date_time < as.Date("2024-01-20")),],
+ggplot(SN_30min[sensor=="rain" & (date_time > as.Date("2024-01-17") & date_time < as.Date("2024-08-06")),],
        aes(date_time, mean.val, colour=SN))+
   geom_point()+
   geom_line()+
@@ -257,6 +267,10 @@ ggplot(SN_30min[sensor=="rain" & (date_time > as.Date("2024-01-17") & date_time 
 ## 12 Dec 2023 remove rain values for PRGL and LATR for cleaning
 # SN_30min[sensor=="rain" & date(date_time) == as.Date("2023-12-12") & veg %in% c("PRGL","LATR") & mean.val>0 , mean.val := NA]
 
+# 2024: new rainfall bucket was added to SN3 for BARE measurement. Initially the variable name hadn't been set, 
+# this column is called Bare.Temp fo temporary
+# can drop bare.temp because it didn't record any rain
+SN_30min <- SN_30min[ !(veg=="BARE.TEMP")|is.na(veg),] 
 
 # graph lws and rain, by cover type
 ggplot(SN_30min[sensor=="rain" | sensor =="lws",], aes(date_time, mean.val, colour=SN))+
@@ -454,13 +468,13 @@ SN_30min[date_time>ymd("2021-12-31") &sensor=="par" & veg=="MUPO" & SN=="SN8", m
 
 # # After April 2023 par on SN1 FLCE is mostly gone but has some weird sporadic spikes, then returns in October:
 # # remove 11 April 2023 to 27 Octobr 2023
-# SN_30min[sensor=="par" & SN=="SN1" & veg == "FLCE" & date_time>as.Date("2023-04-10")& date_time<as.Date("2023-10-27"),
-#          mean.val := NA]
-# 
+ SN_30min[sensor=="par" & SN=="SN1" & veg == "FLCE" & date_time>as.Date("2023-04-10"),
+          mean.val := NA]
+
 # # August 2023 LATR PAR is sporadic, remove
-# SN_30min[sensor=="par" & SN=="SN2" & veg == "LATR" & month(date_time)>=8 & month(date_time)<=9,
-#          mean.val := NA]
-# 
+ SN_30min[sensor=="par" & SN=="SN2" & veg == "LATR",
+          mean.val := NA]
+ 
 # # PRGL on SN2 has a high outlying value (~400) in July 
 # SN_30min[sensor=="par" & SN=="SN2" & veg == "PRGL" & mean.val>300,
 #          mean.val := NA]
@@ -504,6 +518,11 @@ ggplot(SN_30min[sensor=="solar",],
   facet_grid(veg~., scales="free_y")
 
 # 2024: solar looks good until 2024-03-14 08:30:00 UTC
+
+# # After 21 April 2024 solar on SN1 FLCE is mostly gone but has some weird sporadic spikes, 
+# # remove 
+ SN_30min[sensor=="solar" & SN=="SN1" & veg == "FLCE" & date_time>as.Date("2024-04-21"),
+         mean.val := NA]
 
 # # After April 2023 solar on SN1 FLCE is mostly gone but has some weird sporadic spikes, then returns in October:
 # # remove 11 April 2023 to 27 Octobr 2023
@@ -551,7 +570,7 @@ ggplot(SN_30min[sensor=="par",], aes(date_time, mean.val, colour=SN))+
 
 # pressure
 # can't be negative
-# not logged in 2022, 2023 because SN5 is down
+# not logged in 2022, 2023, 2024 because SN5 is down
 ggplot(SN_30min[sensor=="pressure",], aes(date_time, mean.val, colour=SN))+
   geom_line()+
   labs(title="Pressure") +
@@ -589,12 +608,12 @@ enddate <- (max(SN_wide_save$date_time))
 
 # add comment about processing
 print(paste("#",year(startdate), "data processed until",enddate,sep=" "))
-# 2024 data processed until 2024-03-14 08:30:00
 # 2020 data processed until 2020-12-31 23:30:00
 # 2021 data processed until 2021-12-31 23:30:00
 # 2022 data processed until 2022-12-31 23:30:00
 # 2023 data processed until 2024-01-01
-# 2024 data processed until 2024-05-29 08:30:00
+# 2024 data processed until 2024-08-06 08:00:00
+
 
 # # save in QAQC folder with start and end date in the file name
 
@@ -625,7 +644,7 @@ write.table(SN_wide_save,
 run.info <- data.frame(info=c("Data_start","Data_end","Date_processed"),
                        date_time=c(startdate,enddate,ymd_hms(Sys.time(),tz="UTC")))
 
-write.table(run.info, paste("WSN_L2_DateRange_",year_file,"..csv",sep=""),
+write.table(run.info, paste("WSN_L2_DateRange_",year_file,".csv",sep=""),
             sep=",", dec=".", row.names=FALSE)
 
 
