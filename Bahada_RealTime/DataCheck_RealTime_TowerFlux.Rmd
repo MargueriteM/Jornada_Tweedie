@@ -19,16 +19,29 @@ library(dplyr)
 
 # ENTER YEAR TO CHECK HERE
 
-<<<<<<< HEAD
+
 yeartocheck <- 2024 
+<<<<<<< HEAD
+=======
+
+
+#yeartocheck <- 2023 
+
+>>>>>>> 347d873d4183205ccc457aaaac92314e90f974da
 
 # get windrose function, source directly from Github
 #source("~/Desktop/R/R_programs/Functions/plot.windrose.R")
 source(paste0("https://raw.githubusercontent.com/MargueriteM/R_functions/master/plot.windrose.R"))
 
 
+<<<<<<< HEAD
 
 basedir <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/"
+=======
+basedir <- "C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/Tower"
+
+
+>>>>>>> 347d873d4183205ccc457aaaac92314e90f974da
 
 # /Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/
 
@@ -89,22 +102,14 @@ setwd(paste(basedir,"/SoilSensor_CS650/",yeartocheck,"/Raw_Data/ASCII",sep=""))
 
 
 # load headers of file and data
-<<<<<<< HEAD
-cs650names <- colnames(read.table("dataL1_Soil_2023.csv", sep=",", skip=1,heade=TRUE))
-cs650wide <- read.table("dataL1_Soil_2023.csv", sep=",", skip=4, col.names = cs650names, na.strings="-9999")
-=======
-<<<<<<< HEAD
+
 cs650names <- colnames(read.table("dataL1_Soil_2024.csv", sep=",", skip=1,heade=TRUE))
 cs650wide <- read.table("dataL1_Soil_2024.csv", sep=",", skip=4, col.names = cs650names, na.strings="-9999")
-=======
-cs650names <- colnames(read.table("dataL1_Soil_2023.csv", sep=",", skip=1,heade=TRUE))
-cs650wide <- read.table("dataL1_Soil_2023.csv", sep=",", skip=4, col.names = cs650names, na.strings="-9999")
->>>>>>> ff494eeb9a4bef4dbfabaadc7984d7667bdf277f
->>>>>>> 43fd9de449fa03b67637fad313c8799cffe3c16d
 
 
-#cs650names <- colnames(read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=1,heade=TRUE))
-#cs650wide <- read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=4, col.names = cs650names, na.strings="-9999")
+
+cs650names <- colnames(read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=1,heade=TRUE))
+cs650wide <- read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=4, col.names = cs650names, na.strings="-9999")
 
 # convert to long format
 cs650 <- cs650wide %>%
