@@ -23,13 +23,17 @@ library(dplyr)
 yeartocheck <- 2024 
 
 
+#yeartocheck <- 2023 
+
+
 # get windrose function, source directly from Github
 #source("~/Desktop/R/R_programs/Functions/plot.windrose.R")
 source(paste0("https://raw.githubusercontent.com/MargueriteM/R_functions/master/plot.windrose.R"))
 
 
-
 basedir <- "C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/Tower"
+
+
 
 # /Volumes/SEL_Data_Archive/Research Data/Desert/Jornada/Bahada/Tower/
 
@@ -95,8 +99,9 @@ cs650names <- colnames(read.table("dataL1_Soil_2024.csv", sep=",", skip=1,heade=
 cs650wide <- read.table("dataL1_Soil_2024.csv", sep=",", skip=4, col.names = cs650names, na.strings="-9999")
 
 
-#cs650names <- colnames(read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=1,heade=TRUE))
-#cs650wide <- read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=4, col.names = cs650names, na.strings="-9999")
+
+cs650names <- colnames(read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=1,heade=TRUE))
+cs650wide <- read.table(paste("dataL1_Soil_",yeartocheck,".csv",sep=""), sep=",", skip=4, col.names = cs650names, na.strings="-9999")
 
 # convert to long format
 cs650 <- cs650wide %>%

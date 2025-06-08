@@ -13,6 +13,7 @@ library(cowplot)
 
 # list all filed on E drive for ts_data2 subsampled to 1 minute
 ts_files <- list.files(path="/Volumes/Data/Bahada/CR3000/L1/EddyCovariance_ts_2/2024_1min", full.names=TRUE) 
+ts_files <- list.files(path="Y:/Bahada/CR3000/L1/EddyCovariance_ts_2/2024_1min", full.names=TRUE)
 
 # read and merge all files
 ts <- do.call("rbind", lapply(ts_files, header = FALSE, fread, sep=",", skip = 4,fill=TRUE,
@@ -125,6 +126,8 @@ ggplot(ts, aes(TIMESTAMP, press_tot_7200_raw))+
   geom_line(linewidth=0.5)+
   labs(title="Closed Path 7200 Atmospheric Pressure")
 
+#-----------
+  
 
 # specific time periods of closed-path CO2
 ggplot(ts[date(TIMESTAMP)>as.Date("2023-10-01")&CO2_dry_7200_raw>300,], aes(TIMESTAMP, CO2_dry_7200_raw))+

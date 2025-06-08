@@ -53,6 +53,9 @@ library(lattice)
 
 # Get sensor network data from server, using compiled files
 
+setwd("C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/SensorNetwork/Data/")
+
+
 # assign paths for data input and qaqc
 infile.path <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/"
 qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/", sep="")
@@ -60,12 +63,15 @@ qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTe
 # assign year to read
 year_file <- 2024
 
-# import data
+
 SN <- fread(paste(infile.path,"Data/WSN_",year_file,".csv",sep=""),
               header = TRUE, sep=",",
             na.strings=c(-9999,-888.88,"#NAME?"))
 
 # column names with units
+
+#colnames2019 <- fread(file=paste(infile.path,"MetaData/JER_SensorNetwork_ColumnNames_2019.csv",sep=""),
+=======
 colnames2024 <- fread(file=paste(infile.path,"MetaData/JER_SensorNetwork_ColumnNames_2024.csv",sep=""),
                       sep=",",
                       header=TRUE) 
@@ -194,8 +200,13 @@ ggplot(SN_30min[sensor=="battery",], aes(date_time, mean.val, colour=SN))+
 
 # 2022 (June 6): no voltage on SN5, SN6, SN7
 # 2023: no voltage on SN5, SN6, SN7 
+
+# 2024: no voltage on SN5, SN6, SN7
+# 2024: no voltage on SN2 since mid April
+=======
 # 2024: no voltage on SN5, SN6, SN7, SN2 (from April 12 ... removed for calibration of rain buckets on SN2 and SN6)
 # 2024: SN2 back in June and added rain bucket (Open/Bare) to SN3
+
 
 # SN1: rain (latr, prgl), lws (latr), solar rad (prgl, flce, flce104), PAR (prgl, flce, flce104)
 # SN2: rain (bare), lws (prgl), solar rad (latr, prgl), PAR (latr, prgl)
@@ -603,7 +614,11 @@ print(paste("#",year(startdate), "data processed until",enddate,sep=" "))
 # 2023 data processed until 2024-01-01
 # 2024 data processed until 2024-08-06 08:00:00
 
+
 # # save in QAQC folder with start and end date in the file name
+
+qaqc.path<- paste("C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Bahada/SensorNetwork/Data/QAQC/", sep="")
+
 setwd(qaqc.path)
 
 # # FOR INCOMPLETE YEARS
