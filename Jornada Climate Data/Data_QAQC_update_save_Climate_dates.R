@@ -66,11 +66,9 @@ climate.colnames <-fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-U
 climate <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/TowerClimate_met/",year_file,"/Raw_Data/ASCII/dataL1_met_",year_file,".csv",sep=""),
                  header = FALSE, sep=",", skip = 4,fill=TRUE,
                  na.strings=c(-9999,"#NAME?"),
-                 col.names=c("timestamp","record","airtemp","rh","e",
-                             "atm_press","wnd_spd","wnd_dir",
-                             "precip","par","albedo",
-                             "lws_5m","net_rs","net_ri","up_tot","dn_tot",
-                             "co2_raw","h2o_raw"))
+                 col.names=colnames(climate.colnames))
+                   
+                   
 # convert the time stamp to a posixct format
 climate[,date_time := parse_date_time(timestamp, c("%m-%d-%y %H:%M","%m-%d-%y %H:%M:%S",
                                                    "%Y!-%m-%d %H:%M:%S"))]
