@@ -56,30 +56,14 @@ year_file <- 2024
 
 # import most recent file
 climate.loggerinfo <-fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/TowerClimate_met/",year_file,"/Raw_Data/ASCII/dataL1_met_",year_file,".csv",sep=""),
-                         header = FALSE, sep=",", skip = 0,fill=TRUE,
-                         na.strings=c(-9999,"#NAME?"))[1,]
+                           header = FALSE, sep=",", skip = 0,fill=TRUE,
+                           na.strings=c(-9999,"#NAME?"))[1,]
 
 climate.colnames <-fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/TowerClimate_met/",year_file,"/Raw_Data/ASCII/dataL1_met_",year_file,".csv",sep=""),
-                                     header = TRUE, sep=",", skip = 1,fill=TRUE,
-                                     na.strings=c(-9999,"#NAME?"))[1:2,]
-
-climate <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/TowerClimate_met/",year_file,"/Raw_Data/ASCII/dataL1_met_",year_file,".csv",sep=""),
-                 header = FALSE, sep=",", skip = 4,fill=TRUE,
-                 na.strings=c(-9999,"#NAME?"),
-                 col.names=colnames(climate.colnames))
-                   
-                   
-# convert the time stamp to a posixct format
-climate[,date_time := parse_date_time(timestamp, c("%m-%d-%y %H:%M","%m-%d-%y %H:%M:%S",
-                                                   "%Y!-%m-%d %H:%M:%S"))]
-
-# From 2024-04-01, Climate data is also going to CZO Data sharepoint in the new folder structure. 
-# source data from there
-climate.colnames1 <-fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L1/TowerClimate_met/Bahada_CR3000_met_L1_",year_file,".csv",sep=""),
                          header = TRUE, sep=",", skip = 1,fill=TRUE,
                          na.strings=c(-9999,"#NAME?"))[1:2,]
 
-climate1 <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L1/TowerClimate_met/Bahada_CR3000_met_L1_",year_file,".csv",sep=""),
+climate <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/TowerClimate_met/",year_file,"/Raw_Data/ASCII/dataL1_met_",year_file,".csv",sep=""),
                  header = FALSE, sep=",", skip = 4,fill=TRUE,
                  na.strings=c(-9999,"#NAME?"),
                  col.names=c("timestamp","record","airtemp","rh","e",
@@ -87,9 +71,38 @@ climate1 <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-Universi
                              "precip","par","albedo",
                              "lws_5m","net_rs","net_ri","up_tot","dn_tot",
                              "co2_raw","h2o_raw"))
-## convert the time stamp to a posixct format
-climate1[,date_time := parse_date_time(timestamp, c("%m-%d-%y %H:%M","%m-%d-%y %H:%M:%S",
-                                                   "%Y!-%m-%d %H:%M:%S"))]
+                   
+                   
+# convert the time stamp to a posixct format - R updated to auto convert to posixct.
+# may not need if timestamp already reads as posixct.
+# climate[,date_time := parse_date_time(timestamp, c("%m-%d-%y %H:%M","%m-%d-%y %H:%M:%S",
+ #                                                   "%Y!-%m-%d %H:%M:%S"))]
+
+# instead create date_time as equal to timestamp
+climate[,date_time:= timestamp]
+
+# From 2024-04-01, Climate data is also going to CZO Data sharepoint in the new folder structure. 
+# source data from there
+climate.colnames1 <-fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L1/TowerClimate_met/Bahada_CR3000_met_L1_",year_file,".csv",sep=""),
+                          header = TRUE, sep=",", skip = 1,fill=TRUE,
+                          na.strings=c(-9999,"#NAME?"))[1:2,]
+
+climate1 <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L1/TowerClimate_met/Bahada_CR3000_met_L1_",year_file,".csv",sep=""),
+                  header = FALSE, sep=",", skip = 4,fill=TRUE,
+                  na.strings=c(-9999,"#NAME?"),
+                  col.names=c("timestamp","record","airtemp","rh","e",
+                              "atm_press","wnd_spd","wnd_dir",
+                              "precip","par","albedo",
+                              "lws_5m","net_rs","net_ri","up_tot","dn_tot",
+                              "co2_raw","h2o_raw"))
+
+## convert the time stamp to a posixct format  - R updated to auto convert to posixct.
+# may not need if timestamp already reads as posixct.
+#climate1[,date_time := parse_date_time(timestamp, c("%m-%d-%y %H:%M","%m-%d-%y %H:%M:%S",
+ #                                                 "%Y!-%m-%d %H:%M:%S"))]
+
+# instead add code to create date_time
+climate1[,date_time := timestamp]
 
 # join climate and cliamte1 to have one dataframe from 2024-01-01 onward
 # remove duplicates
@@ -109,8 +122,12 @@ climate_30min <- climate2[,lapply(.SD, function (x) {mean(x, na.rm=TRUE)}),
 # for precip don't use na.rm=TRUE because otherwise it will look like we captured all precip when we actually didn't
 # although - comparing precip with and without NA doesn't appear to make much difference
 # that means sensor failure rarely occured during a rain event, if the sensor was already working/recording
+# precip_tot_30min <- climate2[,list(precip_tot = sum(precip)), 
+#                             by=ceiling_date(date_time,"30 min")][,date_time := (ymd_hms(ceiling_date))][,ceiling_date := NULL]
+
+
 precip_tot_30min <- climate2[,list(precip_tot = sum(precip)), 
-                            by=ceiling_date(date_time,"30 min")][,date_time := (ymd_hms(ceiling_date))][,ceiling_date := NULL]
+                             by=ceiling_date(date_time,"30 min")][,date_time := ((ceiling_date))][,ceiling_date := NULL]
 
 
 # create derivative date columns
