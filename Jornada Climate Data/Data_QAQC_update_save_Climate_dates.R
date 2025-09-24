@@ -264,6 +264,7 @@ ggplot(met30_long[variable%in% c("net_rs", "net_ri")], aes(date_time, value, col
 # 2024 looks good up to "2024-03-14 09:30:00 UTC"
 # 2024 looks good until "2024-08-06 09:00:00 UTC"
 # 2024 looks good until "2024-11-07 07:30:00 UTC"
+# 2024 looks good until "2025-01-01 UTC"
 
 # if up or dn is NA then albedo and net are also NA
 dn_tot_na <- copy(met30_long[variable == "dn_tot" & is.na(value), (date_time)])
