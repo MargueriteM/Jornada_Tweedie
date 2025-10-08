@@ -75,7 +75,7 @@ cs650 <- cs650wide2 %>%
 
 # format date/time and create depth labels for probes
 cs650 <- cs650 %>%
-  mutate(date_time = ymd_hms(TIMESTAMP)) %>%
+  mutate(date_time = TIMESTAMP) %>%
   mutate(probe_depth = case_when(probe %in% "1" ~ 100.5,
                                  probe %in% "2" ~ 42.5,
                                  probe %in% "3" ~ 25.5,
@@ -145,6 +145,7 @@ print(paste("#",year(enddate.check), "data looks good until",enddate.check,sep="
 # 2023 data looks good until 2023-12-31 23:30:00
 # 2024 data looks good until 2024-08-06 08:30:00
 # 2024 data looks good until 2024-11-07 07:00:00
+# 2024 data looks good unitl 2025-
 
 # prepare for saving for L2 tables and combination with other data
 
