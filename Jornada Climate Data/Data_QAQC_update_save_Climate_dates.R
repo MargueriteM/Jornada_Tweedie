@@ -50,7 +50,7 @@ source(paste0("https://raw.githubusercontent.com/MargueriteM/R_functions/master/
 # CO2_raw: mmol/m3
 # H2O_raw: mmol/m3
 
-year_file <- 2024
+year_file <- 2025
 
 # Based on data checks, no data form Met and CS650 from 16 Dec 17:30 to 17 Jan 2022
 
@@ -96,6 +96,21 @@ climate1 <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-Universi
                               "lws_5m","net_rs","net_ri","up_tot","dn_tot",
                               "co2_raw","h2o_raw"))
 
+# 2025 the L0 data had to be re-aggregated to L1 (Test_L0_Extract_ByMonth.R)
+# and format of headers is different
+climate.colnames1 <-colnames(fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L1/TowerClimate_met/Bahada_CR3000_met_L1_",year_file,".csv",sep=""),
+                          header = TRUE, sep=",", skip = 0,fill=TRUE,
+                          na.strings=c(-9999,"#NAME?")))
+
+climate1 <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L1/TowerClimate_met/Bahada_CR3000_met_L1_",year_file,".csv",sep=""),
+                  header = FALSE, sep=",", skip = 1,fill=TRUE,
+                  na.strings=c(-9999,"#NAME?"),
+                  col.names=c("rowname","timestamp","record","airtemp","rh","e",
+                              "atm_press","wnd_spd","wnd_dir",
+                              "precip","par","albedo",
+                              "lws_5m","net_rs","net_ri","up_tot","dn_tot",
+                              "co2_raw","h2o_raw"))
+
 ## convert the time stamp to a posixct format  - R updated to auto convert to posixct.
 # may not need if timestamp already reads as posixct.
 #climate1[,date_time := parse_date_time(timestamp, c("%m-%d-%y %H:%M","%m-%d-%y %H:%M:%S",
@@ -104,12 +119,16 @@ climate1 <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-Universi
 # instead add code to create date_time
 climate1[,date_time := timestamp]
 
-# join climate and cliamte1 to have one dataframe from 2024-01-01 onward
+# join climate and cliamte1 to have one dataframe for 2024
 # remove duplicates
 min(climate1$date_time)
 
 climate2 <- rbind(climate[date_time<min(climate1$date_time),],climate1)
 checkdups <- climate2[duplicated(climate2)]
+
+# for 2025 manually re-aggregated L1 file, all data is in one file
+summary(climate1$timestamp)
+climate2 <- climate1
 
 # calculate 30 minute data, drop any NAs in the 30min interval and calculate the mean
 # leave out Co2_raw and H2O_raw, those will be in the eddy processed data
@@ -160,8 +179,8 @@ ggplot(climate_30min, aes(date_time, wnd_dir))+geom_line()
 climate_wind <- copy(climate_30min[!is.na(wnd_dir) | !is.na(wnd_spd),])
 plot.windrose(climate_wind,climate_wind$wnd_spd, climate_wind$wnd_dir)
 
-fig.precip <- ggplot(climate_30min, aes(date_time, precip_tot))+geom_line()+scale_x_datetime(date_breaks="1 month", date_labels="%b")+labs(title="Bajada US-Jo1 Rainfall, 2023", y="Total 30 min Rainfall (mm)")
-fig.lws <- ggplot(climate_30min, aes(date_time, lws_5m))+geom_line()+scale_x_datetime(date_breaks="1 month", date_labels="%b")+labs(title="Bajada US-Jo1 LWS, 2023", y="LWS")
+fig.precip <- ggplot(climate_30min, aes(date_time, precip_tot))+geom_line()+scale_x_datetime(date_breaks="1 month", date_labels="%b")+labs(title="Bajada US-Jo1 Rainfall, 2025", y="Total 30 min Rainfall (mm)")
+fig.lws <- ggplot(climate_30min, aes(date_time, lws_5m))+geom_line()+scale_x_datetime(date_breaks="1 month", date_labels="%b")+labs(title="Bajada US-Jo1 LWS, 2025", y="LWS")
 
 # Precip: check patterns with LWS to see if events are misssing.
 # LWS and Rain should have similar appearance of spikes
@@ -193,10 +212,23 @@ ggplot(climate_30min)+
 met30_long <- melt.data.table(climate_30min,c("date_time","ceiling_date","year","doy","date"))
 
 # ALL DATA
-# there's a low airtemp and atm_press blip 2024-08-06 13:00:00
-# remove this time point for airtemp, rh, e, atm_press
-met30_long[date_time==ymd_hms("2024-08-06 13:00:00")&variable%in%c("airtemp","rh","e","atm_press"),value:=NA]
-View(met30_long[date_time==ymd_hms("2024-08-06 13:00:00")&variable%in%c("airtemp","rh","e","atm_press"),])
+# 2025 there's a blip in airtemp, rh, e on Oct 16 to 29
+met30_long[(date_time>ymd("2025-10-17")&date_time<ymd("2025-10-30"))&
+              variable%in%c("airtemp","rh","e"),value:=NA]
+
+# additional filter to remove some high values
+met30_long[value>200&
+             variable%in%c("airtemp","rh","e"),value:=NA]
+
+# graph to check
+ggplot(met30_long[variable%in%c("airtemp","rh","e")], aes(date_time, value))+geom_line()+
+  facet_grid(variable~., scales="free_y")
+
+
+## there's a low airtemp and atm_press blip 2024-08-06 13:00:00
+## remove this time point for airtemp, rh, e, atm_press
+#met30_long[date_time==ymd_hms("2024-08-06 13:00:00")&variable%in%c("airtemp","rh","e","atm_press"),value:=NA]
+#View(met30_long[date_time==ymd_hms("2024-08-06 13:00:00")&variable%in%c("airtemp","rh","e","atm_press"),])
 
 # Precip: check patterns with LWS to see if events are misssing.
 # LWS and Rain should have similar appearance of spikes
@@ -220,29 +252,36 @@ lws.max <- max(met30_long[variable %in% c("lws_5m") & !is.na(value),]$value)
 met30_long[variable %in% c("lws_5m"), value := ((value-250)/(375-250))*100]
 
 grid.arrange(fig.precip,
-             ggplot(met30_long[variable=="lws_5m"], aes(date_time, value))+geom_point()+labs(title="rescale lws_5m"))
+             ggplot(met30_long[variable=="lws_5m"], aes(date_time, value))+geom_line()+labs(title="rescale lws_5m"))
 
 
 # albedo
+# missing from 2025
 # remove values < -300 and > 300
 met30_long[variable=="albedo" & (value <(-300) | value > 300), value := NA]
 ggplot(met30_long[variable=="albedo"], aes(date_time, value))+geom_point()+labs(title="albedo")
 
 # net_rs
+# missing from 2025
 # remove values < -25 and > 1000
 met30_long[variable=="net_rs"&(value<(-25)|value>1000), value := NA]
 
 # net_rl
+# 2025, out of range from 2025-10-10 to 2025-10-30
+met30_long[(date_time>ymd("2025-10-10") & date_time<("2025-10-30"))&variable%in%c("net_ri"),value:=NA]
 # remove values > 100
-met30_long[variable=="net_ri"&value>100, value := NA]
+met30_long[variable=="net_ri"&(value<(-500)|value>100), value := NA]
 
 ggplot(met30_long[variable%in% c("net_rs", "net_ri")], aes(date_time, value, colour=variable))+geom_point()+
   labs(title="net_rs and nt_rl")
 
 # up_tot
+# missing from 2025
 # remove value >1500
 met30_long[variable=="up_tot" & value>1500, value := NA]
 # dn_tot
+# 2025, out of range from 2025-10-10 to 2025-10-30
+met30_long[(date_time>ymd("2025-10-10") & date_time<("2025-10-30"))&variable%in%c("dn_tot"),value:=NA]
 # remove < -900 and > 350
 met30_long[variable=="dn_tot" & (value< (-900) | value > 350), value := NA]
 
@@ -258,6 +297,22 @@ ggplot(met30_long[variable%in% c("up_tot", "dn_tot")], aes(date_time, value, col
 ggplot(met30_long[variable%in% c("net_rs", "net_ri")], aes(date_time, value, colour=variable))+geom_point()+
   labs(title="net_rs and net_rl")
 
+# wnd_spd and wnd_dir
+# in 2025 weird values in Oct, Nov
+# wnd_dir
+# 2025, out of range from 2025-10-10 to 2025-10-30
+met30_long[(date_time>ymd("2025-10-10") & date_time<("2025-10-30"))&variable%in%c("wnd_dir"),value:=NA]
+# wnd_spd
+# 2025, out of range from 2025-11-02 to 2025-12-15
+met30_long[(date_time>ymd("2025-11-02") & date_time<("2025-12-15"))&variable%in%c("wnd_spd"),value:=NA]
+
+
+ggplot(met30_long[variable%in% c("wnd_spd", "wnd_dir")], aes(date_time, value, colour=variable))+geom_point()
+  
+
+# graph all variables
+ggplot(met30_long, aes(date_time, value, colour=variable))+geom_point()+
+  facet_grid(variable~.,scales="free_y")
 
 # 2022 looks good up to 2022-12-31
 # 2023 looks good up to "2024-01-01 UTC"
@@ -265,6 +320,7 @@ ggplot(met30_long[variable%in% c("net_rs", "net_ri")], aes(date_time, value, col
 # 2024 looks good until "2024-08-06 09:00:00 UTC"
 # 2024 looks good until "2024-11-07 07:30:00 UTC"
 # 2024 looks good until "2025-01-01 UTC"
+# 2025 looks good until "2025-12-31 23:30:00 UTC" but the L0 merge was a bit messy. keep checking when merging all
 
 # if up or dn is NA then albedo and net are also NA
 dn_tot_na <- copy(met30_long[variable == "dn_tot" & is.na(value), (date_time)])
@@ -296,6 +352,8 @@ setnames(climate.save,c("date_time","airtemp","rh","e",
  
 # # save in QAQC folder with start and end date in the file name
 qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/TowerClimate_met/",year_file,"/QAQC/", sep="")
+# CZO_Data L2 folder
+qaqc.path<-("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L2/TowerClimate_met/")
 setwd(qaqc.path)
 
 ############ write with specific date and time ############
@@ -320,7 +378,7 @@ write.table(climate.save,
 run.info <- data.frame(info=c("Data_start","Data_end","Date_processed"),
                        date_time=c(startdate,enddate,ymd_hms(Sys.time(),tz="UTC")))
 
-write.table(run.info, "dataL2_met_DateRange.csv",
+write.table(run.info, paste("dataL2_met_DateRange_",year_file,".csv",sep=""),
             sep=",", dec=".", row.names=FALSE)
 
 # # don't save individual years to combined folder
