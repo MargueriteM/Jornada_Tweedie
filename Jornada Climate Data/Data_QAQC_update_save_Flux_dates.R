@@ -138,7 +138,7 @@ library(lattice)
 # panel_temp_Avg	C
 # batt_volt_Avg	V
 
-year_file <- 2024
+year_file <- 2025
 
 # create paths
 # From 2024-04-01, Climate data is also going to CZO Data sharepoint in the new folder structure. Add path
@@ -147,6 +147,8 @@ infile.path <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexas
 infile.path1 <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L1/Flux/"
 qaqc.path<- paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/QAQC/", sep="")
 
+# 2025 qaqc.path
+qaqc.path<- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L2/Flux/"
 
 # import most recent file
 flux.loggerinfo <-fread(paste(infile.path,year_file,"/Raw_Data/ASCII/dataL1_flux_",year_file,".csv",sep=""),
@@ -168,20 +170,40 @@ flux1 <- fread(paste(infile.path1,"Bahada_CR3000_flux_L1_",year_file,".csv",sep=
               na.strings=c(-9999,"#NAME?"),
               col.names=flux.colnames)
 
+# For 2025, format is different due to manual aggregation of L0 files
+# 2025 the L0 data had to be re-aggregated to L1 (Test_L0_Extract_ByMonth.R)
+# and format of headers is different
+# flux.colnames1 <-colnames(fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L1/Flux/Bahada_CR3000_flux_L1_",year_file,".csv",sep=""),
+#                                    header = TRUE, sep=",", skip = 0,fill=TRUE,
+#                                    na.strings=c(-9999,"#NAME?")))
+
+flux1 <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L1/Flux/Bahada_CR3000_flux_L1_",year_file,".csv",sep=""),
+                  header = TRUE, sep=",", skip = 0,fill=TRUE,
+                  na.strings=c(-9999,"#NAME?","NA"),
+                  col.names=flux.colnames1)
+
+
 # join flux and flux1 to have one dataframe from 2024-01-01 onward
 # remove duplicates
 min(flux1$TIMESTAMP)
 
-flux2 <- rbind(flux[TIMESTAMP<min(flux1$TIMESTAMP),],flux1)
-checkdups <- flux2[duplicated(flux2)]
+# not for 2025
+# flux2 <- rbind(flux[TIMESTAMP<min(flux1$TIMESTAMP),],flux1)
+# checkdups <- flux2[duplicated(flux2)]
 
+# 2025
+flux2 <- flux1
+flux2[,date_time := TIMESTAMP]
 
-# convert the time stamp to a posixct format
-flux2[,date_time := parse_date_time(TIMESTAMP, c("%Y!-%m-%d %H:%M:%S",
-                                                    "%m-%d-%y %H:%M"))]
+# not for 2025: convert the time stamp to a posixct format
+# flux2[,date_time := parse_date_time(TIMESTAMP, c("%Y!-%m-%d %H:%M:%S",
+#                                                   "%m-%d-%y %H:%M"))]
 
 # change data to long format and drop timestamp and record variables.
-flux_long <- melt.data.table(flux2[,!c("TIMESTAMP","RECORD")],c("date_time"))
+# flux_long <- melt.data.table(flux2[,!c("TIMESTAMP","RECORD")],c("date_time"))
+# 2025
+flux_long <- melt.data.table(flux2[,!c("V1","TIMESTAMP","RECORD")],c("date_time"))
+
 
 flux_long[,':=' (year=year(date_time),month=month(date_time),doy=yday(date_time))]
 
@@ -249,6 +271,17 @@ ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "h
 
 # align with rain and HFP 3 and 4: both under shrub. Leave these in. 
   
+# 2025
+# gap and bad data values in October 10-10 to 10-30
+flux_long[(date_time>ymd("2025-10-10")&date_time<ymd("2025-10-30")) &
+             variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg"),value:=NA]
+
+ggplot(flux_long[variable %in% c("hfp01_1_Avg", "hfp01_2_Avg", "hfp01_3_Avg", "hfp01_4_Avg"),],
+       aes(date_time, value))+
+  geom_line()+
+  facet_grid(variable~.,scales="free_y")
+
+
 # LWS 
 # lws_1 (shrub) and lws_2 (5m)
 # lws_2 is also in climate data
@@ -276,7 +309,7 @@ ggplot(flux_long[variable %in% c("lws_1_Avg", "lws_2_Avg"),],
        aes(date_time, value))+geom_line()+
   facet_grid(variable~.,scales="free_y")
 
-# 2021, 2022, 2023, 2024 (6 Aug 2024): remove lws_1
+# 2021, 2022, 2023, 2024 (6 Aug 2024), 2025: remove lws_1
 flux_long[variable %in% c("lws_1_Avg"), value := NA]
 
 # radiation data
@@ -300,6 +333,19 @@ ggplot(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Av
 
 # 2022 looks good until "2022-08-25 13:00:00 UTC"
 # 2023 looks good until "2023-12-31 23:30:00 UTC"
+
+# 2025 
+# gap and bad data values in October 10-10 to 10-30
+ggplot(flux_long[!(date_time>ymd("2025-10-10")&date_time<ymd("2025-10-30")) &
+                   variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg","Rn_nr_Avg"),],
+       aes(date_time, value))+
+  geom_line()+
+  facet_grid(variable~.,scales="free_y")
+
+# remove bad values in Oct
+flux_long[(date_time>ymd("2025-10-10")&date_time<ymd("2025-10-30")) &
+            variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg","Rn_nr_Avg"),value:=NA]
+
 
 # plot all radiation variables
 ggplot(flux_long[variable %in% c("Rs_upwell_Avg","Rs_downwell_Avg","Rl_upwell_Avg","Rl_downwell_Avg",
@@ -346,6 +392,7 @@ print(paste("#",year(enddate), "data processed until",enddate,sep=" "))
 # 2023 data processed until 2023-12-31 23:30:00
 # 2024 data processed until 2024-08-06 08:30:00
 # 2024 data processed until 2024-11-07 07:00:00
+# 2025 data processed until 2025-12-31 23:00:00"
 
 # # Save to Qa/QC and Combined folder with only year name
 setwd(qaqc.path)
@@ -372,7 +419,7 @@ write.table(flux_wide_save,
 run.info <- data.frame(info=c("Data_start","Data_end","Date_processed"),
                        date_time=c(startdate,enddate,ymd_hms(Sys.time(),tz="UTC")))
 
-write.table(run.info, "dataL2_flux_DateRange.csv",
+write.table(run.info, "dataL2_flux_DateRange_2025.csv",
             sep=",", dec=".", row.names=FALSE)
 
 # don't save single years 
