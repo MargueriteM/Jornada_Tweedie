@@ -18,7 +18,8 @@
 # This code will
 
 # 1. connect directly to server to access files
-# 2. read climate, flux, ECTM (CS650 after May 2021), SN data from L2 tables (30 min data, checked, and desired variables brought forward)
+# 2. read climate, flux, ECTM (CS650 after May 2021), SN data (ended 3 Feb 2025)
+#    from L2 tables (30 min data, checked, and desired variables brought forward)
 # 3. read files in wide format, transform to long format
 # 4. Merge and cross-check related variables against each other for further QA/QC
 # 5. Create biomet file: sensors averaged, to use in EddyPro processing
@@ -28,7 +29,7 @@
 
 # Data:
 # Tower Climate Data: Data_QAQC_update_save_Climate_dates.R
-# Sensor Network Data: Jornada_SensorNetworkData_2010_2019.R
+# Sensor Network Data: Jornada_SensorNetworkData_2010_2019.R (ended 3 Feb 2025)
 # Soil Sensor Data: Jornada_ECTM_Data.R
 # Flux table: Data_QAQC_update_save_Flux_dates.R (for soil heat flux plates, lws_1, Rl_in, Rl_out, Rs_in, Rs_out)
 
@@ -187,10 +188,11 @@ year_file <- 2025
 # rm(SN_wide)
 
 # Tower Met Data (get LWS 5m from here. It's also in FluxTable)
-met_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/TowerClimate_met/",year_file,"/QAQC/dataL2_met_",year_file,".csv",sep=""),
-                   sep=",", header=TRUE)
+# met_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/TowerClimate_met/",year_file,"/QAQC/dataL2_met_",year_file,".csv",sep=""),
+#                    sep=",", header=TRUE)
 
-met_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L2/Flux/dataL2_flux_",year_file, ".csv",sep=""),
+# update 2025: read L2 file from CZO_Data/Bahada/CR3000/....
+met_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L2/TowerClimate_met/dataL2_met_",year_file, ".csv",sep=""),
                   sep=",", header=TRUE)
 
 
@@ -201,7 +203,8 @@ setnames(met_wide, c('precip_tot','t_hmp','rh_hmp','hor_wnd_spd','hor_wnd_dir'),
 # format date and add column to deginate the data stream
 met_30min <- melt.data.table(met_wide,c("timestamp"))
 
-met_30min[, ':=' (date_time = ymd_hms(timestamp),
+# in 2025 timestamp is already in postixct format
+met_30min[, ':=' (date_time = timestamp,
                   datastream = "climate",location = "tower")][,timestamp:=NULL]
 setnames(met_30min, 'value', 'mean.val')
 
@@ -214,12 +217,14 @@ met_30min[variable=="precip.tot", veg := "BARE"]
 rm(met_wide) 
 
 # Data from FluxTable: Rs, Rl, HFP, LWS_1 (in shrub)
-flux_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/Flux/",year_file,"/QAQC/dataL2_flux_",year_file,".csv",sep=""),
-                    sep=",", header=TRUE)
+flux_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L2/Flux/dataL2_flux_",year_file, ".csv",sep=""),
+                  sep=",", header=TRUE)
+
 # make data long and format to match others for binding
 flux_30min <- melt.data.table(flux_wide,c("date_time"))
 
-flux_30min[, ':=' (date_time = ymd_hms(date_time),
+# in 2025 date_time is already in POSIXCT
+flux_30min[, ':=' (#date_time = ymd_hms(date_time),
                    year=year(date_time),datastream = "flux", location = "tower")]
 
 setnames(flux_30min, 'value', 'mean.val')
@@ -251,8 +256,13 @@ rm(flux_wide)
 # 
 # Data logging starts 2021-05-04 12:44:00 
 
-cs650_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_CS650/",year_file,"/QAQC/dataL2_Soil_",year_file,".csv",sep=""),
-                    sep=",", header=TRUE)
+# cs650_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_CS650/",year_file,"/QAQC/dataL2_Soil_",year_file,".csv",sep=""),
+#                    sep=",", header=TRUE)
+
+# in 2025 start reading from CZO_Data/Bahada/CR3000...
+cs650_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L2/SoilSensor_CS650/dataL2_Soil_",year_file, ".csv",sep=""),
+                   sep=",", header=TRUE)
+
 
 cs650 <- melt(cs650_wide,c("TIMESTAMP"))
 
@@ -283,7 +293,7 @@ cs650[rep==5, height := "-11.5"]
 cs650[, veg := "BARE"]
 
 # modify columns to match other datastreams and get rid of redundant ones
-cs650[, ':=' (date_time = ymd_hms(TIMESTAMP),
+cs650[, ':=' (date_time = TIMESTAMP,
                    datastream = "cs650",location = "tower",
                     rep=NULL, measurement=NULL, TIMESTAMP=NULL)]
 
@@ -331,7 +341,8 @@ rm(cs650_wide)
 
 # combine all four SEL data streams 
 # soil_30min is for ECTM
-env_30min <- rbind(SN_30min,met_30min,flux_30min,cs650, fill=TRUE) # cs650, soil_30min
+# 2025: remove SN_30min from rbind
+env_30min <- rbind(met_30min,flux_30min,cs650, fill=TRUE) # cs650, soil_30min
 
 # some datastreams don't have all the time stamp columns. Create
 env_30min[,':=' (year = year(date_time),
@@ -347,23 +358,24 @@ levels(factor(env_30min$variable))
 # cs650 adds:
 # "soilconductivity"  "soilperiodaverage" "soilpermittivity"     
 # [31] "soilvoltratio"   
- 
+
+# without SN:
+# [1] "airtemp"           "rh"                "e_hmp"             "atm_press"        
+# [5] "wnd_spd"           "wnd_dir"           "par"               "albedo"           
+# [9] "lws_2"             "NetRs"             "Net_Rl"            "UpTot"            
+# [13] "DnTot"             "precip.tot"        "Rn_nr_Avg"         "lws"              
+# [17] "hfp"               "Rs_down"           "Rs_up"             "Rl_down"          
+# [21] "Rl_up"             "soilconductivity"  "soilmoisture"      "soilperiodaverage"
+# [25] "soilpermittivity"  "soiltemp"          "soilvoltratio"    
 
 # check the levels of height and order them
 levels(factor(env_30min$height))
 
-# with ECTM and SN only 
-# env_30min[,height := factor(height,levels=c("-30","-20","-15","-10","-5","-2","50","500"))]
-
-# with CS650, SN, and ECTM (2021 only)
- # env_30min[,height := factor(height,levels=c("-100.5","-42.5","-30","-25.5","-20","-17.5","-15","-11.5",
- #                                             "-10","-5","-2","50","500"))]
-
-
- # with CS650 and SN only
-  env_30min[,height := factor(height,levels=c("-100.5","-42.5","-30","-25.5","-20","-17.5","-15","-11.5",
-                                             "-10","-5","50","500"))]
- 
+  # with CS650 only
+  env_30min[,height := factor(height,levels=c("-100.5","-42.5","-25.5","-17.5","-15","-11.5",
+                                              "-10","50","500"))]
+  
+  
   # check the levels of height after ordering
   levels(factor(env_30min$height))
   
@@ -371,57 +383,8 @@ levels(factor(env_30min$height))
 env_30min[!is.na(mean.val), coverage := 1]
 
 
-# Precip: The rain buckets record 0 even if they are broken and not picking up rain
-#         As a result, averaging across all sensors will underestimate rain if one bucket is not working
-# If there's rain recorded in any bucket and another is 0, make it NA instead of 0
-precip <- copy(env_30min[variable=="precip.tot"&veg=="BARE"&!is.na(date_time),.(date_time,
-                                                              SN,mean.val)])
+# Precip: without SN there is only one precip bucket (tower)
 
-precip[is.na(SN), SN := "tower"]
-
-precip <- dcast(precip,date_time ~SN)
-
-## check
-#ggplot(precip,aes(date_time,tower))+geom_line()
-#ggplot(precip,aes(date_time,SN2))+geom_line()
-#ggplot(precip,aes(date_time,SN6))+geom_line()
-#ggplot(precip,aes(date_time,SN3))+geom_line() # added BARE June 2024
-
-#ggplot(precip,aes(tower,SN2))+geom_point()+geom_abline(intercept=0,slope=1)
-#ggplot(precip,aes(tower,SN3))+geom_point()+geom_abline(intercept=0,slope=1)
-#ggplot(precip,aes(SN2,SN3))+geom_point()+geom_abline(intercept=0,slope=1)
-
-# August 2024: changed all SN6 to SN3 because SN6 is no longer running and SN3 has a bare/open rain bucket added
-# if any row has 0 in one column and >0 in another, make the 0 = NA
-precip[SN2==0 & (SN3!=0 | tower!=0), SN2 := NA]
-precip[SN3==0 & (SN2!=0 | tower!=0), SN3 := NA]
-precip[tower==0 & (SN2!=0 | SN3!=0), tower := NA]
-
-# in 2021, 2022, 2023, 2024 (March) SN6 was not working, make all SN6 precip NA
-precip[, SN6 := NA]
-# SN2 precip is logging 1/4 the rain compared to tower... gets removed below
-
-# now join the fixed precip data back to the env_30min
-precip <- melt(precip,measure.vars=c("tower","SN2","SN6","SN3"), variable.name="SN",value.name="mean.val")
-
-# ggplot(precip, aes(date_time, mean.val, colour=SN))+geom_line()
-
-# get all the additional columns
-precip_extra <- copy(env_30min[variable=="precip.tot"&veg=="BARE"&!is.na(date_time),
-                               .(date_time,variable,unit,datastream,location,veg,height,depth,
-                                 SN,year,month,doy,
-                                 coverage)])
-precip[SN=="tower",SN := NA]
-
-precip <- merge(precip, precip_extra, by=c("SN","date_time"))
-
-# replace Bare precip in env_30min
-env_30min1 <- copy(env_30min) 
-rm(env_30min)
-env_30min <- copy(env_30min1[!(variable=="precip.tot"&veg=="BARE"),])
-
-# last step to create final version of env_30min
-env_30min <- rbind(env_30min, precip)
 #### STOP HERE. ####
 ## 
 
@@ -444,28 +407,16 @@ ggplot(env_30min[variable %in% c("soilmoisture","soiltemp"),],
 
 
 # look at PAR UP from tower and SN
-ggplot(env_30min[variable == "par"& veg %in% c("UP"),], aes(date_time, mean.val,colour=SN))+
+ggplot(env_30min[variable == "par"& veg %in% c("UP"),], aes(date_time, mean.val))+
   geom_line()+
   geom_hline(yintercept=c(2400,2500))+
   facet_grid(paste(variable,location,sep="_")~., scales="free_y")
 
-# look at downward PAR over Veg from SN
-ggplot(env_30min[variable == "par"& veg %in% c("LATR","PRGL","DAPU","MUPO","BARE"),],
-       aes(date_time, mean.val,colour=SN))+
-  geom_line()+
-  facet_grid(paste(variable,veg,sep="_")~., scales="free_y")
-
 
 # look at precip from tower and SN
-ggplot(env_30min[variable == "precip.tot"& veg=="BARE",], aes(date_time, mean.val,colour=SN))+
+ggplot(env_30min[variable == "precip.tot"& veg=="BARE",], aes(date_time, mean.val))+
   geom_line()+
   facet_grid(paste(variable,location,veg,sep="_")~., scales="free_y")
-
-# 2024 (until July 11) and 2023 precip.tot in SN2 is always logging ~1/4 the rain captured at the tower
-# perhaps something is wrong with the bucket? LATR and PRGL buckets captured more... 
-# exclude SN2 precip prior to July 11
-# SN2 was re-calibrated and added back for logging July 11
-env_30min[variable == "precip.tot"& SN=="SN2" & date_time < as.Date("2024-07-11"),mean.val := NA]
 
 # look at heat flux plate data from tower
 ggplot(env_30min[variable == "hfp",], aes(date_time, mean.val,colour=veg))+
@@ -498,7 +449,6 @@ biomet_mean_precip <- env_30min[variable %in% c("precip.tot") & veg=="BARE",
                              list(P_rain_1_1_1 = mean(mean.val, na.rm=TRUE)),
                            by="date_time"]
 
-ggplot(SN_30min[variable %in% c("precip.tot") & veg=="BARE" &year(date_time)==year_file,],aes(date_time,mean.val,colour=veg))+geom_point()
 ggplot(env_30min[variable %in% c("precip.tot") & veg=="BARE" &year(date_time)==year_file,],aes(date_time,mean.val,colour=datastream))+geom_point()+facet_grid(datastream~.)
 
 ggplot(biomet_mean_precip[year(date_time)==year_file,],aes(date_time,P_rain_1_1_1))+geom_point()
@@ -591,11 +541,11 @@ enddate <- (max(biomet$date_time))
 print(paste("# Biomet",year(startdate), "data processed until",enddate,sep=" "))
 
 # 2023-08-29: save 2022, 2023 (do not re-write 2020 and 2021)
-# Biomet 2024 data processed until 2024-06-04 09:30:00
 savebiomet(biomet,year_file,year_file)
 
 # Process log:
 # Biomet 2024 data processed until 2024-11-07 07:30:00
+# Biomet 2025: data processed until 2025-12-31 23:30:00
 
 ##################################################
 # BIOMET2: Expanded format for Ameriflux submission
@@ -627,79 +577,18 @@ biomet2[variable %in% c("par") & veg=="UP" & location=="SN",
         ameriflux.id := "PPFD_IN_2_1_1"]
 
 # PAR reflecteed from SN = reflected PPFD (PPFD_OUT)
-# SN1 PRGL: rPPFD_1_1_1,
-# SN2 LATR: 2_1_1
-# SN2 PRGL: 3_1_1
-# SN3 DAPU: 4_1_1
-# SN4 Bare: 5_1_1
-# Sn5 LATR: 6_1_1
-# SN6 DAPU: 7_1_1
-# SN6 LATR: 8_1_1
-# SN6 MUPO: 9_1_1
-# SN7 MUPO: 10_1_1
-# SN8 MUPO: 11_1_1
-# SN8 PRGL: 12_1_1
-
-
-ggplot(biomet2[variable %in% c("par") & veg %in% c("LATR","PRGL","DAPU","MUPO","BARE")],
-               aes(date_time, mean.val))+geom_line()+facet_grid(SN+veg~.)
-
-
-biomet2[variable %in% c("par") & SN=="SN1" & veg %in% c("PRGL") ,
-                              ameriflux.id := "PPFD_OUT_1_1_1"]
-
-biomet2[variable %in% c("par") & SN=="SN2" & veg %in% c("LATR") ,
-        ameriflux.id := "PPFD_OUT_2_1_1"]
-
-biomet2[variable %in% c("par") & SN=="SN2" & veg %in% c("PRGL") ,
-        ameriflux.id := "PPFD_OUT_3_1_1"]
-
-biomet2[variable %in% c("par") & SN=="SN3" & veg %in% c("DAPU") ,
-        ameriflux.id := "PPFD_OUT_4_1_1"]
-
-biomet2[variable %in% c("par") & SN=="SN4" & veg %in% c("BARE") ,
-        ameriflux.id := "PPFD_OUT_5_1_1"]
-
-biomet2[variable %in% c("par") & SN=="SN5" & veg %in% c("LATR") ,
-        ameriflux.id := "PPFD_OUT_6_1_1"]
-
-biomet2[variable %in% c("par") & SN=="SN6" & veg %in% c("DAPU") ,
-        ameriflux.id := "PPFD_OUT_7_1_1"]
-
-biomet2[variable %in% c("par") & SN=="SN6" & veg %in% c("LATR") ,
-        ameriflux.id := "PPFD_OUT_8_1_1"]
-
-biomet2[variable %in% c("par") & SN=="SN6" & veg %in% c("MUPO") ,
-        ameriflux.id := "PPFD_OUT_9_1_1"]
-
-biomet2[variable %in% c("par") & SN=="SN7" & veg %in% c("MUPO") ,
-        ameriflux.id := "PPFD_OUT_10_1_1"]
-
-biomet2[variable %in% c("par") & SN=="SN8" & veg %in% c("MUPO") ,
-        ameriflux.id := "PPFD_OUT_11_1_1"]
-
-biomet2[variable %in% c("par") & SN=="SN8" & veg %in% c("PRGL") ,
-        ameriflux.id := "PPFD_OUT_12_1_1"]
+# not for 2025
 
 # precip: BARE from tower and SN = P_rain
 # tower == 1, SN2 == 2, SN6 == 3
 # tower: P_rain_1_1_1, SN: P_rain_2_1_1
-ggplot(env_30min[variable %in% c("precip.tot") & veg=="BARE" ], aes(date_time, mean.val, colour=SN))+
+ggplot(env_30min[variable %in% c("precip.tot") & veg=="BARE" ], aes(date_time, mean.val))+
   geom_line()+
   facet_grid(location+veg~.)
                                 
 
 biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="tower",
         ameriflux.id := "P_RAIN_1_1_1"]
-
-biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN" & SN=="SN2",
-        ameriflux.id := "P_RAIN_2_1_1"]
-
-biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN" & SN=="SN6",
-        ameriflux.id := "P_RAIN_3_1_1"]
-
-biomet2[variable %in% c("precip.tot") & veg=="BARE" & location=="SN" & SN=="SN3",
-        ameriflux.id := "P_RAIN_4_1_1"]
 
 
 # NA in ameriflux.id are the rainbuckets underneath shrubs
@@ -709,7 +598,8 @@ ggplot(biomet2[variable %in% c("precip.tot"),], aes(date_time, mean.val))+
 # Soil moisture
 # report SWC seperately for each depth and veg type only from SN (2021 and 2022 add CS650, see below for SWC_5)
 # because I do not know depth of tower sensors
-ggplot(biomet2[variable %in% c("soilmoisture") & veg %in% c("LATR","PRGL","MUPO","SHRUB", "BARE") & location=="SN",],
+# 2025 onward, no SN
+ggplot(biomet2[variable %in% c("soilmoisture") ,],
        aes(date_time, mean.val))+
   geom_line()+
   facet_grid(veg+height~.)
@@ -728,59 +618,6 @@ ggplot(biomet2[variable %in% c("soilmoisture") & veg %in% c("LATR","PRGL","MUPO"
 
 # Keep conversion of VWC to percent (re-implement for 2020-2023 on 2023-09-28)
 biomet2[variable %in% c("soilmoisture"), mean.val := mean.val*100]
-
- # Bare: 1
-biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="SN" & height=="-5"),
-        ameriflux.id := "SWC_1_1_1"]
-
-biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="SN" & height=="-10"),
-        ameriflux.id := "SWC_1_2_1"]
-
-biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="SN" & height=="-20"),
-        ameriflux.id := "SWC_1_3_1"]
-
-biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="SN" & height=="-30"),
-        ameriflux.id := "SWC_1_4_1"]
-
-# Latr: 2
-biomet2[variable %in% c("soilmoisture") & (veg == "LATR" & location =="SN" & height=="-5"),
-        ameriflux.id := "SWC_2_1_1"]
-
-biomet2[variable %in% c("soilmoisture") & (veg == "LATR" & location =="SN" & height=="-10"),
-        ameriflux.id := "SWC_2_2_1"]
-
-biomet2[variable %in% c("soilmoisture") & (veg == "LATR" & location =="SN" & height=="-20"),
-        ameriflux.id := "SWC_2_3_1"]
-
-biomet2[variable %in% c("soilmoisture") & (veg == "LATR" & location =="SN" & height=="-30"),
-        ameriflux.id := "SWC_2_4_1"]
-
-# Mupo: 3
-biomet2[variable %in% c("soilmoisture") & (veg == "MUPO" & location =="SN" & height=="-5"),
-        ameriflux.id := "SWC_3_1_1"]
-
-biomet2[variable %in% c("soilmoisture") & (veg == "MUPO" & location =="SN" & height=="-10"),
-        ameriflux.id := "SWC_3_2_1"]
-
-biomet2[variable %in% c("soilmoisture") & (veg == "MUPO" & location =="SN" & height=="-20"),
-        ameriflux.id := "SWC_3_3_1"]
-
-biomet2[variable %in% c("soilmoisture") & (veg == "MUPO" & location =="SN" & height=="-30"),
-        ameriflux.id := "SWC_3_4_1"]
-
-# Prgl: 4
-biomet2[variable %in% c("soilmoisture") & (veg == "PRGL" & location =="SN" & height=="-5"),
-        ameriflux.id := "SWC_4_1_1"]
-
-biomet2[variable %in% c("soilmoisture") & (veg == "PRGL" & location =="SN" & height=="-10"),
-        ameriflux.id := "SWC_4_2_1"]
-
-biomet2[variable %in% c("soilmoisture") & (veg == "PRGL" & location =="SN" & height=="-20"),
-        ameriflux.id := "SWC_4_3_1"]
-
-biomet2[variable %in% c("soilmoisture") & (veg == "PRGL" & location =="SN" & height=="-30"),
-        ameriflux.id := "SWC_4_4_1"]
-
 
 # add tower data from CSS650 sensors: 5
 biomet2[variable %in% c("soilmoisture") & (veg == "BARE" & location =="tower" & height=="-11.5"),
@@ -814,17 +651,17 @@ ggplot(biomet2[variable %in% c("soiltemp") ,],
   facet_grid(veg+height~.)
 
 
-biomet2_ts1 <- biomet2[!is.na(mean.val) & variable %in% c("soiltemp") & height %in% c("-5","-10","-15"),
-        list(TS_1 = mean(mean.val, na.rm=TRUE),
-             TS_1_SD = sd(mean.val),
-             TS_1_N = length(mean.val)),
-        by="date_time"]
-
-biomet2_ts2 <- biomet2[!is.na(mean.val) & variable %in% c("soiltemp") & height %in% c("-20"),
-                       list(TS_2 = mean(mean.val, na.rm=TRUE),
-                            TS_2_SD = sd(mean.val),
-                            TS_2_N = length(mean.val)),
-                       by="date_time"]
+# biomet2_ts1 <- biomet2[!is.na(mean.val) & variable %in% c("soiltemp") & height %in% c("-5","-10","-15"),
+#         list(TS_1 = mean(mean.val, na.rm=TRUE),
+#              TS_1_SD = sd(mean.val),
+#              TS_1_N = length(mean.val)),
+#         by="date_time"]
+# 
+# biomet2_ts2 <- biomet2[!is.na(mean.val) & variable %in% c("soiltemp") & height %in% c("-20"),
+#                        list(TS_2 = mean(mean.val, na.rm=TRUE),
+#                             TS_2_SD = sd(mean.val),
+#                             TS_2_N = length(mean.val)),
+#                        by="date_time"]
 
 # add tower data from CSS650 sensors: 5
 biomet2[variable %in% c("soiltemp") & (veg == "BARE" & location =="tower" & height=="-11.5"),
@@ -902,40 +739,12 @@ ggplot(biomet2[variable %in% c("lws","lws_2")], aes(date_time, mean.val,colour=v
 
 # Tower 5m (lws_2) (LEAF_WET_1_1_1)
 # Tower ~1m in a shrub (lws) (LEAF_WET_1_2_1)
-# SN1 LATR (LEAF_WET_2_1_1)
-# SN2 PRGL (LEAF_WET_3_1_1)
-# SN4 BARE (LEAF_WET_4_1_1)
-# SN6 LATR (LEAF_WET_5_1_1)
-# SN7 MUPO (LEAF_WET_6_1_1)
-# SN7 FLCE (LEAF_WET_7_1_1)
-# SN8 PRGL (LEAF_WET_8_1_1)
 
 biomet2[variable %in% c("lws_2") & location=="tower" ,
         ameriflux.id := "LEAF_WET_1_1_1"]
 
 biomet2[variable %in% c("lws") & location=="tower",
         ameriflux.id := "LEAF_WET_1_2_1"]
-
-biomet2[variable %in% c("lws") & SN=="SN1" & (veg == "LATR"),
-        ameriflux.id := "LEAF_WET_2_1_1"]
-
-biomet2[variable %in% c("lws") & SN=="SN2" & (veg == "PRGL"),
-        ameriflux.id := "LEAF_WET_3_1_1"]
-
-biomet2[variable %in% c("lws") & SN=="SN4" & (veg == "BARE") & depth=="UP",
-        ameriflux.id := "LEAF_WET_4_1_1"]
-
-biomet2[variable %in% c("lws") & SN=="SN6" & (veg == "LATR"),
-        ameriflux.id := "LEAF_WET_5_1_1"]
-
-biomet2[variable %in% c("lws") & SN=="SN7" & (veg == "MUPO"),
-        ameriflux.id := "LEAF_WET_6_1_1"]
-
-biomet2[variable %in% c("lws") & SN=="SN7" & (veg == "FLCE"),
-        ameriflux.id := "LEAF_WET_7_1_1"]
-
-biomet2[variable %in% c("lws") & SN=="SN8" & (veg == "PRGL"),
-        ameriflux.id := "LEAF_WET_8_1_1"]
 
 
 # #################
@@ -985,6 +794,31 @@ date_time_exclude <- "date_time"
 biomet2_wide[, names(biomet2_wide[,!date_time_exclude,with=FALSE]) := lapply(.SD, function(x) {x[x=="NaN"] <- NA ; x}),
              .SDcols = !date_time_exclude]
 
+# check column names 
+# WITHOUT SN
+colnames(biomet2_wide)
+# [1] "date_time"      "TA_1_1_1"       "RH_1_1_1"       "WS_1_1_1"       "WD_1_1_1"      
+# [6] "NETRAD_1_1_1"   "SW_OUT_1_1_1"   "SW_IN_1_1_1"    "LW_OUT_1_1_1"   "LW_IN_1_1_1"   
+# [11] "G_1_1_1"        "G_1_2_1"        "G_2_1_1"        "G_2_2_1"        "LEAF_WET_1_1_1"
+# [16] "LEAF_WET_1_2_1" "PA_1_1_1"       "PPFD_IN_1_1_1"  "P_RAIN_1_1_1"   "SWC_5_1_1"     
+# [21] "SWC_5_2_1"      "SWC_5_3_1"      "SWC_5_4_1"      "SWC_5_5_1"      "TS_1"          
+# [26] "TS_1_SD"        "TS_1_N"         "TS_2"           "TS_2_SD"        "TS_2_N"    
+
+# WITH SN
+# [1] "date_time"       "TA_1_1_1"        "RH_1_1_1"        "WS_1_1_1"        "WD_1_1_1"       
+# [6] "NETRAD_1_1_1"    "SW_OUT_1_1_1"    "SW_IN_1_1_1"     "LW_OUT_1_1_1"    "LW_IN_1_1_1"    
+# [11] "G_1_1_1"         "G_1_2_1"         "G_2_1_1"         "G_2_2_1"         "LEAF_WET_1_1_1" 
+# [16] "LEAF_WET_1_2_1"  "LEAF_WET_2_1_1"  "LEAF_WET_3_1_1"  "LEAF_WET_4_1_1"  "LEAF_WET_7_1_1" 
+# [21] "LEAF_WET_8_1_1"  "PA_1_1_1"        "PA_2_1_1"        "PPFD_IN_1_1_1"   "PPFD_IN_2_1_1"  
+# [26] "PPFD_OUT_11_1_1" "PPFD_OUT_12_1_1" "PPFD_OUT_2_1_1"  "PPFD_OUT_3_1_1"  "PPFD_OUT_4_1_1" 
+# [31] "PPFD_OUT_6_1_1"  "PPFD_OUT_7_1_1"  "PPFD_OUT_8_1_1"  "P_RAIN_1_1_1"    "P_RAIN_2_1_1"   
+# [36] "P_RAIN_4_1_1"    "SWC_1_1_1"       "SWC_1_2_1"       "SWC_1_3_1"       "SWC_1_4_1"      
+# [41] "SWC_2_1_1"       "SWC_2_2_1"       "SWC_2_3_1"       "SWC_2_4_1"       "SWC_3_1_1"      
+# [46] "SWC_3_2_1"       "SWC_3_3_1"       "SWC_3_4_1"       "SWC_4_1_1"       "SWC_4_2_1"      
+# [51] "SWC_4_3_1"       "SWC_5_1_1"       "SWC_5_2_1"       "SWC_5_3_1"       "SWC_5_4_1"      
+# [56] "SWC_5_5_1"       "TS_1"            "TS_1_SD"         "TS_1_N"          "TS_2"           
+# [61] "TS_2_SD"         "TS_2_N"   
+
 # save biomet2 to combine with all flux data
 # update 27 Dec 2020 with Ameriflux QA/QC changes
 # 2023-09-01 change save destination to CZO data location (manually move 2022)
@@ -1009,7 +843,7 @@ saveyears <- function(data,startyear,endyear) {
  saveyears(biomet2_wide,year_file,year_file)
 
 ## also save to CZ Biomet One Drive preliminary folder
-# setwd("~/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Biomet/Preliminary")
+ setwd("~/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Biomet/Preliminary")
 ## OR save to CZ Biomet One Drive folder
 # setwd("~/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Tower Data/JER_Bajada/EddyCovarianceTower/Biomet")
  
@@ -1021,6 +855,7 @@ saveyears <- function(data,startyear,endyear) {
  
 # Process log:
 # Biomet2 2024 data processed until 2024-11-07 07:30:00
+# Biomet2 2025 data processed until 2025-12-31 23:30:00 (need to check why PAR is missing)
  
 #### End of routine processing ####
 
