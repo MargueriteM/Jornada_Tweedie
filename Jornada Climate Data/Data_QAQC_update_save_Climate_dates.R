@@ -100,11 +100,11 @@ climate1 <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-Universi
 # and format of headers is different
 climate.colnames1 <-colnames(fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L1/TowerClimate_met/Bahada_CR3000_met_L1_",year_file,".csv",sep=""),
                           header = TRUE, sep=",", skip = 0,fill=TRUE,
-                          na.strings=c(-9999,"#NAME?")))
+                          na.strings=c(-9999,"#NAME?","NA")))
 
 climate1 <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L1/TowerClimate_met/Bahada_CR3000_met_L1_",year_file,".csv",sep=""),
                   header = FALSE, sep=",", skip = 1,fill=TRUE,
-                  na.strings=c(-9999,"#NAME?"),
+                  na.strings=c(-9999,"#NAME?","NA"),
                   col.names=c("rowname","timestamp","record","airtemp","rh","e",
                               "atm_press","wnd_spd","wnd_dir",
                               "precip","par","albedo",
@@ -254,15 +254,23 @@ met30_long[variable %in% c("lws_5m"), value := ((value-250)/(375-250))*100]
 grid.arrange(fig.precip,
              ggplot(met30_long[variable=="lws_5m"], aes(date_time, value))+geom_line()+labs(title="rescale lws_5m"))
 
+# PAR
+# 2025, out of range from 2025-10-10 to 2025-10-30
+met30_long[(date_time>ymd("2025-10-10")&date_time<ymd("2025-10-30"))&
+             variable%in%c("par"),value:=NA]
+
+ggplot(met30_long[variable=="par"], aes(date_time, value))+geom_point()+labs(title="PAR (or PPFD)")
 
 # albedo
-# missing from 2025
 # remove values < -300 and > 300
 met30_long[variable=="albedo" & (value <(-300) | value > 300), value := NA]
 ggplot(met30_long[variable=="albedo"], aes(date_time, value))+geom_point()+labs(title="albedo")
 
 # net_rs
-# missing from 2025
+# 2025, out of range from 2025-10-10 to 2025-10-30
+met30_long[(date_time>ymd("2025-10-10")&date_time<ymd("2025-10-30"))&
+             variable%in%c("net_rs"),value:=NA]
+
 # remove values < -25 and > 1000
 met30_long[variable=="net_rs"&(value<(-25)|value>1000), value := NA]
 
@@ -276,7 +284,8 @@ ggplot(met30_long[variable%in% c("net_rs", "net_ri")], aes(date_time, value, col
   labs(title="net_rs and nt_rl")
 
 # up_tot
-# missing from 2025
+# 2025, out of range from 2025-10-10 to 2025-10-30
+met30_long[(date_time>ymd("2025-10-10") & date_time<("2025-10-30"))&variable%in%c("up_tot"),value:=NA]
 # remove value >1500
 met30_long[variable=="up_tot" & value>1500, value := NA]
 # dn_tot
