@@ -145,47 +145,7 @@ library(corrplot)
 year_file <- 2025
 
 # no more SN after 3 Feb 2025. Due to many missing data streams, don't process for 2025
-# # Sensor network data:
-# SN_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/SensorNetwork/Data/QAQC/WSN_L2_",year_file,".csv",sep=""),
-#                    sep=",", header=TRUE)
-# 
-# # make long
-# SN_30min <- melt.data.table(SN_wide,c("date_time"))
-# # format date and add column to deginate the data stream
-# SN_30min[, ':=' (mean.val = value,
-#                  date_time = ymd_hms(date_time),
-#                  variable = as.character(variable),
-#                  datastream = "SN", location = "SN")][, ':=' (value=NULL)]
-# 
-# # split variable Id column into: SN, variable, unit, veg, depth
-# SN_30min[,':=' (SN = sapply(strsplit(variable,"_"), getElement, 1),
-#                 variable = sapply(strsplit(variable,"_"), getElement, 2),
-#                 unit = sapply(strsplit(variable,"_"), getElement, 3),
-#                 veg = sapply(strsplit(variable,"_"), getElement, 4),
-#                 depth = sapply(strsplit(variable,"_"), getElement, 5))]
-# 
-# # make the 'NA' strings from variable ID NA
-# SN_30min <- SN_30min %>% 
-#   naniar::replace_with_na(replace=list(unit = "NA",
-#                                        veg = "NA",
-#                                        depth = "NA"))
-# 
-# # change variable names to match other datastreams
-# SN_30min[variable == "rain", variable := "precip.tot"]
-# SN_30min[variable == "moisture", variable := "soilmoisture"]
-# SN_30min[variable == "pressure", variable := "atm_press"]
-# 
-# # make depth in SN negative to indicate 'below the surface'
-# SN_30min[variable=="soilmoisture" & depth=="5", height:="-5"]
-# SN_30min[variable=="soilmoisture" & depth=="10", height:="-10"]
-# SN_30min[variable=="soilmoisture" & depth=="20", height:="-20"]
-# SN_30min[variable=="soilmoisture" & depth=="30", height:="-30"]
-# 
-# # convert pressure from mbar to kPa (1mbar = 0.1kPa)
-# SN_30min[variable=="atm_press", mean.val := mean.val/10]
-# 
-# # remove wide data to reduce clutter
-# rm(SN_wide)
+
 
 # Tower Met Data (get LWS 5m from here. It's also in FluxTable)
 # met_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/TowerClimate_met/",year_file,"/QAQC/dataL2_met_",year_file,".csv",sep=""),
@@ -300,46 +260,8 @@ cs650[, ':=' (date_time = TIMESTAMP,
 # remove soil_wide
 rm(cs650_wide)
 
-# ############################################
-# # # Tower soil temperature and moisture data (ECTM)
-# ############################################
-# soil_wide <- fread(paste("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/SoilSensor_ECTM/Combined/dataL2_ectm_",year_file,".csv",sep=""),
-#                     sep=",", header=TRUE)
-# 
-# # format date and add column to deginate the data stream, get rid or uneccessary columns
-# soil_30min <- melt(soil_wide,c("date_time"))
-# 
-# # extract info on measurent and rep from variable
-# soil_30min[,variable := as.character(variable)][,':=' (measurement = sapply(strsplit(variable,"_"), getElement, 1),
-#                 rep = sapply(strsplit(variable,"_"), getElement, 2))]
-# 
-# soil_30min[measurement == "t", variable := "soiltemp"]
-# soil_30min[measurement == "vwc", variable := "soilmoisture"]
-# 
-# setnames(soil_30min, c('value'), c('mean.val'))
-# 
-# # make a guess at depths
-# soil_30min[rep%in% c(6,7), height := "-2"]
-# soil_30min[rep%in% c(1,8), height := "-10"]
-# soil_30min[rep%in% c(3,5), height := "-15"]
-# soil_30min[rep%in% c(2,4), height := "-20"]
-# 
-# 
-# # assign veg type (should be shrub/bare, once I know.)
-# # for now assign best guess
-# soil_30min[rep %in% c(1,3,7,4), veg := "BARE"]
-# soil_30min[rep %in% c(2,5,6,8), veg := "SHRUB"]
-# 
-# # modify columns to match other datastreams and get rid of redundant ones
-# soil_30min[, ':=' (date_time = ymd_hms(date_time),
-#                    datastream = "ectm",location = "tower",
-#                     rep=NULL, measurement=NULL)]
-# 
-# # remove soil_wide
-# rm(soil_wide)
-# ##################################
 
-# combine all four SEL data streams 
+# combine all data streams 
 # soil_30min is for ECTM
 # 2025: remove SN_30min from rbind
 env_30min <- rbind(met_30min,flux_30min,cs650, fill=TRUE) # cs650, soil_30min
@@ -359,7 +281,7 @@ levels(factor(env_30min$variable))
 # "soilconductivity"  "soilperiodaverage" "soilpermittivity"     
 # [31] "soilvoltratio"   
 
-# without SN:
+# flux, met, cs650 (without SN):
 # [1] "airtemp"           "rh"                "e_hmp"             "atm_press"        
 # [5] "wnd_spd"           "wnd_dir"           "par"               "albedo"           
 # [9] "lws_2"             "NetRs"             "Net_Rl"            "UpTot"            
@@ -371,13 +293,16 @@ levels(factor(env_30min$variable))
 # check the levels of height and order them
 levels(factor(env_30min$height))
 
-  # with CS650 only
+  # with CS650 only (no SN)
   env_30min[,height := factor(height,levels=c("-100.5","-42.5","-25.5","-17.5","-15","-11.5",
                                               "-10","50","500"))]
   
   
   # check the levels of height after ordering
   levels(factor(env_30min$height))
+  
+# flux, met, cs650
+ # [1] "-100.5" "-42.5"  "-25.5"  "-17.5"  "-15"    "-11.5"  "-10"    "50"     "500"   
   
   # create a variable to show data coverage =1 with data 
 env_30min[!is.na(mean.val), coverage := 1]
@@ -417,6 +342,14 @@ ggplot(env_30min[variable == "par"& veg %in% c("UP"),], aes(date_time, mean.val)
 ggplot(env_30min[variable == "precip.tot"& veg=="BARE",], aes(date_time, mean.val))+
   geom_line()+
   facet_grid(paste(variable,location,veg,sep="_")~., scales="free_y")
+
+# look at soil moisture and precip from tower
+ggplot()+
+  geom_line(data=env_30min[variable %in% c("soilmoisture"),],
+            mapping=aes(date_time, mean.val,colour=veg, linetype=height))+
+  geom_line(data=env_30min[variable %in% c("precip.tot"),],
+            mapping=aes(date_time, mean.val))+
+  facet_grid(paste(variable,location,sep="_")~., scales="free_y")
 
 # look at heat flux plate data from tower
 ggplot(env_30min[variable == "hfp",], aes(date_time, mean.val,colour=veg))+
@@ -573,8 +506,8 @@ ggplot(biomet2[variable %in% c("par") & veg=="UP"], aes(date_time, mean.val))+ge
 biomet2[variable %in% c("par") & veg=="UP" & location=="tower",
         ameriflux.id := "PPFD_IN_1_1_1"]
 
-biomet2[variable %in% c("par") & veg=="UP" & location=="SN",
-        ameriflux.id := "PPFD_IN_2_1_1"]
+# biomet2[variable %in% c("par") & veg=="UP" & location=="SN",
+#         ameriflux.id := "PPFD_IN_2_1_1"]
 
 # PAR reflecteed from SN = reflected PPFD (PPFD_OUT)
 # not for 2025
@@ -650,7 +583,7 @@ ggplot(biomet2[variable %in% c("soiltemp") ,],
   geom_line()+
   facet_grid(veg+height~.)
 
-
+# soil temp before CS650
 # biomet2_ts1 <- biomet2[!is.na(mean.val) & variable %in% c("soiltemp") & height %in% c("-5","-10","-15"),
 #         list(TS_1 = mean(mean.val, na.rm=TRUE),
 #              TS_1_SD = sd(mean.val),
@@ -721,20 +654,13 @@ ggplot(biomet2[variable %in% c("atm_press")], aes(date_time, mean.val))+geom_lin
 biomet2[variable %in% c("atm_press") & location=="tower",
         ameriflux.id := "PA_1_1_1"]
 
-biomet2[variable %in% c("atm_press") & location=="SN",
-        ameriflux.id := "PA_2_1_1"]
+# biomet2[variable %in% c("atm_press") & location=="SN",
+#         ameriflux.id := "PA_2_1_1"]
 
-# leaf wetness 
-ggplot(biomet2[variable %in% c("lws","lws_2")], aes(date_time, mean.val,colour=veg))+geom_line()+
-  facet_grid(SN~.)
 
 # Graph only for tower (lws and lws_5m) to check rescale between 0-100
 ggplot(biomet2[variable %in% c("lws","lws_2")&location=="tower"], aes(date_time, mean.val,colour=veg))+geom_line()+
   facet_grid(variable~.)
-
-# graph again
-ggplot(biomet2[variable %in% c("lws","lws_2")], aes(date_time, mean.val,colour=veg))+geom_line()+
-  facet_grid(SN~.)
 
 
 # Tower 5m (lws_2) (LEAF_WET_1_1_1)
@@ -770,9 +696,9 @@ ggplot(biomet2[!is.na(ameriflux.id) ,], aes(date_time, mean.val))+
   facet_wrap(ameriflux.id~.)
 
 # make biomet2 wide:
-# remove variable %in% c("soiltemp","airtemp","rh","wnd_spd","wnd_dir",
+# remove variable %in% c("airtemp","rh","wnd_spd","wnd_dir",
 #                       "Rn_nr_Avg","Rl_down","Rl_up","Rs_down","Rs_up")
-biomet2 <- biomet2[!(variable %in% c("soiltemp","airtemp","rh","wnd_spd","wnd_dir",
+biomet2 <- biomet2[!(variable %in% c("airtemp","rh","wnd_spd","wnd_dir",
                                  "Rn_nr_Avg","Rl_down","Rl_up","Rs_down","Rs_up")) &
                      !is.na(ameriflux.id) & !is.na(date_time),.(date_time, ameriflux.id, mean.val)]
 
@@ -782,8 +708,8 @@ biomet2_wide <- dcast(biomet2[!is.na(ameriflux.id) & !is.na(date_time),],
 
 # merge wide biomet2 with biomet_other1 and biomet2_ts1, biomet2_ts2
 biomet2_wide <- merge(biomet_other2, biomet2_wide, by="date_time", all=TRUE)
-biomet2_wide <- merge(biomet2_wide, biomet2_ts1, by="date_time", all.x=TRUE)
-biomet2_wide <- merge(biomet2_wide, biomet2_ts2, by="date_time", all.x=TRUE)
+# biomet2_wide <- merge(biomet2_wide, biomet2_ts1, by="date_time", all.x=TRUE)
+# biomet2_wide <- merge(biomet2_wide, biomet2_ts2, by="date_time", all.x=TRUE)
 
 # old code
 ## biomet2_wide[biomet2_wide=="NaN"] <- NA
@@ -801,8 +727,8 @@ colnames(biomet2_wide)
 # [6] "NETRAD_1_1_1"   "SW_OUT_1_1_1"   "SW_IN_1_1_1"    "LW_OUT_1_1_1"   "LW_IN_1_1_1"   
 # [11] "G_1_1_1"        "G_1_2_1"        "G_2_1_1"        "G_2_2_1"        "LEAF_WET_1_1_1"
 # [16] "LEAF_WET_1_2_1" "PA_1_1_1"       "PPFD_IN_1_1_1"  "P_RAIN_1_1_1"   "SWC_5_1_1"     
-# [21] "SWC_5_2_1"      "SWC_5_3_1"      "SWC_5_4_1"      "SWC_5_5_1"      "TS_1"          
-# [26] "TS_1_SD"        "TS_1_N"         "TS_2"           "TS_2_SD"        "TS_2_N"    
+# [21] "SWC_5_2_1"      "SWC_5_3_1"      "SWC_5_4_1"      "SWC_5_5_1"      "TS_1_1_1"      
+# [26] "TS_1_2_1"       "TS_1_3_1"       "TS_1_4_1"       "TS_1_5_1"      
 
 # WITH SN
 # [1] "date_time"       "TA_1_1_1"        "RH_1_1_1"        "WS_1_1_1"        "WD_1_1_1"       
@@ -855,7 +781,7 @@ saveyears <- function(data,startyear,endyear) {
  
 # Process log:
 # Biomet2 2024 data processed until 2024-11-07 07:30:00
-# Biomet2 2025 data processed until 2025-12-31 23:30:00 (need to check why PAR is missing)
+# Biomet2 2025 data processed until 2025-12-31 23:30:00 
  
 #### End of routine processing ####
 

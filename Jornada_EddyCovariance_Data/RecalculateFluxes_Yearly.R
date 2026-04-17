@@ -50,9 +50,37 @@ flux3 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexas
                header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),
                col.names=colnames(flux.units))
 
+### Starting 2025, data is located in CR3000/L2
+### 2024: June-Aug and Aug-Nov
+### 2025: Jan, Feb_Jun, 0730_1231
+
+# 2024 June-Aug
+flux4 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2024/EddyPro_Out/OpenPath/eddypro_JER_2024_JunAug5_tsdata2_Open_full_output_2024-08-13T172030_exp.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),
+               col.names=colnames(flux.units))
+
+# 2024 Aug-Nov
+flux5 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2024/EddyPro_Out/OpenPath/eddypro_JER_2024_Aug5Nov10_tsdata2_Open_full_output_2024-11-24T131909_exp.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),
+               col.names=colnames(flux.units))
+
+# 2025 Jan
+flux6 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L2/EddyCovariance_ts_2/EddyPro_Out/OpenPath/2025/eddypro_JER_2025_Jan_tsdata2_Open_full_output_2026-04-15T102827_adv.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),
+               col.names=colnames(flux.units))
+# 2025 Feb-Jun
+flux7 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L2/EddyCovariance_ts_2/EddyPro_Out/OpenPath/2025/eddypro_JER_2025_Feb_Jun_tsdata2_Open_full_output_2026-04-16T133130_adv.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),
+               col.names=colnames(flux.units))
+
+# 2025 0730_1231
+flux8 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L2/EddyCovariance_ts_2/EddyPro_Out/OpenPath/2025/eddypro_JER_2025_0730_1231_tsdata2_Open_full_output_2026-04-16T213443_adv.csv", sep=",",skip=3,
+               header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),
+               col.names=colnames(flux.units))
+
 
 # combine all individual years of flux runs
-flux <- rbind(flux1, flux2, flux2a, flux3, fill=TRUE)
+flux <- rbind(flux4, flux5,flux6,flux7,flux8, fill=TRUE)
 
 # format date
 flux[,date_time := paste(date,time,sep=" ")]
@@ -175,4 +203,5 @@ ggplot(flux) +
 
 
 # Save corrected full output for filtering and ReddyProc
-save(flux,file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_CovarianceCorrect_Scott2015/JER_flux_EddyPro_FullOutput_Scott2015_Correct_202310_202405.RData")
+# save(flux,file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_CovarianceCorrect_Scott2015/JER_flux_EddyPro_FullOutput_Scott2015_Correct_202310_202405.RData")
+save(flux,file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_CovarianceCorrect_Scott2015/JER_flux_EddyPro_FullOutput_Scott2015_Correct_202406_202512.RData")
