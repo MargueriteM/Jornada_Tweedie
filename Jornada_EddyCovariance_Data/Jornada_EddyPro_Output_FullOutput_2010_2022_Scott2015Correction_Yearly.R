@@ -42,16 +42,18 @@ library(cowplot)
 # LE_wpl = reproduce WPL correction to check math
 
 # load data from prior period for running means
-load("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_CovarianceCorrect_Scott2015/JER_flux_EddyPro_FullOutput_Scott2015_Correct_20230112.RData")
+# load("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_CovarianceCorrect_Scott2015/JER_flux_EddyPro_FullOutput_Scott2015_Correct_202310_202405.RData")
+# 17 Apr 2026: try with filtered prior fluxes because with unfiltered prior fluxes, not getting correct SD filter
+load("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered/JER_flux_202210_202405_EddyPro_FullOutput_filterSD_20240623.Rdata")
 
 # create date_time variable
-flux[,date_time := ymd_hm(paste(date,time,sep="_"))]
+flux_filter_sd[,date_time := ymd_hm(paste(date,time,sep="_"))]
 
-flux.prior <- copy(flux)
-rm(flux)
+flux.prior <- copy(flux_filter_sd)
+rm(flux_filter_sd)
 
 # load data for fluxes ot add
-load("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_CovarianceCorrect_Scott2015/JER_flux_EddyPro_FullOutput_Scott2015_Correct_202310_202405.RData")
+load("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_CovarianceCorrect_Scott2015/JER_flux_EddyPro_FullOutput_Scott2015_Correct_202406_202512.RData")
 # create date_time variable
 flux[,date_time := ymd_hm(paste(date,time,sep="_"))]
 
@@ -94,8 +96,11 @@ biomet2023 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-Universityof
 biomet2024 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2024.csv",
                     skip=2, header=FALSE, col.names=biomet.names, na.strings=c("-9999"))
 
+biomet2025 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2025.csv",
+                    skip=2, header=FALSE, col.names=biomet.names, na.strings=c("-9999"))
+
 # combine
-biomet <- rbind(biomet2022, biomet2023, biomet2024)
+biomet <- rbind(biomet2024,biomet2025)
 
 biomet <- biomet[,':='
                          (date_time=ymd_hm(paste(timestamp_1,timestamp_2,timestamp_3,timestamp_4,timestamp_5, sep=" ")))]
@@ -111,7 +116,7 @@ flux_orig <- copy(flux)
 flux <- merge(flux,biomet, by="date_time",all=TRUE)
 
 # remove individual year biomet files
-rm(biomet2022, biomet2023, biomet2024)
+rm(biomet2024,biomet2025)
 
 # make some plots
 # graph precipitation
@@ -182,13 +187,23 @@ flux[agc_mean <41, ':=' (filter_fc = 1L,
                                  filter_LE = 1L,
                                  filter_H = 1L)]
 
-# filter AGC by values between 50 to 65 on and after 8th Apr
-flux[date_time >= as.Date ("2022-04-08") & 
-           (agc_mean<50 & agc_mean>56),
+# filter AGC by values between 50 to 65 on and after 8th Apr 2022
+flux[(agc_mean<50 | agc_mean>56),
          ':=' (filter_fc = 1L,
                                  filter_LE = 1L,
                                  filter_H = 1L)]
- ###### CO2  ######
+ 
+# between 24 Sep 2024 - 17 Oct 2024 AGC for 7500 is reading 69-75
+# not sure why but nothing in field notes suggests an issue
+# CO2 concentration is low but fluctuations look OK and fluxes mostly look good too
+# part of this time 7200 pump was out of operation. That shouldn't affect 7500 AGC so it could be coincidence.
+# override filter back to 0
+flux[(agc_mean>=69 & agc_mean<=75) & date_time>=ymd_hms("2024-09-24 00:00:00") & date_time<=ymd_hms("2024-10-17 18:30:00"),
+     ':=' (filter_fc = 0L,
+           filter_LE = 0L,
+           filter_H = 0L)]
+
+###### CO2  ######
  # get rid of QC code >2 and low signal strength
  flux[qc_co2_flux>1, filter_fc := 1L]
  # fluxes outside 30 umol/m2/s are unrealistic
@@ -197,15 +212,29 @@ flux[date_time >= as.Date ("2022-04-08") &
  
  # look at the fluxes by month for each year
  # EddyPro CO2 flux and recalculated Scott correction
- p_fc <- ggplot(flux[filter_fc !=1&month(date)==6,],
-                  aes(x=DOY))+
-   geom_point(aes(y=co2_flux), size=0.2)+
-   geom_point(aes(y=fc_wpl_adjust),colour="green",size=0.2)+
-   geom_hline(yintercept=c(-5,5))+
-   #ylim(c(-5,5))+
-   facet_grid(year(date)~.,scales="free_y")
+ plot_fc <- function(data, month_sel_fc,y_limits = NULL) {
+  p <- ggplot(
+     data[data$filter_fc != 1 & month(data$date) %in% month_sel_fc, ],
+     aes(x = DOY)
+   ) +
+     geom_point(aes(y = co2_flux), size = 0.2) +
+     geom_point(aes(y = fc_wpl_adjust), colour = "green", size = 0.2) +
+     geom_hline(yintercept = c(-5, 5)) +
+     facet_grid(year(date) ~ ., scales = "free_y")
+   
+   if (!is.null(y_limits)) {
+     p <- p + ylim(y_limits)
+   }
+   return(p)
+ }
  
- p_fc
+plot_fc(data=flux, month_sel_fc=12)
+ ## multiple months
+ # p_fc <- plot_fc(data=flux, month_sel_fc=c(5,6))
+ ## with y-limits
+ # p_fc <- plot_fc(data=flux, month_sel_fc=7,y_limits=c(-10,10))
+ 
+
  
 ###### H ######
 # look at H  by month for each year
@@ -279,14 +308,23 @@ flux[P_rain_1_1_1>0, ':=' (filter_fc = 1L, filter_LE = 1L, filter_H = 1L)]
 # Do timestamp correction  prior to rolling mean filtering
 # keep the original timestamp and fix date_time column to make all times MST
 # (use tz=UTC to prevent convervsion of data)
-flux_orig <- copy(flux)
 
 # merge flux.prior with 2 weeks to flux add
 # Before the rolling mean, add two weeks of prior data
-min(flux$date_time)
+# min(flux$date_time)
+min(flux[!is.na(co2_flux),]$date_time)
 # "2022-01-01 UTC"
-flux <- copy(flux[date_time > as.Date("2022-09-30")])
-flux <- rbind(flux.prior[date_time > as.Date("2022-09-15") & date_time < as.Date("2021-10-01") ],
+# "2024-06-01 00:30:00 UTC"
+
+# 2 weeks prior
+ min(flux[!is.na(co2_flux),]$date_time)-days(14)
+# "2024-05-18 00:30:00 UTC"
+
+# create object for each
+flux.prior.min <- min(flux[!is.na(co2_flux),]$date_time)
+flux.prior.min.14 <- min(flux[!is.na(co2_flux),]$date_time)-days(14)
+# flux <- copy(flux[date_time > as.Date("2022-09-30")])
+flux <- rbind(flux.prior[date_time >= flux.prior.min.14 & date_time <= flux.prior.min ],
                   flux, fill=TRUE)
 
 # make sure the data are ordered:
@@ -345,16 +383,31 @@ flux[co2_flux>FC_rollmean3_daynight+threshold*FC_rollsd3_daynight|
 
 
 # view the marked fluxes in ~25 day chunks
-ggplot(flux[filter_fc_roll!=1&month(date_time)==1,],
-       aes(date_time, co2_flux, colour=factor(filter_fc_roll)))+
+ggplot(flux[filter_fc_roll!=1&month(date_time)==6,],
+       aes(DOY, co2_flux, colour=factor(filter_fc_roll)))+
   geom_point()+
   facet_grid(year(date_time)~.,scales="free_x")
 
 # view the marked fluxes in ~25 day chunks for day/night
-ggplot(flux[filter_fc_roll!=1&month(date_time)==4,],
-       aes(date_time, co2_flux, colour=factor(filter_fc_roll_daynight)))+
-  geom_point()+
-  facet_grid(year(date_time)~., scales="free_x")
+
+plot_fc_roll <- function(data, y_select, month_sel, y_limits = NULL) {
+  p <- ggplot(
+    data[data$filter_fc_roll_daynight != 1 & month(data$date) %in% month_sel, ],
+    aes(x = DOY)
+  ) +
+    geom_point(aes(y = {{y_select}}, colour=factor(filter_fc_roll_daynight)), size = 0.2) +
+    facet_grid(year(date) ~ ., scales = "free_x")
+  
+  if (!is.null(y_limits)) {
+    p <- p + ylim(y_limits)
+  }
+  
+  return(p)
+}
+
+# Example with limits
+# graph with co2_flux of fc_wpl_adjust
+plot_fc_roll(flux,y_select =fc_wpl_adjust, 12)
 
 # graph with the fluxes from the 3SD 3day day/night filter removed
 ggplot(flux[filter_fc_roll_daynight==0,], aes(yday(date_time), co2_flux))+
@@ -510,7 +563,9 @@ ggplot(flux[filter_h_roll_daynight==0,], aes(yday(date_time), H))+
  setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
 
 # drop unwamnted columns and make fluxes NA with filter criteria applied
-flux_filter_sd <- copy(flux)
+# select data after the initial minimum date to exclude 2 weeks from pior data
+flux_filter_sd <- copy(flux[date_time>=flux.prior.min])
+# flux_filter_sd <- copy(flux)
 flux_filter_sd[filter_fc_roll_daynight!=0, ':=' (co2_flux = NA, 
                                                  fc_wpl_adjust = NA)]
 flux_filter_sd[filter_h_roll_daynight!=0, H := NA]
@@ -520,11 +575,13 @@ flux_filter_sd[filter_le_roll_daynight!=0, LE := NA]
 flux_filter_sd <- (flux_filter_sd[!(duplicated(flux_filter_sd, by=c("date_time")))])
 
 
+
+# 20260417: run with Jun 2024 - Dec 2025 data. There are a few large gaps -> missing data to L1?
 # 20240623: run with Ocotber 2022 to May 2024 data
 # 20230115: run with full output from Eddy Pro with fixes for column differences
 #           apply all filtering on Eddypro Co2, LE, H fluxes
 #           include test column _wpl and Scott et al 2015 corrected covariances for 
 #           co2 only: fc_wpl_adjust
 
-# save(flux_filter_sd,file="JER_flux_202210_202405_EddyPro_FullOutput_filterSD_20240623.Rdata")
+# save(flux_filter_sd,file="JER_flux_202406_202512_EddyPro_FullOutput_filterSD_20260417.Rdata")
 
