@@ -27,9 +27,9 @@ library(cowplot)
 flux.units <- (fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2023/EddyPro_Out/ClosedPath/eddypro_JER_2023_JulDec_Closed_full_output_2024-06-10T104234_exp.csv",header=TRUE,skip=1))[1,]
 
 # load the previously processed data: 
-flux.prior <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2023/EddyPro_Out/ClosedPath/eddypro_JER_2023_JulDec_Closed_full_output_2024-06-10T104234_exp.csv",
-                        sep=",", skip=3, header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),
-col.names=colnames(flux.units))
+load("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2024/EddyPro_Out/ClosedPath/JER_flux_2024_EddyPro_FullOutput_filterSD_JanMay_Closed.Rdata")
+flux.prior <- flux_filter_sd_2024
+rm(flux_filter_sd_2024)
 
 # read the data in fluxnet format that you want to append to other data
 # or read demofile instead
@@ -40,6 +40,36 @@ flux <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasa
 
 # for 2023 and 2024 process together. There is no prior data. 
 flux <- rbind (flux.prior, flux)
+
+# flux1
+# 2024 Jun - Aug
+flux1 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2024/EddyPro_Out/ClosedPath/eddypro_JER_2024_JunAug5_Closed_full_output_2024-08-13T172256_exp.csv",
+              sep=",", skip=3,header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),
+              col.names=colnames(flux.units))
+
+
+# 
+# 2024 Aug - nov
+flux2 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2024/EddyPro_Out/ClosedPath/eddypro_JER_2024_Aug5Nov8_Closed_full_output_2024-11-24T132303_exp.csv",
+               sep=",", skip=3,header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),
+               col.names=colnames(flux.units))
+
+# 2025 data is in CR3000
+# 2025 Jan - Jun
+flux3 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L2/EddyCovariance_ts_2/EddyPro_Out/ClosedPath/2025/eddypro_JER_2025_JanJun_Closed_full_output_2026-04-17T093538_adv.csv",
+               sep=",", skip=3,header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),
+               col.names=colnames(flux.units))
+
+# 2025 Jul-Dec
+flux4 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L2/EddyCovariance_ts_2/EddyPro_Out/ClosedPath/2025/eddypro_JER_2025_JulDec_Closed_full_output_2026-04-17T060144_adv.csv",
+               sep=",", skip=3,header=FALSE, na.strings=c("-9999","-9999.0","NAN","#NAME?"),
+               col.names=colnames(flux.units))
+
+
+# combine for filtering
+flux <- rbind(flux1,flux2,flux3,flux4)
+
+rm(flux1,flux2,flux3,flux4)
 
 # format date
 flux[,date_time := paste(date,time,sep=" ")]
@@ -70,8 +100,12 @@ biomet2023 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-Universityof
 biomet2024 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2024.csv",
                     skip=2, header=FALSE, col.names=biomet.names, na.strings=c("-9999"))
 
+biomet2025 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/EddyCovariance_ts/EddyPro_Biomet/Biomet_EddyPro_2025.csv",
+                    skip=2, header=FALSE, col.names=biomet.names, na.strings=c("-9999"))
+
 # combine
-biomet <- rbind(biomet2023, biomet2024)
+biomet <- rbind(biomet2024,biomet2025)
+
 
 biomet <- biomet[,':='
                          (date_time=ymd_hm(paste(timestamp_1,timestamp_2,timestamp_3,timestamp_4,timestamp_5, sep=" ")))]
@@ -87,7 +121,7 @@ flux_orig <- copy(flux)
 flux <- merge(flux,biomet, by="date_time",all=TRUE)
 
 # remove individual year biomet files
-rm(biomet2023, biomet2024)
+rm(biomet2024, biomet2025)
 
 # make some plots
 # graph precipitation
@@ -252,13 +286,27 @@ flux_orig <- copy(flux)
 
 # merge flux.prior with 2 weeks to flux add
 # Before the rolling mean, add two weeks of prior data
-min(flux$date_time)
+# min(flux$date_time)
+min(flux[!is.na(co2_flux),]$date_time)
+# "2024-06-01 00:30:00 UTC"
+
+# 2 weeks prior
+min(flux[!is.na(co2_flux),]$date_time)-days(14)
+# "2024-05-18 00:30:00 UTC"
+
+# create object for each
+flux.prior.min <- min(flux[!is.na(co2_flux),]$date_time)
+flux.prior.min.14 <- min(flux[!is.na(co2_flux),]$date_time)-days(14)
+# flux <- copy(flux[date_time > as.Date("2022-09-30")])
+flux <- rbind(flux.prior[date_time >= flux.prior.min.14 & date_time <= flux.prior.min ],
+              flux, fill=TRUE)
 
 # make sure the data are ordered:
 flux <- flux[order(date_time),]
 
 # remove duplicates
 flux <- (flux[!(duplicated(flux, by=c("date_time")))])
+
 
 # APPLY ROLLING MEANS APPROACH TO FILTER Fc, LE, H
 # use rollmeanr from zoo
@@ -308,10 +356,10 @@ flux[DOY<195&year==2023, filter_fc_roll := 0L]
 
 
 # by Day/Night mark any Fc>3*FCrollsd3 (3 day moving SD) for removal
-flux_add[,filter_fc_roll_daynight := 0L]
-flux_add[filter_fc==1, filter_fc_roll_daynight := 1L]
-flux_add[FC>FC_rollmean3_daynight+threshold*FC_rollsd3_daynight|
-           FC<FC_rollmean3_daynight-threshold*FC_rollsd3_daynight, filter_fc_roll_daynight := 2L]
+flux[,filter_fc_roll_daynight := 0L]
+flux[filter_fc==1, filter_fc_roll_daynight := 1L]
+flux[co2_flux>FC_rollmean3_daynight+threshold*FC_rollsd3_daynight|
+       co2_flux<FC_rollmean3_daynight-threshold*FC_rollsd3_daynight, filter_fc_roll_daynight := 2L]
 
 # keep the first 3 days
 flux[(DOY<195&year==2023&daytime==0) | (DOY<196&year==2023&daytime==1), filter_fc_roll_daynight := 0L]
@@ -324,10 +372,24 @@ ggplot(flux[filter_fc_roll!=1,],
   facet_grid(year(date_time)~.,scales="free_x")
 
 # view the marked fluxes in ~25 day chunks for day/night
-ggplot(flux[filter_fc_roll!=1,],
-       aes(date_time, co2_flux, colour=factor(filter_fc_roll_daynight)))+
-  geom_point()+
-  facet_grid(year(date_time)~., scales="free_x")
+plot_fc_roll <- function(data, y_select, month_sel, y_limits = NULL) {
+  p <- ggplot(
+    data[data$filter_fc_roll_daynight != 1 & month(data$date) %in% month_sel, ],
+    aes(x = DOY)
+  ) +
+    geom_point(aes(y = {{y_select}}, colour=factor(filter_fc_roll_daynight)), size = 0.2) +
+    facet_grid(year(date) ~ ., scales = "free_x")
+  
+  if (!is.null(y_limits)) {
+    p <- p + ylim(y_limits)
+  }
+  
+  return(p)
+}
+
+# Example with limits
+# graph with co2_flux of fc_wpl_adjust
+plot_fc_roll(flux,y_select =co2_flux, 12)
 
 # graph with the fluxes from the 3SD 3day day/night filter removed
 ggplot(flux[filter_fc_roll_daynight==0,], aes(yday(date_time), co2_flux))+
@@ -377,21 +439,13 @@ flux[,filter_le_roll := 0L]
 flux[filter_LE==1, filter_le_roll := 1L]
 flux[LE>LE_rollmean3+threshold*LE_rollsd3|LE<LE_rollmean3-threshold*LE_rollsd3, filter_le_roll := 2L]
 
-# keep the first 3 days
-flux[DOY<195&year==2023, filter_le_roll := 0L]
-flux[(DOY<195&year==2023&LE>200 | DOY_START<195&year==2023&LE<(-200)), filter_le_roll := 2L]
-
 
 # by Day/Night mark any LE>3*LErollsd3 (3 day moving SD) for removal
-flux_add[,filter_le_roll_daynight := 0L]
-flux_add[filter_LE==1, filter_le_roll_daynight := 1L]
-flux_add[LE>LE_rollmean3_daynight+threshold*LE_rollsd3_daynight|
+flux[,filter_le_roll_daynight := 0L]
+flux[filter_LE==1, filter_le_roll_daynight := 1L]
+flux[LE>LE_rollmean3_daynight+threshold*LE_rollsd3_daynight|
            LE<LE_rollmean3_daynight-threshold*LE_rollsd3_daynight, filter_le_roll_daynight := 2L]
 
-
-# keep the first 3 days
-flux[(DOY<195&year==2023&daytime==0) | (DOY<196&year==2023&daytime==1), filter_le_roll_daynight := 0L]
-flux[(DOY<195&year==2023&LE>200) | (DOY<195&year==2023&LE<(-200)), filter_le_roll_daynight := 2L]
 
 # view the marked fluxes in ~25 day chunks
 ggplot(flux[filter_le_roll!=1,],
@@ -407,7 +461,7 @@ ggplot(flux[filter_le_roll_daynight!=1,],
 
 # graph with the fluxes from the 3SD 3day day/night filter removed
 ggplot(flux[filter_le_roll_daynight==0,], aes(yday(date_time), LE))+
-  geom_line()+
+  geom_point(size=0.2)+
   facet_grid(year(date_time)~.)
 
 
@@ -453,10 +507,6 @@ flux[,filter_h_roll := 0L]
 flux[filter_H==1, filter_h_roll := 1L]
 flux[H>H_rollmean3+threshold*H_rollsd3|H<H_rollmean3-threshold*H_rollsd3, filter_h_roll := 2L]
 
-# keep first 3 days
-flux[DOY<195&year==2023, filter_h_roll := 0L]
-flux[DOY<195&year==2023&H<(-100), filter_h_roll := 2L]
-
 
 # by Day/Night mark any H>3*Hrollsd3 (3 day moving SD) for removal
 flux[,filter_h_roll_daynight := 0L]
@@ -464,9 +514,6 @@ flux[filter_H==1, filter_h_roll_daynight := 1L]
 flux[H>H_rollmean3_daynight+threshold*H_rollsd3_daynight|
            H<H_rollmean3_daynight-threshold*H_rollsd3_daynight, filter_h_roll_daynight := 2L]
 
-# keep first 3 days
-flux[DOY<195&year==2023, filter_h_roll_daynight := 0L]
-flux[DOY<195&year==2023&H<(-100), filter_h_roll_daynight := 2L]
 
 # view the marked fluxes in ~25 day chunks
 ggplot(flux[filter_h_roll!=1,],
@@ -482,7 +529,7 @@ ggplot(flux[filter_h_roll!=1,],
 
 # graph with the fluxes from the 3SD 3day day/night filter removed
 ggplot(flux[filter_h_roll_daynight==0,], aes(yday(date_time), H))+
-  geom_line()+
+  geom_point(size=0.2)+
   facet_grid(year(date_time)~.)
 
 
@@ -494,7 +541,9 @@ ggplot(flux[filter_h_roll_daynight==0,], aes(yday(date_time), H))+
 #  setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2023/EddyPro_Out/ClosedPath/")
 
 # drop unwamnted columns and make fluxes NA with filter criteria applied
-flux_filter_sd <- copy(flux)
+# select data after the initial minimum date to exclude 2 weeks from pior data
+flux_filter_sd <- copy(flux[date_time>=flux.prior.min])
+
 flux_filter_sd[filter_fc_roll_daynight!=0, ':=' (co2_flux = NA)]
 flux_filter_sd[filter_h_roll_daynight!=0, H := NA]
 flux_filter_sd[filter_le_roll_daynight!=0, LE := NA]
@@ -503,27 +552,37 @@ flux_filter_sd[filter_le_roll_daynight!=0, LE := NA]
 flux_filter_sd <- (flux_filter_sd[!(duplicated(flux_filter_sd, by=c("date_time")))])
 
 # 20240623 run for Closed path from June 2023 to May 2024
-# save for 2023
-flux_filter_sd_2023 <- copy(flux_filter_sd[(!is.na(filename)& year==2023)&!(filename%in%"not_enough_data"),])
-
-setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2023/EddyPro_Out/ClosedPath/")
-
- save(flux_filter_sd_2023,file="JER_flux_2023_EddyPro_FullOutput_filterSD_JuneDec_Closed.Rdata")
-
- write.table(flux_filter_sd_2023,
-             file="JER_flux_2023_EddyPro_FullOutput_filterSD_JuneDec_Closed.csv",sep=",", dec=".",
-             row.names=FALSE)
- 
+# # save for 2023
+# flux_filter_sd_2023 <- copy(flux_filter_sd[(!is.na(filename)& year==2023)&!(filename%in%"not_enough_data"),])
+# 
+# setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2023/EddyPro_Out/ClosedPath/")
+# 
+#  save(flux_filter_sd_2023,file="JER_flux_2023_EddyPro_FullOutput_filterSD_JuneDec_Closed.Rdata")
+# 
+#  write.table(flux_filter_sd_2023,
+#              file="JER_flux_2023_EddyPro_FullOutput_filterSD_JuneDec_Closed.csv",sep=",", dec=".",
+#              row.names=FALSE)
+#  
  
  # save for 2024
  flux_filter_sd_2024 <- copy(flux_filter_sd[(!is.na(filename)& year==2024)&!(filename%in%"not_enough_data"),])
  
  setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2024/EddyPro_Out/ClosedPath/")
  
- save(flux_filter_sd_2024,file="JER_flux_2024_EddyPro_FullOutput_filterSD_JanMay_Closed.Rdata")
+ save(flux_filter_sd_2024,file="JER_flux_2024_EddyPro_FullOutput_filterSD_Jun_Nov_Closed.Rdata")
  
  write.table(flux_filter_sd_2024,
-             file="JER_flux_2024_EddyPro_FullOutput_filterSD_JanMay_Closed.csv",sep=",", dec=".",
+             file="JER_flux_2024_EddyPro_FullOutput_filterSD_JunNov_Closed.csv",sep=",", dec=".",
              row.names=FALSE)
  
+ # save for 2025
+ flux_filter_sd_2025 <- copy(flux_filter_sd[(!is.na(filename)& year==2025)&!(filename%in%"not_enough_data"),])
+ 
+ setwd("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L3/Eddy_Covariance_ts_2/ClosedPath/")
+ 
+ save(flux_filter_sd_2025,file="JER_flux_2025_EddyPro_FullOutput_filterSD_JanDec_Closed.Rdata")
+ 
+ write.table(flux_filter_sd_2024,
+             file="JER_flux_2025_EddyPro_FullOutput_filterSD_JanDec_Closed.csv",sep=",", dec=".",
+             row.names=FALSE)
  
