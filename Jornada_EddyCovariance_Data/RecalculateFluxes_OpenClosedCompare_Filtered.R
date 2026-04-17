@@ -57,9 +57,19 @@ fileinfo_closed <- data.table(t(fileinfo_closed))
 
 # read the data, skippping the units row
 # open path
+# Oct 2022 to May 2024
 load("/Users/memauritz/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered/JER_flux_202210_202405_EddyPro_FullOutput_filterSD_20240623.Rdata")
-flux_open <- flux_filter_sd
+flux_open1 <- flux_filter_sd
 rm(flux_filter_sd)
+
+# Jun 2024 to Dec 2025
+load("/Users/memauritz/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered/JER_flux_202406_202512_EddyPro_FullOutput_filterSD_20260417.Rdata")
+flux_open2 <- flux_filter_sd
+rm(flux_filter_sd)
+
+# combine and remove individual
+flux_open <- rbind(flux_open1,flux_open2)
+rm(flux_open1,flux_open2)
 
 # closed path
 flux_closed2023 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2023/EddyPro_Out/ClosedPath/JER_flux_2023_EddyPro_FullOutput_filterSD_JuneDec_Closed.csv", sep=",",
@@ -68,7 +78,16 @@ flux_closed2023 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-Univers
 flux_closed2024 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2024/EddyPro_Out/ClosedPath/JER_flux_2024_EddyPro_FullOutput_filterSD_JanMay_Closed.csv", sep=",",
                          header=TRUE, na.strings=c("-9999","-9999.0","NAN","#NAME?","NA"))
 
-flux_closed <- rbind(flux_closed2023,flux_closed2024)
+flux_closed2024a <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/Tower/ts_data_2/2024/EddyPro_Out/ClosedPath/JER_flux_2024_EddyPro_FullOutput_filterSD_JunNov_Closed.csv", sep=",",
+                         header=TRUE, na.strings=c("-9999","-9999.0","NAN","#NAME?","NA"))
+
+flux_closed2025 <- fread("/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/Bahada/CR3000/L3/Eddy_Covariance_ts_2/ClosedPath/JER_flux_2025_EddyPro_FullOutput_filterSD_JanDec_Closed.csv", sep=",",
+                          header=TRUE, na.strings=c("-9999","-9999.0","NAN","#NAME?","NA"))
+
+# combine closed path
+flux_closed <- rbind(flux_closed2023,flux_closed2024, flux_closed2024a,flux_closed2025)
+# remove individual
+rm(flux_closed2023,flux_closed2024, flux_closed2024a,flux_closed2025)
 
 # column numbers differ, find difference
 c(setdiff(colnames(flux_open), colnames(flux_closed)), setdiff(colnames(flux_closed), colnames(flux_open)))
@@ -137,14 +156,15 @@ f2.diff <- ggplot(flux, aes(x=date_time))+
 plot_grid(f1.diff,f2.diff,nrow=2)
 
 
-## graph the fluxes against each other
+## graph the fluxes against each other by month and year
 ggplot(flux,
        aes(co2_flux_closed,co2_flux_open))+
   geom_point(size=0.2)+
   ylim(c(-10,10))+
   geom_abline(intercept=0,slope=1)+
   geom_smooth(method="lm")+
-  theme_bw()
+  theme_bw()+
+  facet_grid(year(date_time)~month(date_time))
 
 ## graph the closed path and provisionally corrected flux
 ggplot(flux,
@@ -153,7 +173,8 @@ ggplot(flux,
   ylim(c(-10,10))+
   geom_abline(intercept=0,slope=1)+
   geom_smooth(method="lm")+
-  theme_bw()
+  theme_bw()+
+  facet_grid(year(date_time)~month(date_time))
 
 # compare co2 molar density
 ggplot(flux,
@@ -226,7 +247,33 @@ fig.co2.compare <- ggplot(flux,
   ylim(c(-10,10))+
   xlim(c(-10,10))+
   geom_abline(intercept=0,slope=1, color="dark grey")+
-  theme_bw()
+  theme_bw()+
+  facet_grid(year(date_time)~month(date_time))
+
+## graph the co2 fluxes against each other by month and year
+# with total monthly rainfall
+rain_sum <- flux %>%
+  group_by(year = year(date_time), month = month(date_time)) %>%
+  summarise(total_rain = sum(P_rain_1_1_1_open, na.rm = TRUE), .groups = "drop")
+
+flux[,':='(year=year(date_time),month=month(date_time))]
+
+ggplot(flux,
+    aes(co2_flux_closed,co2_flux_open))+
+  geom_point(size=0.5)+
+  geom_smooth(method="lm")+
+  ylim(c(-10,10))+
+  xlim(c(-10,10))+
+  geom_abline(intercept=0,slope=1, color="dark grey")+
+  theme_bw()+
+  facet_grid(year~month)+
+  
+  geom_text(
+    data = rain_sum,
+    aes(x = -1, y = 8, label = paste0("Rain (mm):", round(total_rain, 1))),
+    inherit.aes = FALSE,
+    size = 1.8
+  )
 
 ## graph the LE fluxes against each other
 fig.le.compare <- ggplot(flux,
@@ -278,9 +325,9 @@ cols3_H <- c("Open path" = "black", "Closed path" = "#fdbb84", "Open path H corr
 cols2 <- c("Open path" = "black", "Closed path" = "#fdbb84")
 
 fig.time.co2 <- ggplot()+
-  geom_line(aes(x=date_time,y=co2_flux_open,colour="Open path"), data = flux , size=0.3)+
+  geom_line(aes(x=date_time,y=co2_flux_open,colour="Open path"), data = flux , linewidth=0.3)+
  # geom_point(aes(x=date_time,y=co2_flux_open,colour="Open path"), data = flux , size=0.1)+
-  geom_line(aes(x=date_time, y=co2_flux_closed,colour="Closed path"), data=flux , size=0.3)+
+  geom_line(aes(x=date_time, y=co2_flux_closed,colour="Closed path"), data=flux , linewidth=0.3)+
   #geom_point(aes(x=date_time, y=co2_flux_closed,colour="Closed path"), data=flux , size=0.1)+
  # geom_line(aes(x=date_time, y=fc_wpl_adjust_open,colour="Open path adj"), data=flux , size=0.3)+
  # geom_point(aes(x=date_time, y=fc_wpl_adjust_open,colour="Open path adj"), data=flux , size=0.)+
@@ -292,8 +339,8 @@ fig.time.co2 <- ggplot()+
 
 # graph covariance time-series together
 fig.time.cov <- ggplot()+
-  geom_line(aes(x=date_time,y=`w/co2_cov_open`,colour="Open path"), data = flux, size=0.2)+
-  geom_line(aes(x=date_time, y=`w/co2_cov_closed`,colour="Closed path"), data=flux, size=0.2)+
+  geom_line(aes(x=date_time,y=`w/co2_cov_open`,colour="Open path"), data = flux, linewidth=0.2)+
+  geom_line(aes(x=date_time, y=`w/co2_cov_closed`,colour="Closed path"), data=flux, linewidth=0.2)+
   ylim(c(-0.2,0.2))+
   theme_bw()+
   scale_color_manual(values=cols2, breaks=c("Open path","Closed path")) +
@@ -302,8 +349,8 @@ fig.time.cov <- ggplot()+
 
 # graph open corrected and closed w/co2 covariance
 ggplot()+
-  geom_line(aes(x=date_time,y=wco2_adjust_open,colour="Open path adj"), data = flux, size=0.2)+
-  geom_line(aes(x=date_time, y=`w/co2_cov_closed`,colour="Closed path"), data=flux, size=0.2)+
+  geom_line(aes(x=date_time,y=wco2_adjust_open,colour="Open path adj"), data = flux, linewidth=0.2)+
+  geom_line(aes(x=date_time, y=`w/co2_cov_closed`,colour="Closed path"), data=flux, linewidth=0.2)+
   ylim(c(-0.2,0.2))+
   theme_bw()+
   scale_color_manual(values=c("Closed path" = "#7fcdbb", "Open path adj" = "#fdae6b"),
@@ -347,8 +394,8 @@ ggplot(flux)+
 
 # graph the time-series of CO2 molar density
 fig.time.co2.moldens <- ggplot(flux, aes(x=date_time))+
-geom_line(aes(y=co2_molar_density_open, color="Open path"), data = flux, size=0.2)+
-  geom_line(aes(y=co2_molar_density_closed, colour="Closed path"), data=flux, size=0.2)+
+geom_line(aes(y=co2_molar_density_open, color="Open path"), data = flux, linewidth=0.2)+
+  geom_line(aes(y=co2_molar_density_closed, colour="Closed path"), data=flux, linewidth=0.2)+
   geom_point(aes(y=co2_molar_density_open, color="Open path"), data = flux, size=0.2)+
   geom_point(aes(y=co2_molar_density_closed, color="Closed path"), data=flux, size=0.2)+
   theme_bw()+
@@ -356,10 +403,10 @@ geom_line(aes(y=co2_molar_density_open, color="Open path"), data = flux, size=0.
   labs(y="CO2 molar density", x="Date")
 
 
-# graph the time-series of CO2 molar density
+# graph the time-series of H2O molar density
 fig.time.h2o.moldens <- ggplot(flux, aes(x=date_time))+
- geom_line(aes(y=h2o_molar_density_open, color="Open path"), data = flux, size=0.2)+
-  geom_line(aes(y=h2o_molar_density_closed, colour="Closed path"), data=flux, size=0.2)+
+ geom_line(aes(y=h2o_molar_density_open, color="Open path"), data = flux, linewidth=0.2)+
+  geom_line(aes(y=h2o_molar_density_closed, colour="Closed path"), data=flux, linewidth=0.2)+
   geom_point(aes(y=h2o_molar_density_open, color="Open path"), data = flux, size=0.2)+
   geom_point(aes(y=h2o_molar_density_closed, color="Closed path"), data=flux, size=0.2)+
   theme_bw()+
@@ -369,8 +416,8 @@ fig.time.h2o.moldens <- ggplot(flux, aes(x=date_time))+
 
 # graph H time-series together
 fig.time.h <- ggplot()+
-geom_line(aes(x=date_time,y=H_open, color="Open path"), data = flux, size=0.2)+
-  geom_line(aes(x=date_time, y=H_closed, colour="Closed path"), data=flux, size=0.2)+
+geom_line(aes(x=date_time,y=H_open, color="Open path"), data = flux, linewidth=0.2)+
+  geom_line(aes(x=date_time, y=H_closed, colour="Closed path"), data=flux, linewidth=0.2)+
   geom_point(aes(x=date_time,y=H_open, color="Open path"), data = flux, size=0.2)+
   geom_point(aes(x=date_time, y=H_closed, color="Closed path"), data=flux, size=0.2)+
   theme_bw()+
@@ -380,8 +427,8 @@ geom_line(aes(x=date_time,y=H_open, color="Open path"), data = flux, size=0.2)+
 
 # graph LE time-series together
 fig.time.le <- ggplot()+
-  geom_line(aes(x=date_time,y=LE_open, color="Open path"), data = flux, size=0.2)+
-  geom_line(aes(x=date_time, y=LE_closed, colour="Closed path"), data=flux, size=0.2)+
+  geom_line(aes(x=date_time,y=LE_open, color="Open path"), data = flux, linewidth=0.2)+
+  geom_line(aes(x=date_time, y=LE_closed, colour="Closed path"), data=flux, linewidth=0.2)+
   geom_point(aes(x=date_time,y=LE_open, color="Open path"), data = flux, size=0.2)+
   geom_point(aes(x=date_time, y=LE_closed, color="Closed path"), data=flux, size=0.2)+
   theme_bw()+
@@ -439,7 +486,7 @@ ggplot(flux.diurn, aes(x=half.hour))+
   labs(y="Mean Half-Hourly Flux Rate (umol/m2/s)", x="Hour")
 
 # graph diurnal scf
-ggplot(flux.diurn, aes(x=hour))+
+ggplot(flux.diurn, aes(x=half.hour))+
   geom_line(aes(y=scf_open, colour="Open path"), linewidth=0.3)+
   geom_point(aes(y=scf_open, colour="Open path") , size=0.3)+
   geom_errorbar(aes(ymin=scf_open-scf_open_sd,ymax=scf_open+scf_open_sd, colour="Open path") , size=0.2, width=0.1)+
@@ -453,7 +500,7 @@ ggplot(flux.diurn, aes(x=hour))+
   labs(y="Mean Hourly SCF", x="Hour")
 
 # graph diurnal wpl with wco2
-ggplot(flux.diurn, aes(x=hour))+
+ggplot(flux.diurn, aes(x=half.hour))+
   geom_line(aes(y=wpl_open, colour="Open WPL"), linewidth=0.3)+
   geom_point(aes(y=wpl_open, colour="Open WPL") , size=0.3)+
   geom_errorbar(aes(ymin=wpl_open-wpl_open_sd,ymax=wpl_open+wpl_open_sd, colour="Open WPL") , size=0.2, width=0.1)+
@@ -574,6 +621,11 @@ lm(H_open+(Rn_1_1_1_open - SHF_1_mean - H_open - LE_open) ~ H_open, data=flux)
 #   (Intercept)       H_open  
 # -21.651        1.699  
 
+# adding Jul 2024 - Dec 2025: 
+# Coefficients:
+#   (Intercept)       H_open  
+# -22.581        1.705  
+
 
 # graph H+LE vs Rn-G (relationship of turbulent EB with measured EB)
 ggplot(flux)+
@@ -614,6 +666,11 @@ lm((Rn_G_LE) ~ (H_open), data=flux)
 # Coefficients:
 #   (Intercept)       H_open  
 # -21.651        1.699  
+
+# with addition of Jul 2024 - Dec 2025
+# Coefficients:
+#   (Intercept)       H_open  
+# -22.581        1.705 
 
 # EB of H being over-esimated during daytime ~ 7am to 5pm
 ggplot(flux) + #[hour(date_time)>7 & hour(date_time)<17,])+
