@@ -586,3 +586,4 @@ flux_filter_sd <- (flux_filter_sd[!(duplicated(flux_filter_sd, by=c("date_time")
              file="JER_flux_2025_EddyPro_FullOutput_filterSD_JanDec_Closed.csv",sep=",", dec=".",
              row.names=FALSE)
  
+ 

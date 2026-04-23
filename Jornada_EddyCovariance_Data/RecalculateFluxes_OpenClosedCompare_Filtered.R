@@ -275,6 +275,44 @@ ggplot(flux,
     size = 1.8
   )
 
+## graph the closed path and provisionally corrected flux
+ggplot(flux,
+       aes(co2_flux_closed,fc_wpl_adjust_open))+
+  geom_point(size=0.5)+
+  geom_smooth(method="lm")+
+  ylim(c(-10,10))+
+  xlim(c(-10,10))+
+  geom_abline(intercept=0,slope=1, color="dark grey")+
+  theme_bw()+
+  facet_grid(year~month)+
+  
+  geom_text(
+    data = rain_sum,
+    aes(x = -1, y = 8, label = paste0("Rain (mm):", round(total_rain, 1))),
+    inherit.aes = FALSE,
+    size = 1.8
+  )
+
+lm.closed.opencor <- flux %>%
+  group_by(year,month) %>%
+  do(model = lm(fc_wpl_adjust_open ~ co2_flux_closed, data = .))
+
+lm.closed.opencor.summary <- lm.closed.opencor %>%
+  summarise(
+    year=year,
+    month=month,
+    intercept = coef(model)[1],
+    slope = coef(model)[2]
+  )%>%
+  left_join(rain_sum)
+
+# graph slope by rain
+ggplot(lm.closed.opencor.summary, aes(month))+
+  geom_point(aes(y=slope))+
+  geom_col(aes(y=total_rain/100))+
+  geom_hline(yintercept=1)+
+  facet_grid(year~.)
+
 ## graph the LE fluxes against each other
 fig.le.compare <- ggplot(flux,
        aes(LE_closed,LE_open))+
