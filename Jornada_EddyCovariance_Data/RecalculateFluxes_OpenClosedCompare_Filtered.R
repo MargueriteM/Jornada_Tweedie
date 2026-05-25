@@ -17,6 +17,7 @@ library(lsr) # contains quantileCut function
 library(gridExtra)
 library(viridis)
 library(cowplot)
+library(dplyr)
 #############
 # IMPORT DATA
 #############
@@ -142,13 +143,13 @@ plot_grid(f1+theme(axis.text.x=element_blank(), axis.title.x = element_blank()),
 
 # graph the difference between open vs closed and open adjusted vs closed
 f1.diff <- ggplot(flux, aes(x=date_time))+
-  geom_line(aes(y=abs(co2_flux_open)-abs(co2_flux_closed)), linewidth=0.2, color="black")+
+  geom_line(aes(y=(co2_flux_open)-(co2_flux_closed)), linewidth=0.2, color="black")+
   ylim(c(-5,8))+
   theme_bw()+
   labs(title="Open minus Closed")
 
 f2.diff <- ggplot(flux, aes(x=date_time))+
-  geom_line(aes(y=abs(fc_wpl_adjust_open)-abs(co2_flux_closed)), linewidth=0.2, color="black")+
+  geom_line(aes(y=(fc_wpl_adjust_open)-(co2_flux_closed)), linewidth=0.2, color="black")+
   ylim(c(-5,8))+
   theme_bw()+
   labs(title="Open adjusted minus Closed")
@@ -932,7 +933,7 @@ flux.daily.corr <- flux[,.(fc_open = mean(co2_flux_open, na.rm=TRUE),
 fig.flux.daily.c <- ggplot(flux.daily.corr, aes(x=date))+
   geom_line(aes(y=fc_open, colour="Open path"),linewidth=0.4)+
   #geom_errorbar(aes(ymin=fc_open-fc_open_sd,ymax=fc_open+fc_open_sd,colour="Open path") , size=0.2, width=0.1)+
-  geom_line(aes(y=fc_adj_open, colour="Open path H correct"),linewidth=0.4)+
+  geom_line(aes(y=fc_hcorr, colour="Open path H correct"),linewidth=0.4)+
   #geom_errorbar(aes(ymin=fc_adj_open-fc_adj_open_sd,ymax=fc_adj_open+fc_adj_open_sd, colour="Open path adj") , size=0.2, width=0.1)+
   geom_line(aes(y=fc_closed, colour="Closed path"),linewidth=0.4)+
   #geom_errorbar(aes(ymin=fc_closed-fc_closed_sd,ymax=fc_closed+fc_closed_sd,colour="Closed path") , size=0.2, width=0.1)+
