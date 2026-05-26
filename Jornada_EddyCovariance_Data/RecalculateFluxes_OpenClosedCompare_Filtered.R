@@ -156,6 +156,14 @@ f2.diff <- ggplot(flux, aes(x=date_time))+
 
 plot_grid(f1.diff,f2.diff,nrow=2)
 
+# compare the difference by H and day/night
+ggplot(flux[!is.na(daytime_open)], aes(x=H_open))+
+  geom_point(aes(y=(co2_flux_open)-(co2_flux_closed),color=factor(daytime_open)), size=0.1)+
+  ylim(c(-5,8))+
+  theme_bw()+
+  labs(title="Open minus Closed vs H")+
+  facet_grid(daytime_open~.)
+
 
 ## graph the fluxes against each other by month and year
 ggplot(flux,
@@ -276,6 +284,20 @@ ggplot(flux,
     size = 1.8
   )
 
+# calculate the correlation between corrected and uncorrected
+lm.closed.open.meas <- flux %>%
+  group_by(year,month) %>%
+  do(model = lm(co2_flux_open ~ co2_flux_closed, data = .))
+
+lm.closed.openmeas.summary <- lm.closed.open.meas %>%
+  summarise(
+    year=year,
+    month=month,
+    intercept.meas = coef(model)[1],
+    slope.meas = coef(model)[2],
+    r2.meas=summary(model)$adj.r.squared
+  )
+
 ## graph the closed path and provisionally corrected flux
 ggplot(flux,
        aes(co2_flux_closed,fc_wpl_adjust_open))+
@@ -302,14 +324,18 @@ lm.closed.opencor.summary <- lm.closed.opencor %>%
   summarise(
     year=year,
     month=month,
-    intercept = coef(model)[1],
-    slope = coef(model)[2]
+    intercept.cor = coef(model)[1],
+    slope.cor = coef(model)[2],
+    r2.cor=summary(model)$adj.r.squared
   )%>%
+  left_join(lm.closed.openmeas.summary)%>%
   left_join(rain_sum)
+
+
 
 # graph slope by rain
 ggplot(lm.closed.opencor.summary, aes(month))+
-  geom_point(aes(y=slope))+
+  geom_point(aes(y=slope.cor))+
   geom_col(aes(y=total_rain/100))+
   geom_hline(yintercept=1)+
   facet_grid(year~.)
@@ -375,6 +401,18 @@ fig.time.co2 <- ggplot()+
   scale_color_manual(values=cols2, breaks=c("Open path","Closed path"), name="Sensor")+
   #scale_color_manual(values=cols3, breaks=c("Open path","Closed path","Open path adj"))+
   labs(y="CO2 flux (umol/m2/s)", x="Date")
+
+# rainfall (with transparent background?)
+fig.time.rain <-ggplot()+
+     geom_line(aes(x=date_time,y=P_rain_1_1_1_open), data = flux , linewidth=0.3)+
+     ylim(c(0,30))+
+     theme_bw()+
+     #scale_color_manual(values=cols2, breaks=c("Open path","Closed path"), name="Sensor")+
+     #scale_color_manual(values=cols3, breaks=c("Open path","Closed path","Open path adj"))+
+     labs(y="Rain mm", x="Date")+
+  theme(panel.background = element_rect(fill = "transparent", color = NA), # Panel background
+plot.background = element_rect(fill = "transparent", color = NA))  # Outer plot background
+
 
 # graph covariance time-series together
 fig.time.cov <- ggplot()+
@@ -592,7 +630,7 @@ plot_grid(fig.flux.daily+theme(axis.text.x = element_blank(),axis.title.x = elem
           align="v")
 
 # look at energy balance components
-# H+LE/Rn-(H+S)
+# H+LE = Rn-(H+S)
 # EasyFlux DL has equation for calculating S using soil surface temp and soil moisture
 
 # calculate mean of SHF at height 1 and height 2
@@ -846,13 +884,33 @@ ggplot(flux) +
 # look at offset corrected CO2 flux (sensu Scott et al 2015) 
 # and closed-path for reference
 # graph full time series (or specific date range)
-ggplot(flux[date>as.Date("2023-10-10") & date<as.Date("2023-10-20"),]) +
+ggplot(flux[date>as.Date("2025-04-01") & date<as.Date("2025-04-30"),]) +
   geom_line(aes(date_time, co2_flux_open), color="black",size=0.3)+
-  geom_line(aes(date_time, co2_flux_closed), color="red",size=0.3)+
-  geom_line(aes(date_time, fc_wpl_adjust),color="green", size=0.1)+
+  geom_line(aes(date_time, co2_flux_closed), color="#fdbb84",size=0.3)+
+  geom_line(aes(date_time, fc_wpl_adjust),color="#31a354", size=0.2)+
   ylim(-5,5)+
   facet_grid(.~year, scales="free_x")+
-  labs(title="James: EddyPro corrected CO2 flux (black) and 10% adjusted CO2 flux (green)")
+  labs(title="Closed path, Open Path, Open path adjust")+
+  theme_bw()
+
+
+ggplot(flux[date>as.Date("2025-06-01") & date<as.Date("2025-06-30"),]) +
+  geom_line(aes(date_time, co2_flux_open), color="black",size=0.3)+
+  geom_line(aes(date_time, co2_flux_closed), color="#fdbb84",size=0.3)+
+  geom_line(aes(date_time, fc_wpl_adjust),color="#31a354", size=0.2)+
+  ylim(-5,5)+
+  facet_grid(.~year, scales="free_x")+
+  labs(title="Closed path, Open Path, Open path adjust")+
+  theme_bw()
+
+ggplot(flux[date>as.Date("2025-07-01") & date<as.Date("2025-07-30"),]) +
+  geom_line(aes(date_time, co2_flux_open), color="black",size=0.3)+
+  geom_line(aes(date_time, co2_flux_closed), color="#fdbb84",size=0.3)+
+  geom_line(aes(date_time, fc_wpl_adjust),color="#31a354", size=0.2)+
+  ylim(-5,5)+
+  facet_grid(.~year, scales="free_x")+
+  labs(title="Closed path, Open Path, Open path adjust")+
+  theme_bw()
 
 # look at H corrected vs open and closed in 10 day ranges
 ggplot(flux[date>as.Date("2023-11-10") & date<as.Date("2023-11-20"),]) +
@@ -914,6 +972,58 @@ ggplot(flux) +
 ggplot(flux, aes(x=H_missing, y = ((corrc1a+corrc2a)/(44.01/1e6))))+
   geom_point()
 
+# compare scott-corrected and H corrected
+
+## graph the closed path and provisionally corrected flux with 0.9 offset
+ ggplot(flux,
+                 aes(co2_flux_closed,fc_wpl_adjust_open))+
+     geom_point(size=0.5)+
+     geom_smooth(method="lm")+
+     ylim(c(-10,10))+
+     xlim(c(-10,10))+
+   geom_abline(intercept=0,slope=1, color="dark grey")+
+     theme_bw()+
+    facet_grid(year~month)+
+    
+    geom_text(
+         data = rain_sum,
+         aes(x = -1, y = 8, label = paste0("Rain (mm):", round(total_rain, 1))),
+         inherit.aes = FALSE,
+         size = 1.8
+       )
+
+
+## graph the closed path and provisionally corrected flux with H
+ggplot(flux,
+                 aes(co2_flux_closed,fc_wpl_hcorr))+
+     geom_point(size=0.5)+
+     geom_smooth(method="lm")+
+     ylim(c(-10,10))+
+     xlim(c(-10,10))+
+     geom_abline(intercept=0,slope=1, color="dark grey")+
+     theme_bw()+
+     facet_grid(year~month)+
+     
+    geom_text(
+         data = rain_sum,
+         aes(x = -1, y = 8, label = paste0("Rain (mm):", round(total_rain, 1))),
+         inherit.aes = FALSE,
+         size = 1.8
+      )
+
+# regression by month and year for scott correct
+mod.lm.scott <- lm(fc_wpl_adjust_open~co2_flux_closed*factor(year)*factor(month), data=flux)
+
+summary(mod.lm.scott)
+
+# regression by month and year with H correct
+mod.lm.h <- lm(fc_wpl_hcorr~co2_flux_closed*factor(year)*factor(month), data=flux)
+
+summary(mod.lm.h)
+
+# compare models
+AIC(mod.lm.scott, mod.lm.h)
+
 
 # calculate and graph daily with corrected
 flux.daily.corr <- flux[,.(fc_open = mean(co2_flux_open, na.rm=TRUE),
@@ -943,7 +1053,7 @@ fig.flux.daily.c <- ggplot(flux.daily.corr, aes(x=date))+
   labs(y="Mean Daily Flux Rate (umol/m2/s)", x="Date")
 
 # graph daily rainfall
-fig.rain.daily <- ggplot(flux.daily, aes(x=date))+
+fig.rain.daily <- ggplot(flux.daily.corr, aes(x=date))+
   geom_col(aes(y=precip, fill="Daily Rainfall"))+
   #geom_errorbar(aes(ymin=fc_open-fc_open_sd,ymax=fc_open+fc_open_sd,colour="Open path") , size=0.2, width=0.1)+
   theme_bw()+
@@ -957,6 +1067,9 @@ plot_grid(fig.flux.daily.c+theme(axis.text.x = element_blank(),axis.title.x = el
           fig.rain.daily,
           nrow=2,
           align="v")
+
+# compare open, closed, corrected fluxes during day and night
+
 
 # calculate and graph diurnal corrected fluxes
 flux.diurn.corr <- flux[,.(fc_open = mean(co2_flux_open, na.rm=TRUE),
@@ -1019,7 +1132,7 @@ ggplot(flux.diurn.corr, aes(x=half.hour))+
   theme_bw()+
   facet_wrap(year~month)+
   scale_color_manual(values=cols3, breaks=c("Open path","Closed path","Open path adj"), )+
-  labs(y="Mean Hourly Flux Rate (umol/m2/s)", x="Hour", title="Open path, Closed path, and Spectral Offset")
+  labs(y="Mean Hourly Flux Rate (umol/m2/s)", x="Hour", title="Open path, Closed path, and Fixed Correction")
 
 # graph diurnal H missing
 ggplot(flux.diurn.corr, aes(x=half.hour))+
@@ -1036,4 +1149,4 @@ ggplot(flux.diurn.corr, aes(x=half.hour))+
 
 
 # Save corrected full output for filtering and ReddyProc
-save(flux,file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_CovarianceCorrect_Scott2015/JER_flux_EddyPro_FullOutput_Scott2015_Correct_20230112.RData")
+# save(flux,file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_CovarianceCorrect_Scott2015/JER_flux_EddyPro_FullOutput_Scott2015_Correct_20230112.RData")
