@@ -18,6 +18,7 @@ library(gridExtra)
 library(viridis)
 library(cowplot)
 library(dplyr)
+library(REddyProc)
 #############
 # IMPORT DATA
 #############
@@ -113,6 +114,13 @@ flux[,date_time := paste(date,time,sep=" ")]
 flux[,':=' (date=as.Date(date),
             date_time = as.POSIXct(date_time, format="%Y-%m-%d %H:%M"),
             year=year(date_time))]
+
+# drop the biomet columns for _closed using .SDcols
+# check correct columns
+colnames(flux[,442:460])
+# create list to drop
+cols_to_drop <- colnames(flux[,442:460])
+flux[, (cols_to_drop) := NULL]
 
 # Graph initial CO2 flux, just to see
 # co2 flux
@@ -247,6 +255,11 @@ ggplot(flux, aes(x=date_time))+
 ggplot(flux, aes(x=date_time))+
   geom_point(aes(y=h2o_molar_density_open), size=0.2, color="black")+
   geom_point(aes(y=h2o_molar_density_closed), size=0.2, color="green")
+
+# graph the time-series of H2O molar density
+ggplot(flux, aes(x=date_time))+
+  geom_point(aes(y=h2o_mole_fraction_open), size=0.2, color="black")+
+  geom_point(aes(y=h2o_mole_fraction_closed), size=0.2, color="green")
 
 
 ## graph the co2 fluxes against each other
@@ -853,14 +866,21 @@ flux[,':=' (fc_wpl = 1000* (wco2 + ((corrc1a+corrc2a)/(44.01/1e6))),
             fc_wpl_hcorr = 1000* (wco2 + ((corrc1a+corrc2a_hcorr)/(44.01/1e6))),
               wpl_h2oa = corrh1a+corrh2a,
               LE_wpl = ((wq*(0.01802/1000))+(corrh1a+corrh2a))*lambda,
-            LE_wpl_hcorr = ((wq*(0.01802/1000))+(corrh1a+corrh2a_hcorr))*lambda)]
-  
+            LE_wpl_hcorr = ((wq*(0.01802/1000))+(corrh1a+corrh2a_hcorr))*lambda,
+            wpl_open = ((corrc1a+corrc2a)/(44.01/1e6)))]
+
+# apply QA/QC filtering from open path post-processing after EddyPro to recalculated fluxes:
+# fc_wpl and fc_wpl_adjust
+# use filter_fc_roll_daynight from processing
+flux[filter_fc_roll_daynight_open!=0, ':=' (fc_wpl = NA, 
+                                            fc_wpl_open = NA, 
+                                            fc_wpl_adjust = NA)]
 # graph corrected 
 # EddyPro corrected CO2 flux (black) and re-calculated CO2 flux (red)
 ggplot(flux) +
   geom_point(aes(date_time, co2_flux_open), color="black",size=0.3)+
   geom_point(aes(date_time, fc_wpl_open),color="red", size=0.1)+
-  ylim(-30,10)+
+ # ylim(-30,10)+
   facet_grid(.~year, scales="free_x")+
   labs(title="James: EddyPro corrected CO2 flux (black) and re-calculated CO2 flux (red)")
 
@@ -868,16 +888,14 @@ ggplot(flux) +
 ggplot(flux) +
   geom_point(aes(co2_flux_open,fc_wpl_open),size=0.3)+
   geom_abline(intercept=0,slope=1)+
-  labs(title="James: EddyPro corrected and re-calculated CO2 flux")+
-  xlim(c(-200,400))+
-  ylim(c(-200,400))
+  labs(title="James: EddyPro corrected and re-calculated CO2 flux")
 
 # look at offset corrected CO2 flux (sensu Scott et al 2015) and H corrected
 ggplot(flux) +
   geom_point(aes(date, co2_flux_open), color="black",size=0.3)+
   geom_point(aes(date, fc_wpl_adjust),color="green", size=0.1)+
   geom_point(aes(date, fc_wpl_hcorr),color="blue", size=0.1)+
-  ylim(-30,10)+
+  #ylim(-30,10)+
   facet_grid(.~year, scales="free_x")+
   labs(title="James: EddyPro corrected CO2 flux (black) and 10% adjusted CO2 flux (green)")
 
@@ -970,7 +988,8 @@ ggplot(flux) +
 
 # graph missing H vs wpl
 ggplot(flux, aes(x=H_missing, y = ((corrc1a+corrc2a)/(44.01/1e6))))+
-  geom_point()
+  geom_point()+
+  facet_wrap(year~month(date_time))
 
 # compare scott-corrected and H corrected
 
@@ -1147,6 +1166,69 @@ ggplot(flux.diurn.corr, aes(x=half.hour))+
   annotate("text", x = 10, y = 250, label = "H under-estimated",size=2)
 
 
+# aggregate dataset for ML to model fluxes guided by closed path
+# variables to include: 
+# 
+# Biomet vars: Ta, RH, Pa, WD, MWS, PPFD, P_rain, SWC, Ts, SHF_1_mean, SHF_2_mean,
+# LWin, LWout, SWout, Rg, Rn, VPD
 
-# Save corrected full output for filtering and ReddyProc
-# save(flux,file="~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_CovarianceCorrect_Scott2015/JER_flux_EddyPro_FullOutput_Scott2015_Correct_20230112.RData")
+# Flux vars (open only): NEE, LE, H, u*, co2_mole_fraction, h20_mole_fraction, air_density, w/co2_cov, 
+# daytime, co2_scf, WPL
+
+colnames(flux[,208:226])
+ML_col_date <- c("year","date_time")
+
+ML_col_biomet <- c(colnames(flux[,208:213]),
+                   colnames(flux[,215:217]),
+                   colnames(flux[,222:226]),
+                   "SHF_1_mean","SHF_2_mean")
+
+ML_col_flux <- c("co2_flux_closed","co2_flux_open", "H_open", "LE_open","u*_open","co2_mole_fraction_open",
+                 "h2o_mole_fraction_open", "air_density_open","w/co2_cov_open","co2_scf_open",
+                 "wpl_open","daytime_open")
+
+ML_col_all <- c(ML_col_date,ML_col_flux,ML_col_biomet)
+
+# subset flux into only columns for ML using column names in vectors
+flux_ml <- copy(flux[,(ML_col_all),with=FALSE])
+
+# calculate VPD (hPa)
+flux_ml[,VPD_open := fCalcVPDfromRHandTair(RH_1_1_1_open,Ta_1_1_1_open)]
+
+# calculate lag variables (24, 48, 144, 240, 336) => 0.5, 1, 3, 5, 7 days:
+# P_rain (total), VPD (mean, max, sum), NEE/LE/H (mean, sum)
+# 2026-06-03: currently not including flux variables due to many NA 
+flux_ml[, ":=" (P_rain_24 = frollsum(P_rain_1_1_1_open,n=24,align="right",has.nf=TRUE),
+                P_rain_48 = frollsum(P_rain_1_1_1_open,n=48,align="right",has.nf=TRUE),
+                P_rain_144 = frollsum(P_rain_1_1_1_open,n=144,align="right",has.nf=TRUE),
+                P_rain_240 = frollsum(P_rain_1_1_1_open,n=240,align="right",has.nf=TRUE),
+                P_rain_336 = frollsum(P_rain_1_1_1_open,n=336,align="right",has.nf=TRUE),
+                VPD_sum_24 = frollsum(VPD_open,n=24,align="right",has.nf=TRUE),
+                VPD_sum_48 = frollsum(VPD_open,n=48,align="right",has.nf=TRUE),
+                VPD_sum_144 = frollsum(VPD_open,n=144,align="right",has.nf=TRUE),
+                VPD_sum_240 = frollsum(VPD_open,n=240,align="right",has.nf=TRUE),
+                VPD_sum_336 = frollsum(VPD_open,n=336,align="right",has.nf=TRUE),
+                VPD_mean_24 = frollmean(VPD_open,n=24,align="right",has.nf=TRUE),
+                VPD_mean_48 = frollmean(VPD_open,n=48,align="right",has.nf=TRUE),
+                VPD_mean_144 = frollmean(VPD_open,n=144,align="right",has.nf=TRUE),
+                VPD_mean_240 = frollmean(VPD_open,n=240,align="right",has.nf=TRUE),
+                VPD_mean_336 = frollmean(VPD_open,n=336,align="right",has.nf=TRUE),
+                VPD_max_24 = frollmax(VPD_open,n=24,align="right",has.nf=TRUE),
+                VPD_max_48 = frollmax(VPD_open,n=48,align="right",has.nf=TRUE),
+                VPD_max_144 = frollmax(VPD_open,n=144,align="right",has.nf=TRUE),
+                VPD_max_240 = frollmax(VPD_open,n=240,align="right",has.nf=TRUE),
+                VPD_max_336 = frollmax(VPD_open,n=336,align="right",has.nf=TRUE))]
+
+# graph lagged variable to see
+ggplot(flux_ml, aes(x=date_time))+
+  geom_line(aes(y=VPD_open),linewidth =0.1)+
+  geom_line(aes(y=VPD_mean_24),linewidth=0.1,color="lightblue")+
+  geom_line(aes(y=VPD_mean_48),linewidth=0.1,color="blue")+
+  geom_line(aes(y=VPD_mean_336),linewidth=0.1,color="darkblue")+
+  facet_wrap(year~month(date_time),scales="free_x")
+
+# SAVE
+setwd("/Users/memauritz/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered/")
+
+save(flux_ml, file="JER_flux_202307_202512_Open_Closed_ML_input.Rdata")
+
