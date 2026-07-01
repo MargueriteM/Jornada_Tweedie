@@ -642,6 +642,37 @@ plot_grid(fig.flux.daily+theme(axis.text.x = element_blank(),axis.title.x = elem
           nrow=2,
           align="v")
 
+# calculate cumulative based on daily mean (place-holder for gap-filled data)
+flux.daily[,year := year(date)][,":="(fc_open_cum = replace(fc_open, !is.na(fc_open),cumsum(na.omit(fc_open))) ,
+                      fc_adj_open_cum = replace(fc_adj_open, !is.na(fc_adj_open),cumsum(na.omit(fc_adj_open))), 
+                      fc_closed_cum = replace(fc_closed, !is.na(fc_closed),cumsum(na.omit(fc_closed))),
+                      precip_cum = replace(precip, !is.na(precip),cumsum(na.omit(precip)))),
+                   by=year]
+
+# graph cumulatives
+fig.flux.cum <- ggplot(flux.daily, aes(x=date))+
+  geom_line(aes(y=fc_open_cum, colour="Open path"),linewidth=0.7)+
+  geom_line(aes(y=fc_adj_open_cum, colour="Open path adj"),linewidth=0.7)+
+  geom_line(aes(y=fc_closed_cum, colour="Closed path"),linewidth=0.7)+
+  theme_bw()+
+  facet_grid(.~year(date), scales="free_x")+
+  scale_color_manual(values=cols3, breaks=c("Open path","Closed path","Open path adj"))+
+  labs(y="~Cumulative Daily Flux Rate (umol/m2/s)", x="Date")
+
+fig.rain.cum <- ggplot(flux.daily, aes(x=date))+
+  geom_line(aes(y=precip_cum, color="Daily Rainfall"))+
+  theme_bw()+
+  facet_grid(.~year(date), scales="free_x")+
+  scale_color_manual(values=c("blue"),name="")+
+  labs(y="Cumualtive Rainfall (mm)", x="Date")
+
+
+# graph daily cumulative flux with daily rain
+plot_grid(fig.flux.cum+theme(axis.text.x = element_blank(),axis.title.x = element_blank()), 
+          fig.rain.cum,
+          nrow=2,
+          align="v")
+
 # look at energy balance components
 # H+LE = Rn-(H+S)
 # EasyFlux DL has equation for calculating S using soil surface temp and soil moisture
@@ -836,8 +867,10 @@ flux[,':=' (wco2 = `w/co2_cov_open`*co2_scf_open,
               rho_h = h2o_molar_density_open*(18.02/1e6))][
   ,':=' (sigma = rho_q/rho_a,
          lambda = (2.501 - 0.00237*tair)*1000000)][
-           ,':='   (wT_hcorr = `w/ts_cov_open`*(H_scf_open+ H_missing/cp/rho_a))] # add correction for under-estimated H (H_missing needs to be in unit of wT), rho_a needs to be wet air density
-      
+           ,':='   (wT_hcorr = `w/ts_cov_open`*(H_scf_open+ H_missing/cp/rho_a))][ # add correction for under-estimated H (H_missing needs to be in unit of wT), rho_a needs to be wet air density
+          ,':=' (ra=u_rot_open/(`u*_open`)^2, # add ra and Tsensor estimate from Kittler et al 2017
+                 Tsens=0.0025*tair^2 + 0.9*tair+2.07+273.15)]
+
 # DOUBLE CHECK UNITS IN EDDY PRO MANUAL
 # Need H_corr in same unit as wT
 
@@ -875,6 +908,25 @@ flux[,':=' (fc_wpl = 1000* (wco2 + ((corrc1a+corrc2a)/(44.01/1e6))),
 flux[filter_fc_roll_daynight_open!=0, ':=' (fc_wpl = NA, 
                                             fc_wpl_open = NA, 
                                             fc_wpl_adjust = NA)]
+
+# Apply Burba correction using the fitting method of minimizing difference between CP and OP
+# from Kittler et al 2017 https://agupubs.onlinelibrary.wiley.com/doi/10.1002/2017JG003830 
+# and Deventer et al 2021 https://biometeorology.umn.edu/sites/biometeorology.umn.edu/files/2021-04/deventer2021.pdf
+# equations 5 and 7 (estimate Tsensor from air temp only)
+# fc_fit = fc_wpl_open + epsilon*(((Ts-Ta)*rho_c)/(ra*Ta))*(1 + mu*(rho_v/rho_d))
+# epsilon parameter starting value = 0.05
+ # fc_fit = co2_flux_closed
+
+### SOMETHING IS WRONG IN THE EQUATION? the correction value is currently almost 0
+# why is temp in Kelvin when the wpl above is using C?
+model_fit_bc <- nls(co2_flux_closed ~
+                      fc_wpl_open + epsilon*(((Tsens-air_temperature_open)*rho_c)/(ra*air_temperature_open))*(1 + mu*(rho_h/rho_a)),
+                    data=flux,
+                    start=list(epsilon=0.05))
+
+summary(model_fit_bc)
+fitY <- predict(model_fit_bc)
+
 # graph corrected 
 # EddyPro corrected CO2 flux (black) and re-calculated CO2 flux (red)
 ggplot(flux) +
