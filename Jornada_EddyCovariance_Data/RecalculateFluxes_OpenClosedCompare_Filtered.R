@@ -113,7 +113,8 @@ flux <- flux_open[flux_closed,]
 flux[,date_time := paste(date,time,sep=" ")]
 flux[,':=' (date=as.Date(date),
             date_time = as.POSIXct(date_time, format="%Y-%m-%d %H:%M"),
-            year=year(date_time))]
+            year=year(date_time),
+            month=month(date_time))]
 
 # drop the biomet columns for _closed using .SDcols
 # check correct columns
@@ -121,6 +122,10 @@ colnames(flux[,442:460])
 # create list to drop
 cols_to_drop <- colnames(flux[,442:460])
 flux[, (cols_to_drop) := NULL]
+
+# add a descriptor for when the open path measurments are source or sink
+flux[,co2_flux_open_sign := fifelse(co2_flux_open>=0,"source","sink")]
+flux[,fc_wpl_adjust_open_sign := fifelse(fc_wpl_adjust_open>=0,"source","sink")]
 
 # Graph initial CO2 flux, just to see
 # co2 flux
@@ -151,18 +156,69 @@ plot_grid(f1+theme(axis.text.x=element_blank(), axis.title.x = element_blank()),
 
 # graph the difference between open vs closed and open adjusted vs closed
 f1.diff <- ggplot(flux, aes(x=date_time))+
-  geom_line(aes(y=(co2_flux_open)-(co2_flux_closed)), linewidth=0.2, color="black")+
+  geom_point(aes(y=(co2_flux_open)-(co2_flux_closed),color=co2_flux_open_sign), size=0.2)+
   ylim(c(-5,8))+
   theme_bw()+
   labs(title="Open minus Closed")
 
 f2.diff <- ggplot(flux, aes(x=date_time))+
-  geom_line(aes(y=(fc_wpl_adjust_open)-(co2_flux_closed)), linewidth=0.2, color="black")+
+  geom_point(aes(y=(fc_wpl_adjust_open)-(co2_flux_closed),color=fc_wpl_adjust_open_sign), size=0.2)+
   ylim(c(-5,8))+
   theme_bw()+
   labs(title="Open adjusted minus Closed")
 
-plot_grid(f1.diff,f2.diff,nrow=2)
+plot_grid(f1.diff + theme(legend.position = "none"),
+          f2.diff+ theme(legend.position = "bottom"),
+          nrow=2)
+
+# plot as histogram
+plot_grid(
+ ggplot(flux)+
+    geom_density(aes((co2_flux_open)-(co2_flux_closed),fill=co2_flux_open_sign),alpha=0.2)+
+    #ylim(c(-5,8))+
+    theme_bw()+
+   theme(legend.position = "bottom")+
+    labs(title="Open minus Closed"),
+  
+  ggplot(flux)+
+    geom_density(aes((fc_wpl_adjust_open)-(co2_flux_closed),fill=fc_wpl_adjust_open_sign), alpha=0.2)+
+    #ylim(c(-5,8))+
+    theme_bw()+
+   theme(legend.position = "bottom")+
+    labs(title="Open adjusted minus Closed"),
+  ncol=2
+)
+
+# open  vs closed by month
+ggplot(flux)+
+  geom_density(aes((co2_flux_open)-(co2_flux_closed),fill=co2_flux_open_sign), alpha=0.2)+
+  geom_vline(xintercept=0,linetype="dotted")+
+  theme_bw()+
+  theme(legend.position = "bottom")+
+  facet_wrap(year+month~.)+
+  labs(title="Open  minus Closed")
+
+# open adjusted vs closed by month
+ggplot(flux)+
+  geom_density(aes((fc_wpl_adjust_open)-(co2_flux_closed),fill=fc_wpl_adjust_open_sign), alpha=0.2)+
+  geom_vline(xintercept=0,linetype="dotted")+
+  theme_bw()+
+  theme(legend.position = "bottom")+
+  facet_wrap(year+month~.)+
+  labs(title="Open adjusted minus Closed")
+
+# and as 1:1 with quadrants
+plot_grid(
+  ggplot(flux)+
+     geom_point(aes(x=(co2_flux_open),y=(co2_flux_closed),color=co2_flux_open_sign), size=0.2)+
+     theme_bw()+
+     labs(title="Open vs Closed")+geom_hline(yintercept=0)+geom_vline(xintercept=0),
+  ggplot(flux)+
+    geom_point(aes(x=(fc_wpl_adjust_open),y=(co2_flux_closed),color=fc_wpl_adjust_open_sign), size=0.2)+
+    theme_bw()+
+    labs(title="Open adjust vs Closed")+geom_hline(yintercept=0)+geom_vline(xintercept=0),
+  ncol=2)
+  
 
 # compare the difference by H and day/night
 ggplot(flux[!is.na(daytime_open)], aes(x=H_open))+
@@ -278,7 +334,6 @@ rain_sum <- flux %>%
   group_by(year = year(date_time), month = month(date_time)) %>%
   summarise(total_rain = sum(P_rain_1_1_1_open, na.rm = TRUE), .groups = "drop")
 
-flux[,':='(year=year(date_time),month=month(date_time))]
 
 ggplot(flux,
     aes(co2_flux_closed,co2_flux_open))+
