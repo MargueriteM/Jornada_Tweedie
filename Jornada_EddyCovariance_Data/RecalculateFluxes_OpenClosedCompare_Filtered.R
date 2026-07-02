@@ -228,6 +228,21 @@ ggplot(flux[!is.na(daytime_open)], aes(x=H_open))+
   labs(title="Open minus Closed vs H")+
   facet_grid(daytime_open~.)
 
+# compare the difference by u* and day/night
+ggplot(flux[!is.na(daytime_open)], aes(x=`u*_open`))+
+  geom_point(aes(y=(co2_flux_open)-(co2_flux_closed),color=co2_flux_open_sign), size=0.1)+
+  ylim(c(-5,8))+
+  theme_bw()+
+  labs(title="Open minus Closed vs H")+
+  facet_grid(daytime_open~.)
+
+# compare the difference by air density and day/night
+ggplot(flux[!is.na(daytime_open)], aes(x=rho_a_open))+
+  geom_point(aes(y=(co2_flux_open)-(co2_flux_closed),color=co2_flux_open_sign), size=0.1)+
+  ylim(c(-5,8))+
+  theme_bw()+
+  labs(title="Open minus Closed vs H")+
+  facet_grid(daytime_open~.)
 
 ## graph the fluxes against each other by month and year
 ggplot(flux,
@@ -593,8 +608,7 @@ plot_grid(fig.time.co2+ylim(-5,5), fig.time.le, nrow=2)
 plot_grid(fig.time.co2.moldens, fig.time.h2o.moldens, nrow=2)
 
 # graph diurnal Co2 fluxes
-flux[,':='(month = month(date_time),
-           hour=hour(date_time),
+flux[,':='(hour=hour(date_time),
            min=minute(date_time))][,
              half.hour := hour+min/6]
 flux.diurn <- flux[,.(fc_open = mean(co2_flux_open, na.rm=TRUE),
