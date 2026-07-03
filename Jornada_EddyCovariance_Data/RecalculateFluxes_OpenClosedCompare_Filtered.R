@@ -996,6 +996,29 @@ model_fit_bc <- nls(co2_flux_closed ~
 summary(model_fit_bc)
 fitY <- predict(model_fit_bc)
 
+# try calculating Scott-correct scalar to minimize open vs closed
+model_fit_scottfact <- nls(co2_flux_closed ~
+                             1000* (((`w/co2_cov_open`*scott.factor)*co2_scf_open) + ((corrc1a+corrc2a)/(44.01/1e6))),
+                    data=flux,
+                    start=list(scott.factor=1))
+
+summary(model_fit_scottfact)
+
+flux[,fit.model.scottfact := predict(model_fit_scottfact,newdata=flux)]
+
+ggplot(flux, aes(co2_flux_closed,fit.model.scottfact))+
+  geom_point()+
+  geom_abline(yinterecpt=0,slope=1)+
+  facet_wrap(year+month~.)
+
+ggplot(flux) +
+  geom_line(aes(date_time, co2_flux_closed), color="black",linewidth=0.2)+
+  geom_line(aes(date_time, fit.model.scottfact),color="red", linewidth=0.2)+
+  # ylim(-30,10)+
+  facet_grid(.~year, scales="free_x")+
+  labs(title="Regression based scott-correction-factor estimate (~0.753)")
+
+
 # graph corrected 
 # EddyPro corrected CO2 flux (black) and re-calculated CO2 flux (red)
 ggplot(flux) +
@@ -1161,8 +1184,13 @@ mod.lm.h <- lm(fc_wpl_hcorr~co2_flux_closed*factor(year)*factor(month), data=flu
 
 summary(mod.lm.h)
 
+# regression by month and year model-estimated scott-factor
+mod.lm.sf <- lm(fit.model.scottfact~co2_flux_closed*factor(year)*factor(month), data=flux)
+
+summary(mod.lm.sf)
+
 # compare models
-AIC(mod.lm.scott, mod.lm.h)
+AIC(mod.lm.scott, mod.lm.h,mod.lm.sf)
 
 
 # calculate and graph daily with corrected
@@ -1170,6 +1198,7 @@ flux.daily.corr <- flux[,.(fc_open = mean(co2_flux_open, na.rm=TRUE),
                       fc_adj_open = mean(fc_wpl_adjust_open, na.rm=TRUE),
                       fc_closed = mean(co2_flux_closed, na.rm=TRUE),
                       fc_hcorr = mean(fc_wpl_hcorr, na.rm=TRUE),
+                      fc_modsf = mean(fit.model.scottfact, na.rm=TRUE),
                       H_missing = mean(H_missing, na.rm=TRUE),
                       fc_open_sd = sd(co2_flux_open, na.rm=TRUE),
                       fc_adj_open_sd = sd(fc_wpl_adjust_open, na.rm=TRUE),
@@ -1216,6 +1245,7 @@ flux.diurn.corr <- flux[,.(fc_open = mean(co2_flux_open, na.rm=TRUE),
                       fc_adj_open = mean(fc_wpl_adjust_open, na.rm=TRUE),
                       fc_closed = mean(co2_flux_closed, na.rm=TRUE),
                       fc_hcorr = mean(fc_wpl_hcorr, na.rm=TRUE),
+                      fc_modsf = mean(fit.model.scottfact, na.rm=TRUE),
                       H_missing = mean(H_missing, na.rm=TRUE),
                       scf_open = mean(co2_scf_open, na.rm=TRUE),
                       scf_closed = mean(co2_scf_closed, na.rm=TRUE),
