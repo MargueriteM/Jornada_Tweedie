@@ -367,6 +367,25 @@ ggplot(flux,
     size = 1.8
   )
 
+# graph open and closed LE by month
+ggplot(flux,
+       aes(LE_closed,LE_open))+
+  geom_point(size=0.5)+
+  geom_smooth(method="lm")+
+  ylim(c(-10,10))+
+  xlim(c(-10,10))+
+  geom_abline(intercept=0,slope=1, color="dark grey")+
+  theme_bw()+
+  facet_grid(year~month)+
+  
+  geom_text(
+    data = rain_sum,
+    aes(x = -1, y = 8, label = paste0("Rain (mm):", round(total_rain, 1))),
+    inherit.aes = FALSE,
+    size = 1.8
+  )
+
+
 # calculate the correlation between corrected and uncorrected
 lm.closed.open.meas <- flux %>%
   group_by(year,month) %>%
@@ -497,6 +516,14 @@ fig.time.rain <-ggplot()+
 plot.background = element_rect(fill = "transparent", color = NA))  # Outer plot background
 
 
+# graph flux and rainfall
+plot_grid(fig.time.co2+theme(legend.position="none"),
+          fig.time.rain+theme(legend.position="none"),
+          nrow=2,
+          align="v")
+
+
+
 # graph covariance time-series together
 fig.time.cov <- ggplot()+
   geom_line(aes(x=date_time,y=`w/co2_cov_open`,colour="Open path"), data = flux, linewidth=0.2)+
@@ -526,8 +553,9 @@ fig.time.scf <- ggplot(flux, aes(x=date_time))+
 
 
 fig.time.wpl <- ggplot(flux, aes(x=date_time))+
-  geom_point(aes(y=(corrc1a_open+corrc2a_open)/(44.01/1e6), colour="Open WPL"), size=0.4)+
-  geom_point(aes(y=wco2_open, colour="Open wco2"), size=0.4)+
+  geom_line(aes(y=(corrc1a_open+corrc2a_open)/(44.01/1e6), colour="Open WPL"), linewidth =0.4)+
+  geom_line(aes(y=wco2_open, colour="Open wco2"), linewidth=0.4)+
+  geom_line(aes(y=co2_flux_open, colour="Open flux"), linewidth=0.4)+
   theme_bw()+
   labs(title="Open Path W/CO2 covariance and WPL correction", y="covariance and WPL")
 
@@ -679,6 +707,10 @@ flux.daily <- flux[,.(fc_open = mean(co2_flux_open, na.rm=TRUE),
                       fc_open_sd = sd(co2_flux_open, na.rm=TRUE),
                       fc_adj_open_sd = sd(fc_wpl_adjust_open, na.rm=TRUE),
                       fc_closed_sd = sd(co2_flux_closed, na.rm=TRUE),
+                      LE_open =  mean(LE_open, na.rm=TRUE),
+                      LE_open_sd =  mean(LE_open, na.rm=TRUE),
+                      LE_closed =  mean(LE_closed, na.rm=TRUE),
+                      LE_closed_sd =  mean(LE_closed, na.rm=TRUE),
                       precip = sum(P_rain_1_1_1_open)),
                       by="date"]
 
@@ -715,6 +747,8 @@ plot_grid(fig.flux.daily+theme(axis.text.x = element_blank(),axis.title.x = elem
 flux.daily[,year := year(date)][,":="(fc_open_cum = replace(fc_open, !is.na(fc_open),cumsum(na.omit(fc_open))) ,
                       fc_adj_open_cum = replace(fc_adj_open, !is.na(fc_adj_open),cumsum(na.omit(fc_adj_open))), 
                       fc_closed_cum = replace(fc_closed, !is.na(fc_closed),cumsum(na.omit(fc_closed))),
+                      LE_open_cum = replace(LE_open, !is.na(LE_open),cumsum(na.omit(LE_open))),
+                      LE_closed_cum = replace(LE_closed, !is.na(LE_closed),cumsum(na.omit(LE_closed))),
                       precip_cum = replace(precip, !is.na(precip),cumsum(na.omit(precip)))),
                    by=year]
 
@@ -727,6 +761,14 @@ fig.flux.cum <- ggplot(flux.daily, aes(x=date))+
   facet_grid(.~year(date), scales="free_x")+
   scale_color_manual(values=cols3, breaks=c("Open path","Closed path","Open path adj"))+
   labs(y="~Cumulative Daily Flux Rate (umol/m2/s)", x="Date")
+
+fig.le.cum <- ggplot(flux.daily, aes(x=date))+
+  geom_line(aes(y=LE_open_cum, colour="Open path"),linewidth=0.7)+
+  geom_line(aes(y=LE_closed_cum, colour="Closed path"),linewidth=0.7)+
+  theme_bw()+
+  facet_grid(.~year(date), scales="free_x")+
+  scale_color_manual(values=cols2, breaks=c("Open path","Closed path","Open path adj"))+
+  labs(y="~Cumulative Daily LE", x="Date")
 
 fig.rain.cum <- ggplot(flux.daily, aes(x=date))+
   geom_line(aes(y=precip_cum, color="Daily Rainfall"))+
@@ -741,6 +783,13 @@ plot_grid(fig.flux.cum+theme(axis.text.x = element_blank(),axis.title.x = elemen
           fig.rain.cum,
           nrow=2,
           align="v")
+
+# graph daily cumulative LE with daily rain
+plot_grid(fig.le.cum+theme(axis.text.x = element_blank(),axis.title.x = element_blank()), 
+          fig.rain.cum,
+          nrow=2,
+          align="v")
+
 
 # look at energy balance components
 # H+LE = Rn-(H+S)
@@ -841,6 +890,20 @@ ggplot(flux)+
   geom_hline(yintercept=0)+
   theme_bw()
 
+# diurnal EB ratio
+ggplot(flux)+
+       geom_point(aes(x =hour(date_time), y = (H_open + LE_open)/(Rn_1_1_1_open - SHF_1_mean)), size=0.5)+
+       #ylim(c(-2,2))+
+       geom_hline(yintercept=1)+
+       theme_bw()+facet_wrap(year+month~.)
+
+# diurnal Rn - H - LE - SHF
+ggplot(flux)+
+  geom_point(aes(x =hour(date_time), y = Rn_1_1_1_open-SHF_1_mean-H_open-LE_open), size=0.5)+
+  #ylim(c(-2,2))+
+  geom_hline(yintercept=1)+
+  theme_bw()+facet_wrap(year+month~.)
+
 # graph regression of H vs Rn-G-LE
 ggplot(flux)+
   geom_point(aes(x = H_open, y=Rn_G_LE), size=0.5)+
@@ -936,8 +999,9 @@ flux[,':=' (wco2 = `w/co2_cov_open`*co2_scf_open,
               rho_h = h2o_molar_density_open*(18.02/1e6))][
   ,':=' (sigma = rho_q/rho_a,
          lambda = (2.501 - 0.00237*tair)*1000000)][
-           ,':='   (wT_hcorr = `w/ts_cov_open`*(H_scf_open+ H_missing/cp/rho_a))][ # add correction for under-estimated H (H_missing needs to be in unit of wT), rho_a needs to be wet air density
-          ,':=' (ra=u_rot_open/(`u*_open`)^2, # add ra and Tsensor estimate from Kittler et al 2017
+          # ,':='   (wT_hcorr = `w/ts_cov_open`*(H_scf_open+ H_missing/cp/rho_a))][ # add correction for under-estimated H (H_missing needs to be in unit of wT), rho_a needs to be wet air density
+             ,':='   (wT_hcorr = (`w/ts_cov_open`*(H_scf_open+ H_missing))/(cp*rho_a))][ # 7 July 2026 - parentheses error??
+             ,':=' (ra=u_rot_open/(`u*_open`)^2, # add ra and Tsensor estimate from Kittler et al 2017
                  Tsens=0.0025*tair^2 + 0.9*tair+2.07+273.15)]
 
 # DOUBLE CHECK UNITS IN EDDY PRO MANUAL
@@ -986,8 +1050,12 @@ flux[filter_fc_roll_daynight_open!=0, ':=' (fc_wpl = NA,
 # epsilon parameter starting value = 0.05
  # fc_fit = co2_flux_closed
 
-### SOMETHING IS WRONG IN THE EQUATION? the correction value is currently almost 0
-# why is temp in Kelvin when the wpl above is using C?
+# graph Tsens and air temperature open (both K)
+ggplot(flux, aes(x=date_time))+
+  geom_line(aes(y=Tsens,color="IRGA temp, K"))+
+  geom_line(aes(y=air_temperature_open,color="air temp, K"))
+
+# fit model
 model_fit_bc <- nls(co2_flux_closed ~
                       fc_wpl_open + epsilon*(((Tsens-air_temperature_open)*rho_c)/(ra*air_temperature_open))*(1 + mu*(rho_h/rho_a)),
                     data=flux,
@@ -1009,6 +1077,7 @@ flux[,fit.model.scottfact := predict(model_fit_scottfact,newdata=flux)]
 ggplot(flux, aes(co2_flux_closed,fit.model.scottfact))+
   geom_point()+
   geom_abline(yinterecpt=0,slope=1)+
+  ylim(-15,15)+
   facet_wrap(year+month~.)
 
 ggplot(flux) +
@@ -1032,7 +1101,21 @@ ggplot(flux) +
 ggplot(flux) +
   geom_point(aes(co2_flux_open,fc_wpl_open),size=0.3)+
   geom_abline(intercept=0,slope=1)+
-  labs(title="James: EddyPro corrected and re-calculated CO2 flux")
+  labs(title="James: EddyPro corrected and re-calculated CO2 flux (fc_wpl)")
+
+# regression on my calculated fluxes
+summary(lm((fc_wpl_open) ~ (co2_flux_open), data=flux))
+
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)   0.0372262  0.0005732   64.95   <2e-16 ***
+#   co2_flux_open 0.9825724  0.0005531 1776.48   <2e-16 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.09431 on 29705 degrees of freedom
+# (5159 observations deleted due to missingness)
+# Multiple R-squared:  0.9907,	Adjusted R-squared:  0.9907 
 
 # look at offset corrected CO2 flux (sensu Scott et al 2015) and H corrected
 ggplot(flux) +
