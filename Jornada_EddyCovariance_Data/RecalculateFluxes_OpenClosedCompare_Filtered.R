@@ -1277,6 +1277,49 @@ ggplot(flux,
          size = 1.8
       )
 
+# graph for Kittler correction
+## graph the closed path and provisionally corrected flux with H
+ggplot(flux,
+       aes(co2_flux_closed,fit.model.kittler))+
+  geom_point(size=0.5)+
+  geom_smooth(method="lm")+
+  ylim(c(-10,10))+
+  xlim(c(-10,10))+
+  geom_abline(intercept=0,slope=1, color="dark grey")+
+  theme_bw()+
+  facet_grid(year~month)+
+  
+  geom_text(
+    data = rain_sum,
+    aes(x = -1, y = 8, label = paste0("Rain (mm):", round(total_rain, 1))),
+    inherit.aes = FALSE,
+    size = 1.8
+  )
+
+# graph for Wang correction
+## graph the closed path and provisionally corrected flux with H
+ggplot(flux,
+       aes(co2_flux_closed,fc.wang))+
+  geom_point(size=0.5)+
+  geom_smooth(method="lm")+
+  ylim(c(-10,10))+
+  xlim(c(-10,10))+
+  geom_abline(intercept=0,slope=1, color="dark grey")+
+  theme_bw()+
+  facet_grid(year~month)+
+  
+  geom_text(
+    data = rain_sum,
+    aes(x = -1, y = 8, label = paste0("Rain (mm):", round(total_rain, 1))),
+    inherit.aes = FALSE,
+    size = 1.8
+  )
+
+# regression by month and year for open vs closed
+mod.lm.op.cp <- lm(co2_flux_open~co2_flux_closed*factor(year)*factor(month), data=flux)
+
+summary(mod.lm.op.cp)
+
 # regression by month and year for scott correct
 mod.lm.scott <- lm(fc_wpl_adjust_open~co2_flux_closed*factor(year)*factor(month), data=flux)
 
@@ -1292,8 +1335,19 @@ mod.lm.sf <- lm(fit.model.scottfact~co2_flux_closed*factor(year)*factor(month), 
 
 summary(mod.lm.sf)
 
+# regression by month and year model-estimated kittler correction
+mod.lm.kit <- lm(fit.model.kittler~co2_flux_closed*factor(year)*factor(month), data=flux)
+
+summary(mod.lm.kit)
+
+# regression by month and year Wang H correction
+mod.lm.wang <- lm(fc.wang~co2_flux_closed*factor(year)*factor(month), data=flux)
+
+summary(mod.lm.wang)
+
+
 # compare models
-AIC(mod.lm.scott, mod.lm.h,mod.lm.sf)
+AIC(mod.lm.op.cp, mod.lm.scott, mod.lm.h,mod.lm.sf, mod.lm.kit, mod.lm.wang)
 
 
 # calculate and graph daily with corrected
@@ -1302,6 +1356,8 @@ flux.daily.corr <- flux[,.(fc_open = mean(co2_flux_open, na.rm=TRUE),
                       fc_closed = mean(co2_flux_closed, na.rm=TRUE),
                       fc_hcorr = mean(fc_wpl_hcorr, na.rm=TRUE),
                       fc_modsf = mean(fit.model.scottfact, na.rm=TRUE),
+                      fc_modkit = mean(fit.model.kittler, na.rm=TRUE),
+                      fc_wang = mean(fc.wang, na.rm=TRUE),
                       H_missing = mean(H_missing, na.rm=TRUE),
                       fc_open_sd = sd(co2_flux_open, na.rm=TRUE),
                       fc_adj_open_sd = sd(fc_wpl_adjust_open, na.rm=TRUE),
@@ -1311,7 +1367,34 @@ flux.daily.corr <- flux[,.(fc_open = mean(co2_flux_open, na.rm=TRUE),
                       precip = sum(P_rain_1_1_1_open)),
                    by="date"]
 
-# graph daily
+
+# graph daily Open vs Closed path
+fig.flux.daily.op.cp <- ggplot(flux.daily.corr, aes(x=date))+
+  geom_line(aes(y=fc_open, colour="Open path"),linewidth=0.4)+
+  #geom_errorbar(aes(ymin=fc_open-fc_open_sd,ymax=fc_open+fc_open_sd,colour="Open path") , size=0.2, width=0.1)+
+    geom_line(aes(y=fc_closed, colour="Closed path"),linewidth=0.4)+
+  #geom_errorbar(aes(ymin=fc_closed-fc_closed_sd,ymax=fc_closed+fc_closed_sd,colour="Closed path") , size=0.2, width=0.1)+
+  theme_bw()+
+  facet_grid(.~year(date), scales="free_x")+
+  scale_color_manual(values=cols2, breaks=c("Open path","Closed path"))+
+  labs(y="Mean Daily Flux Rate (umol/m2/s)", x="Date")
+
+# graph daily rainfall
+fig.rain.daily <- ggplot(flux.daily.corr, aes(x=date))+
+  geom_col(aes(y=precip, fill="Daily Rainfall"))+
+  #geom_errorbar(aes(ymin=fc_open-fc_open_sd,ymax=fc_open+fc_open_sd,colour="Open path") , size=0.2, width=0.1)+
+  theme_bw()+
+  facet_grid(.~year(date), scales="free_x")+
+  scale_fill_manual(values=c("blue"),name="")+
+  labs(y="Daily total Rainfall (mm)", x="Date")
+
+# graph daily flux with daily rain
+plot_grid(fig.flux.daily.op.cp+theme(axis.text.x = element_blank(),axis.title.x = element_blank()), 
+          fig.rain.daily,
+          nrow=2,
+          align="v")
+
+# graph daily with H correct
 fig.flux.daily.c <- ggplot(flux.daily.corr, aes(x=date))+
   geom_line(aes(y=fc_open, colour="Open path"),linewidth=0.4)+
   #geom_errorbar(aes(ymin=fc_open-fc_open_sd,ymax=fc_open+fc_open_sd,colour="Open path") , size=0.2, width=0.1)+
@@ -1324,15 +1407,6 @@ fig.flux.daily.c <- ggplot(flux.daily.corr, aes(x=date))+
   scale_color_manual(values=cols3_H, breaks=c("Open path","Closed path","Open path H correct"))+
   labs(y="Mean Daily Flux Rate (umol/m2/s)", x="Date")
 
-# graph daily rainfall
-fig.rain.daily <- ggplot(flux.daily.corr, aes(x=date))+
-  geom_col(aes(y=precip, fill="Daily Rainfall"))+
-  #geom_errorbar(aes(ymin=fc_open-fc_open_sd,ymax=fc_open+fc_open_sd,colour="Open path") , size=0.2, width=0.1)+
-  theme_bw()+
-  facet_grid(.~year(date), scales="free_x")+
-  scale_fill_manual(values=c("blue"),name="")+
-  labs(y="Daily total Rainfall (mm)", x="Date")
-
 
 # graph daily flux with daily rain
 plot_grid(fig.flux.daily.c+theme(axis.text.x = element_blank(),axis.title.x = element_blank()), 
@@ -1340,7 +1414,87 @@ plot_grid(fig.flux.daily.c+theme(axis.text.x = element_blank(),axis.title.x = el
           nrow=2,
           align="v")
 
+
 # compare open, closed, corrected fluxes during day and night
+# graph daily
+fig.flux.daily.1 <- ggplot(flux.daily.corr, aes(x=date))+
+  geom_line(aes(y=fc_open, colour="Open path"),linewidth=0.4)+
+  #geom_errorbar(aes(ymin=fc_open-fc_open_sd,ymax=fc_open+fc_open_sd,colour="Open path") , size=0.2, width=0.1)+
+  geom_line(aes(y=fc_adj_open, colour="Open path adj"),linewidth=0.4)+
+  #geom_errorbar(aes(ymin=fc_adj_open-fc_adj_open_sd,ymax=fc_adj_open+fc_adj_open_sd, colour="Open path adj") , size=0.2, width=0.1)+
+  geom_line(aes(y=fc_closed, colour="Closed path"),linewidth=0.4)+
+  #geom_errorbar(aes(ymin=fc_closed-fc_closed_sd,ymax=fc_closed+fc_closed_sd,colour="Closed path") , size=0.2, width=0.1)+
+  theme_bw()+
+  facet_grid(.~year(date), scales="free_x")+
+  scale_color_manual(values=cols3, breaks=c("Open path","Closed path","Open path adj"))+
+  labs(y="Mean Daily Flux Rate (umol/m2/s)", x="Date")
+
+# graph daily flux with daily rain
+plot_grid(fig.flux.daily.1+theme(axis.text.x = element_blank(),axis.title.x = element_blank()), 
+          fig.rain.daily,
+          nrow=2,
+          align="v")
+
+
+# compare open, closed, scott corrected with nls model
+# graph daily
+fig.flux.daily.2 <- ggplot(flux.daily.corr, aes(x=date))+
+  geom_line(aes(y=fc_open, colour="Open path"),linewidth=0.4)+
+  #geom_errorbar(aes(ymin=fc_open-fc_open_sd,ymax=fc_open+fc_open_sd,colour="Open path") , size=0.2, width=0.1)+
+  geom_line(aes(y=fc_modsf, colour="Open path adj 0.753"),linewidth=0.4)+
+  #geom_errorbar(aes(ymin=fc_adj_open-fc_adj_open_sd,ymax=fc_adj_open+fc_adj_open_sd, colour="Open path adj") , size=0.2, width=0.1)+
+  geom_line(aes(y=fc_closed, colour="Closed path"),linewidth=0.4)+
+  #geom_errorbar(aes(ymin=fc_closed-fc_closed_sd,ymax=fc_closed+fc_closed_sd,colour="Closed path") , size=0.2, width=0.1)+
+  theme_bw()+
+  facet_grid(.~year(date), scales="free_x")+
+  scale_color_manual(values=c("black","#fdbb84","#31a354"), breaks=c("Open path","Closed path","Open path adj 0.753"))+
+  labs(y="Mean Daily Flux Rate (umol/m2/s)", x="Date")
+
+# graph daily flux with daily rain
+plot_grid(fig.flux.daily.2+theme(axis.text.x = element_blank(),axis.title.x = element_blank()), 
+          fig.rain.daily,
+          nrow=2,
+          align="v")
+
+# compare open, closed, kittler nls model
+# graph daily
+fig.flux.daily.3 <- ggplot(flux.daily.corr, aes(x=date))+
+  geom_line(aes(y=fc_open, colour="Open path"),linewidth=0.4)+
+  #geom_errorbar(aes(ymin=fc_open-fc_open_sd,ymax=fc_open+fc_open_sd,colour="Open path") , size=0.2, width=0.1)+
+  geom_line(aes(y=fc_modkit, colour="Open path Kittler"),linewidth=0.4)+
+  #geom_errorbar(aes(ymin=fc_adj_open-fc_adj_open_sd,ymax=fc_adj_open+fc_adj_open_sd, colour="Open path adj") , size=0.2, width=0.1)+
+  geom_line(aes(y=fc_closed, colour="Closed path"),linewidth=0.4)+
+  #geom_errorbar(aes(ymin=fc_closed-fc_closed_sd,ymax=fc_closed+fc_closed_sd,colour="Closed path") , size=0.2, width=0.1)+
+  theme_bw()+
+  facet_grid(.~year(date), scales="free_x")+
+  scale_color_manual(values=c("black","#fdbb84","#31a354"), breaks=c("Open path","Closed path","Open path Kittler"))+
+  labs(y="Mean Daily Flux Rate (umol/m2/s)", x="Date")
+
+# graph daily flux with daily rain
+plot_grid(fig.flux.daily.3+theme(axis.text.x = element_blank(),axis.title.x = element_blank()), 
+          fig.rain.daily,
+          nrow=2,
+          align="v")
+
+# compare open, closed, Wang correction
+# graph daily
+fig.flux.daily.4 <- ggplot(flux.daily.corr, aes(x=date))+
+  geom_line(aes(y=fc_open, colour="Open path"),linewidth=0.4)+
+  #geom_errorbar(aes(ymin=fc_open-fc_open_sd,ymax=fc_open+fc_open_sd,colour="Open path") , size=0.2, width=0.1)+
+  geom_line(aes(y=fc_wang, colour="Open path Wang"),linewidth=0.4)+
+  #geom_errorbar(aes(ymin=fc_adj_open-fc_adj_open_sd,ymax=fc_adj_open+fc_adj_open_sd, colour="Open path adj") , size=0.2, width=0.1)+
+  geom_line(aes(y=fc_closed, colour="Closed path"),linewidth=0.4)+
+  #geom_errorbar(aes(ymin=fc_closed-fc_closed_sd,ymax=fc_closed+fc_closed_sd,colour="Closed path") , size=0.2, width=0.1)+
+  theme_bw()+
+  facet_grid(.~year(date), scales="free_x")+
+  scale_color_manual(values=c("black","#fdbb84","#31a354"), breaks=c("Open path","Closed path","Open path Wang"))+
+  labs(y="Mean Daily Flux Rate (umol/m2/s)", x="Date")
+
+# graph daily flux with daily rain
+plot_grid(fig.flux.daily.4+theme(axis.text.x = element_blank(),axis.title.x = element_blank()), 
+          fig.rain.daily,
+          nrow=2,
+          align="v")
 
 
 # calculate and graph diurnal corrected fluxes
