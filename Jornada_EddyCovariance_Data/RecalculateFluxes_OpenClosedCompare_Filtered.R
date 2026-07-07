@@ -1061,8 +1061,28 @@ model_fit_bc <- nls(co2_flux_closed ~
                     data=flux,
                     start=list(epsilon=0.05))
 
+# check model and calculate predicted values
 summary(model_fit_bc)
 fitY <- predict(model_fit_bc)
+flux[,fit.model.kittler := predict(model_fit_bc,newdata=flux)]
+
+# graph
+ggplot(flux, aes(co2_flux_closed,fit.model.kittler))+
+  geom_point()+
+  geom_abline(yinterecpt=0,slope=1)+
+  ylim(-15,15)+
+  facet_wrap(year+month~.)
+
+# add Wang correction Fwang = FOP + b1*H + b0
+# b1 = 0.014257, b0 = - 0.066828 (in Wang et al 2017)
+flux[,fc.wang := co2_flux_open + 0.014257*H_open - 0.066828]
+
+# graph
+ggplot(flux, aes(co2_flux_closed,fc.wang))+
+  geom_point()+
+  geom_abline(yinterecpt=0,slope=1)+
+  ylim(-15,15)+
+  facet_wrap(year+month~.)
 
 # try calculating Scott-correct scalar to minimize open vs closed
 model_fit_scottfact <- nls(co2_flux_closed ~
@@ -1124,7 +1144,7 @@ ggplot(flux) +
   geom_point(aes(date, fc_wpl_hcorr),color="blue", size=0.1)+
   #ylim(-30,10)+
   facet_grid(.~year, scales="free_x")+
-  labs(title="James: EddyPro corrected CO2 flux (black) and 10% adjusted CO2 flux (green)")
+  labs(title="EddyPro corrected CO2 flux (black) and 10% adjusted CO2 flux (green)")
 
 # look at offset corrected CO2 flux (sensu Scott et al 2015) 
 # and closed-path for reference
@@ -1202,14 +1222,14 @@ ggplot(flux[month==8]) +
   
 # LE
 ggplot(flux) +
-  geom_point(aes(date, LE), color="black",size=0.3)+
+  geom_point(aes(date, LE_open), color="black",size=0.3)+
   geom_point(aes(date, LE_wpl),color="blue", size=0.1)+
   facet_grid(.~year, scales="free_x")+
   labs(title="James: EddyPro corrected LE flux (black) and re-calculated LE flux (red)")
 
 # and in 1;1
 ggplot(flux) +
-  geom_point(aes(LE,LE_wpl),size=0.3)+
+  geom_point(aes(LE_open,LE_wpl),size=0.3)+
   geom_abline(intercept=0,slope=1)+
   labs(title="James: EddyPro corrected and re-calculated CO2 flux")
 
