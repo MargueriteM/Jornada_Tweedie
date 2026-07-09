@@ -711,6 +711,7 @@ flux.daily <- flux[,.(fc_open = mean(co2_flux_open, na.rm=TRUE),
                       LE_open_sd =  mean(LE_open, na.rm=TRUE),
                       LE_closed =  mean(LE_closed, na.rm=TRUE),
                       LE_closed_sd =  mean(LE_closed, na.rm=TRUE),
+                      H_open= mean(H_open, na.rm=TRUE),
                       precip = sum(P_rain_1_1_1_open)),
                       by="date"]
 
@@ -985,6 +986,7 @@ ggplot(flux[day(date)>=10 & day(date)<=20,]) +
 # fc_wpl        =  1000.*( wco2 + ((corrc1a+corrc2a)./(44.01/1e6)));  % converting back to umolm-2s-1
 
 # implement scf and wpl correction for co2 and LE (LE ust to test process)
+# 9 July 2026: add Scott's correction approach between 0.9-0.75 in 0.1 increments
 mu <- 29.002 / 18.02
 flux[,':=' (H_missing = Rn_1_1_1_open-SHF_1_mean-H_open-LE_open)]
 flux[,':=' (wco2 = `w/co2_cov_open`*co2_scf_open,
@@ -1004,6 +1006,8 @@ flux[,':=' (wco2 = `w/co2_cov_open`*co2_scf_open,
              ,':=' (ra=u_rot_open/(`u*_open`)^2, # add ra and Tsensor estimate from Kittler et al 2017
                  Tsens=0.0025*tair^2 + 0.9*tair+2.07+273.15)]
 
+
+
 # DOUBLE CHECK UNITS IN EDDY PRO MANUAL
 # Need H_corr in same unit as wT
 
@@ -1016,9 +1020,6 @@ flux[,':=' (wco2 = `w/co2_cov_open`*co2_scf_open,
 # Cp = Cpa*(1+0.84*qs); % J kg-1 K-1 - Specific heat of moist air
 #   Cpa = 1004.67; % J Kg-1 K-1 - specific heat of dry air
 #   data.rho  % Kg m-3 - moist air density
-
-
-
 
 flux[,':=' (corrc1a =mu*(rho_c/rho_a)*((wq*(18.02/1e6))), 
               corrc2a = rho_c*(1+mu*sigma)*(wT/(tair+273.15)),
@@ -1034,6 +1035,39 @@ flux[,':=' (fc_wpl = 1000* (wco2 + ((corrc1a+corrc2a)/(44.01/1e6))),
               LE_wpl = ((wq*(0.01802/1000))+(corrh1a+corrh2a))*lambda,
             LE_wpl_hcorr = ((wq*(0.01802/1000))+(corrh1a+corrh2a_hcorr))*lambda,
             wpl_open = ((corrc1a+corrc2a)/(44.01/1e6)))]
+
+# 9 July 2026: add Scott's correction approach between 0.9-0.75 in 0.1 increments
+# code with chatGPT
+
+# create sequence of corfacts
+make_fc <- function(dt,
+                    corfacts = seq(0.75, 0.90, by = 0.01)) {
+  
+  # Names: wco2_adjust_090, wco2_adjust_089, etc
+  # Names: fc_wpl_090, fc_wpl_089, etc
+  suffix <- sprintf("%03d", round(corfacts * 100))
+  
+  w_names  <- paste0("wco2_adjust_", suffix)
+  fc_names <- paste0("fc_wpl_", suffix)
+  
+  # Step 1 calculate wco2_adjust
+  dt[, (w_names) :=
+       lapply(corfacts, \(cf)
+              (`w/co2_cov_open` * cf) * co2_scf_open)]
+  
+  # Step 2 calculate fc_wpl
+  dt[, (fc_names) :=
+       lapply(.SD, \(x)
+              1000 * (x + ((corrc1a + corrc2a)/(44.01/1e6)))
+       ),
+     .SDcols = w_names]
+  
+  invisible(dt)
+}
+
+# Run it
+make_fc(flux)
+
 
 # apply QA/QC filtering from open path post-processing after EddyPro to recalculated fluxes:
 # fc_wpl and fc_wpl_adjust
