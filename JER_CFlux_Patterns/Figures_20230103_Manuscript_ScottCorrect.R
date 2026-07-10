@@ -57,16 +57,55 @@ REgapfiles <- list.files(path="~/Desktop/TweedieLab/Projects/Jornada/EddyCovaria
 units.gap <-fread(REgapfiles[1],
                   header=TRUE)[1,]
 
-# read files and bind them into one file. fill=TRUE because of the missing columns in 2011
-flux.gap <- do.call("rbind", lapply(REgapfiles, header = FALSE, fread, skip = 2,
-                                   na.strings=c("-9999", "NA","-"),
-                                   col.names=colnames(units.gap)))
+# # after 2022 the data were processed in 2026 and I think ReddyProc changed the output format
+# # columns range from 83-136. Have to read each file with own column names and then merge. 
+# read_column_number <- function(colname){
+#   ret <- ncol(fread(colname, sep="\t", dec=".", header=TRUE, skip=0)[1,])
+#   obj_name <- tools::file_path_sans_ext(basename(colname))
+#   out <- data.frame(file=obj_name, colnumber=ret)
+#   out
+# }
+# 
+# data1 <- plyr::ldply(REgapfiles, read_column_number)
+
+
+# # read files and bind them into one file. fill=TRUE because of the missing columns in 2011
+# won't work with files added in July 2026
+# flux.gap <- do.call("rbind", lapply(REgapfiles, header = FALSE, fread, skip = 2,
+#                                    na.strings=c("-9999", "NA","-"),
+#                                    col.names=colnames(units.gap)))
+
+# create list of files with column names read and assigned from each individual file
+flux.list <- lapply(REgapfiles, function(f) {
+  # Read just the header
+  hdr <- names(fread(f, nrows = 0))
+  # Read the data, skipping header + units row
+  dt <- fread(
+    f,
+    skip = 2,
+    header = FALSE,
+    col.names = hdr,
+    na.strings = c("-9999", "NA", "-")
+  )
+  dt
+})
+
+# combine files
+flux.gap <- rbindlist(flux.list, fill = TRUE)
 
 # for some reason na.strings won't recognize the -9999
 flux.gap[flux.gap == -9999] <- NA
 
 # quick graph to check import
-ggplot(flux.gap, aes(`Date Time`, NEE_U50_f))+geom_line()
+# 2024 didn't produce NEE_U50_f. It didn't estimate u* quantiles
+ggplot(flux.gap, aes(DoY, NEE_U50_f))+
+  geom_line()+
+  facet_grid(.~Year)
+
+# quick graph to check import
+ggplot(flux.gap, aes(DoY, NEE))+
+  geom_line()+
+  facet_grid(.~Year)
 
 # get the 'edata' to add 2010 to the timeseries eventhough 2010 won't gap fill.... 
 setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered")
@@ -74,6 +113,18 @@ setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filt
 # import data that was filtered by 3SD filter
 # with Scott corrected column included 
 load("JER_flux_2010_2022_EddyPro_FullOutput_filterSD_20230115.Rdata")
+flux.2010.2022 <- copy(flux_filter_sd)
+rm(flux_filter_sd)
+load("JER_flux_202210_202405_EddyPro_FullOutput_filterSD_20240623.Rdata")
+flux.2022.2024 <- copy(flux_filter_sd)
+rm(flux_filter_sd)
+load("JER_flux_202406_202512_EddyPro_FullOutput_filterSD_20260417.Rdata")
+flux.2024.2025 <- copy(flux_filter_sd)
+rm(flux_filter_sd)
+
+# combine
+flux_filter_sd <- rbind(flux.2010.2022[as.Date(date_time)<as.Date("2022-10-01"),], flux.2022.2024, flux.2024.2025,fill=TRUE)
+rm(flux.2010.2022, flux.2022.2024, flux.2024.2025)
 
 # convert date to POSIXct and get a year, day, hour column
 # if this step doesn't work, make sure bit64 library is loaded otherwise the timestamps importa in a non-sensical format
@@ -119,7 +170,7 @@ edata[Rg<0, Rg:=0]
 #  edata <- edata[Year!=max(edata$Year),]
 
 # create a grid of full dates and times
-filled <- expand.grid(date=seq(as.Date("2010-01-01"),as.Date("2022-12-31"), "days"),
+filled <- expand.grid(date=seq(as.Date("2010-01-01"),as.Date("2025-12-31"), "days"),
                       Hour=seq(0,23.5, by=0.5))
 filled$Year <- year(filled$date)
 filled$DoY <- yday(filled$date)
@@ -155,12 +206,16 @@ edata2010 <- as.data.table(subset(edata,Year==2010))
 
 flux.ep <- rbind(edata2010,flux.gap, fill=TRUE)
 
+# check there's no duplicated data
+flux.ep <- (flux.ep[!(duplicated(flux.ep, by=c("Year","DoY","Hour")))])
+
+
 # save the data to have a compiled file easy to access
 # setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20230115_ScottCorrect/")
 # save(file="REddyResults_2010_2022_Compiled_ScottCorrect_Gap.Rdata",flux.ep)
 
 # plot to check
-# NEE_U95_f graph should have 2010 missing
+# NEE_U95_f graph should have 2010 missing (and 2024)
 ggplot(flux.ep, aes(DoY, NEE_U50_f))+geom_line()+facet_grid(.~Year)
 # NEE graph should have all years present
 ggplot(flux.ep, aes(DoY, NEE))+geom_line()+facet_grid(.~Year)
@@ -423,6 +478,9 @@ daily_sum_ec[Year==2019,date:= as.Date(DoY-1, origin = "2019-01-01")]
 daily_sum_ec[Year==2020,date:= as.Date(DoY-1, origin = "2020-01-01")]
 daily_sum_ec[Year==2021,date:= as.Date(DoY-1, origin = "2021-01-01")]
 daily_sum_ec[Year==2022,date:= as.Date(DoY-1, origin = "2022-01-01")]
+daily_sum_ec[Year==2023,date:= as.Date(DoY-1, origin = "2023-01-01")]
+daily_sum_ec[Year==2024,date:= as.Date(DoY-1, origin = "2024-01-01")]
+daily_sum_ec[Year==2025,date:= as.Date(DoY-1, origin = "2025-01-01")]
 
 
 # calculate daily and cumulative precip
@@ -446,7 +504,7 @@ daily_sum <- daily_sum[,year_lab := ifelse(yday(date)==360, Year, NA)]
 #            na="NA", row.names=FALSE)
 
 # calculate cumulative sums
-annual_cum <- daily_sum[Year>2010,list(NEE_cum.ann = sum(NEE_daily),
+annual_cum <- daily_sum[Year>2010,list(NEE_cum.ann = sum(NEE_daily), #Year>2010
                               #GPP_cum = sum(GPP_daily),
                               #Reco_cum = sum(Reco_daily),
                               ET_cum.ann = sum(ET_daily),
@@ -456,7 +514,7 @@ annual_cum <- daily_sum[Year>2010,list(NEE_cum.ann = sum(NEE_daily),
                               temp_max.ann = max(Tair_max, na.rm=TRUE)),
                         by="Year"]
 # add annual cumulative based on 2010 mean dailys
-annual_cum2010 <- daily_sum[Year==2010,list(NEE_cum.ann = (sum(ifelse(is.na(NEE_daily_mean), 0, NEE_daily_mean))),
+annual_cum2010 <- daily_sum[Year %in% c(2010),list(NEE_cum.ann = (sum(ifelse(is.na(NEE_daily_mean), 0, NEE_daily_mean))),
                                   ET_cum.ann = (sum(ifelse(is.na(ET_daily_mean), 0, ET_daily_mean)))),
                             by="Year"]
 
