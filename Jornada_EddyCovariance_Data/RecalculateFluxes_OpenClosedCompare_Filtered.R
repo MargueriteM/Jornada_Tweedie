@@ -13,12 +13,15 @@ library(lubridate) # library for easier date manipulation
 library(data.table) # library for data table which is more efficient with large data sets
 library(reader)
 library(tidyr)
+library(stringr)
 library(lsr) # contains quantileCut function
 library(gridExtra)
 library(viridis)
 library(cowplot)
 library(dplyr)
 library(REddyProc)
+library(RColorBrewer)
+
 #############
 # IMPORT DATA
 #############
@@ -646,13 +649,15 @@ flux.diurn <- flux[,.(fc_open = mean(co2_flux_open, na.rm=TRUE),
                       scf_closed = mean(co2_scf_closed, na.rm=TRUE),
                       wpl_open = mean((corrc1a_open+corrc2a_open)/(44.01/1e6), na.rm=TRUE),
                       wco2_open = mean(wco2_open, na.rm=TRUE),
+                      Rg = mean(Rg_1_1_1_open, na.rm=TRUE),
                       fc_open_sd = sd(co2_flux_open, na.rm=TRUE),
                       fc_adj_open_sd = sd(fc_wpl_adjust_open, na.rm=TRUE),
                       fc_closed_sd = sd(co2_flux_closed, na.rm=TRUE), 
                       scf_open_sd = sd(co2_scf_open, na.rm=TRUE),
                       scf_closed_sd = sd(co2_scf_closed, na.rm=TRUE),
                       wpl_open_sd = sd((corrc1a_open+corrc2a_open)/(44.01/1e6), na.rm=TRUE),
-                      wco2_open_sd = sd(wco2_open, na.rm=TRUE)),
+                      wco2_open_sd = sd(wco2_open, na.rm=TRUE),
+                      Rg_sd = sd(Rg_1_1_1_open, na.rm=TRUE)),
                    by="year,month,half.hour"]
 # graph diurnal fluxes
 ggplot(flux.diurn, aes(x=half.hour))+
@@ -699,6 +704,10 @@ ggplot(flux.diurn, aes(x=half.hour))+
   facet_wrap(year~month)+
  # scale_color_manual(values=cols2, breaks=c("Open path","Closed path") )+
   labs(y="Mean Hourly WPL and w/co2", x="Hour")
+
+# graph the dirunal Rg vs fc_open-fc_closed
+ggplot(flux.diurn, aes(Rg,fc_open-fc_closed))+
+  geom_point()
 
 # calculate the daily fluxes from open, open adjusted, and closed
 flux.daily <- flux[,.(fc_open = mean(co2_flux_open, na.rm=TRUE),
@@ -1062,6 +1071,11 @@ make_fc <- function(dt,
        ),
      .SDcols = w_names]
   
+  # Set filtered rows to NA
+  # use filter_fc_roll_daynight from processing
+  dt[filter_fc_roll_daynight_open != 0,
+     (fc_names) := NA_real_]
+  
   invisible(dt)
 }
 
@@ -1097,7 +1111,6 @@ model_fit_bc <- nls(co2_flux_closed ~
 
 # check model and calculate predicted values
 summary(model_fit_bc)
-fitY <- predict(model_fit_bc)
 flux[,fit.model.kittler := predict(model_fit_bc,newdata=flux)]
 
 # graph
@@ -1607,6 +1620,240 @@ ggplot(flux.diurn.corr, aes(x=half.hour))+
   annotate("text", x = 10, y = -100, label = "H over-estimated", size=2)+
   annotate("text", x = 10, y = 250, label = "H under-estimated",size=2)
 
+# create a new dt with only the fc_wpl from correction factors 0.75-0.9 for full comparison
+# select columns, reshape to long
+
+# Use stringr to match specific column names (e.g., matching "score")
+fc_wpl_cols <- names(flux)[str_detect(names(flux), "fc_wpl_0")]
+
+# 3. Create a new data.table containing only those matched columns
+# Always include 'id' or other tracking columns if needed
+flux_corfacts <- copy(flux[, .SD, .SDcols = c("year","month","date","date_time","half.hour","co2_flux_open",
+                                "co2_flux_closed",fc_wpl_cols)])
+
+flux_corfacts1 <- flux_corfacts |>
+  pivot_longer(
+    !c(year,month,date,date_time,half.hour),
+    names_to = "flux_calc",
+    values_to = "flux",
+    values_drop_na = TRUE
+  ) |>
+  separate_wider_delim(flux_calc,"_",  names=c(NA,NA,"method"),cols_remove=FALSE)|>
+  mutate(method = factor(method,levels = c(sprintf("%03d", 90:75),"closed", "open")))
+
+# make long but keep closed as a column to allow correlation
+flux_corfacts2 <- flux_corfacts |>
+  pivot_longer(
+    !c(year,month,date,date_time,half.hour,co2_flux_closed),
+    names_to = "flux_calc",
+    values_to = "flux",
+    values_drop_na = TRUE
+  ) |>
+  separate_wider_delim(flux_calc,"_",  names=c(NA,NA,"method"),cols_remove=FALSE)|>
+  mutate(method = factor(method,levels = c(sprintf("%03d", 90:75),"closed", "open")))
+
+# make both data tables
+flux_corfacts1 <- as.data.table(flux_corfacts1)
+flux_corfacts2 <- as.data.table(flux_corfacts2)
+
+# graph
+
+# Levels
+ cf_levels <- sprintf("%03d", 90:75)
+# cf_levels <- sprintf("%03d", c(90,87))
+
+# 16 shades of blue
+blues <- colorRampPalette(brewer.pal(9, "Blues"))(length(cf_levels))
+names(blues) <- cf_levels
+
+cols <- c(
+  open = "gold",
+  closed = "black",
+  blues
+)
+
+
+ggplot(flux_corfacts1) +
+  geom_line(aes(date_time, flux,
+                color = method,
+                linewidth = method)) +
+  scale_color_manual(values = cols) +
+  scale_linewidth_manual(
+    values = c(open = 0.5,
+               closed = 0.5,
+               setNames(rep(0.2, 16), cf_levels))
+  )
+
+# graph regressions by year, month, method
+
+ggplot(flux_corfacts2)+
+  geom_smooth(aes(co2_flux_closed,flux,color=method),method="lm",alpha=0)+
+  scale_color_manual(values = cols)+
+  geom_abline(intercept=0,slope=1)+
+  facet_wrap(year+month~.)
+
+# calculate daily
+flux_corfacts_daily <- flux_corfacts1[,.(flux.daily = mean(flux, na.rm=TRUE)),
+                                      by="year,month,date,method"]
+
+# pivot the daily to have co2_flux_closed as it's own column
+flux_corfacts_daily2 <- flux_corfacts_daily |>
+  filter(method=="closed") |>
+  select(year,month,date,flux.daily) |>
+  rename(co2_flux_closed=flux.daily)
+
+flux_corfacts_daily2 <- left_join(flux_corfacts_daily|> filter(method!="closed"),flux_corfacts_daily2,
+                                  by=join_by(year,month,date),relationship = "many-to-many")
+
+# calculate daily cumulative sum
+flux_corfacts_daily <- flux_corfacts_daily[,flux.daily.cum := replace(flux.daily, !is.na(flux.daily),cumsum(na.omit(flux.daily))),
+                                      by="year,method"]
+
+
+# graph the daily patterns
+# ggplot(flux_corfacts_daily[method %in% c("open","closed","090","089","088","087","086","085","084","083","082","081","080"),]) +
+ggplot(flux_corfacts_daily[method %in% c("open","closed","085"),]) +
+  geom_line(aes(date, flux.daily,
+                color = method,
+                linewidth = method)) +
+  scale_color_manual(values = c(open="gold",closed="black","085"="#1B69AF")) +
+  scale_linewidth_manual(
+    values = c(open = 0.5,
+               closed = 0.5,
+               setNames(rep(0.5, length(cf_levels)), cf_levels))
+  ) 
+
+
+# calculate linear regression between 30 minute closed path and different correction factors
+model.lm.corfacts <- flux_corfacts2[
+  ,
+  {
+    fit <- lm(flux ~ co2_flux_closed)
+    
+    .(
+      intercept = coef(fit)[1],
+      slope     = coef(fit)[2],
+      r2        = summary(fit)$r.squared,
+      pvalue    = summary(fit)$coefficients[2,4],
+      rmse      = sqrt(mean(residuals(fit)^2)),
+      aic       = AIC(fit)
+    )
+  },
+  by = method
+]
+
+# graph
+# intercept
+ggplot(model.lm.corfacts, aes(method,intercept))+
+  geom_point()+
+  geom_hline(yintercept=0)
+
+# slope
+ggplot(model.lm.corfacts, aes(method,slope))+
+  geom_point()+
+  geom_hline(yintercept=1)
+
+# r2
+ggplot(model.lm.corfacts, aes(method,r2))+
+  geom_point()+
+  geom_hline(yintercept=1)
+
+# rmse
+ggplot(model.lm.corfacts, aes(method,rmse))+
+  geom_point()+
+  geom_hline(yintercept=1)
+
+# AIC
+ggplot(model.lm.corfacts, aes(method,aic))+
+  geom_point()+
+  geom_hline(yintercept=1)
+
+
+# daily correlation with closed
+# graph daily regressions by year, month, method
+ggplot(flux_corfacts_daily2)+
+  geom_smooth(aes(co2_flux_closed,flux.daily,color=method),method="lm",alpha=0)+
+  scale_color_manual(values = cols)+
+  geom_abline(intercept=0,slope=1)+
+  facet_wrap(year+month~.)
+
+
+# calculate linear regression between daily closed path and different correction factors
+model.lm.corfacts.daily <- flux_corfacts_daily2[
+  ,
+  {
+    fit <- lm(flux.daily ~ co2_flux_closed)
+    
+    .(
+      intercept = coef(fit)[1],
+      slope     = coef(fit)[2],
+      r2        = summary(fit)$r.squared,
+      pvalue    = summary(fit)$coefficients[2,4],
+      rmse      = sqrt(mean(residuals(fit)^2)),
+      aic       = AIC(fit)
+    )
+  },
+  by = method
+]
+
+# graph
+# intercept
+ggplot(model.lm.corfacts.daily, aes(method,intercept))+
+  geom_point()+
+  geom_hline(yintercept=0)
+
+# slope
+ggplot(model.lm.corfacts.daily, aes(method,slope))+
+  geom_point()+
+  geom_hline(yintercept=1)
+
+# r2
+ggplot(model.lm.corfacts.daily, aes(method,r2))+
+  geom_point()+
+  geom_hline(yintercept=1)
+
+# rmse
+ggplot(model.lm.corfacts.daily, aes(method,rmse))+
+  geom_point()+
+  geom_hline(yintercept=1)
+
+# AIC
+ggplot(model.lm.corfacts.daily, aes(method,aic))+
+  geom_point()+
+  geom_hline(yintercept=1)
+
+
+# graph daily cumulative
+#ggplot(flux_corfacts_daily[method %in% c("open","closed","085"),]) +
+ggplot(flux_corfacts_daily) +
+  geom_line(aes(date, flux.daily.cum,
+                color = method,
+                linewidth = method)) +
+  scale_color_manual(values = cols) +
+  scale_linewidth_manual(
+    values = c(open = 0.5,
+               closed = 0.5,
+               setNames(rep(0.5, length(cf_levels)), cf_levels))
+  ) +
+  facet_grid(.~year, scales="free_x")
+
+# calculate diurnal
+flux_corfacts_diurnal <- copy(flux_corfacts1[,.(flux.diurnal = mean(flux, na.rm=TRUE),
+                                                flux.diurnal.sd=sd(flux,na.rm=TRUE)),
+                                             by="year,month,half.hour,method"])
+
+# graph dirunal for each level of scf correction factor
+ggplot(flux_corfacts_diurnal, aes(half.hour,flux.diurnal,color=method,linewidth=method))+
+  geom_line()+scale_color_manual(values = cols) +
+  scale_linewidth_manual(
+    values = c(open = 0.5,
+               closed = 0.5,
+               setNames(rep(0.2, length(cf_levels)), cf_levels))
+  ) +
+  facet_wrap(year+month~.)
+
+  
+
 
 # aggregate dataset for ML to model fluxes guided by closed path
 # variables to include: 
@@ -1672,5 +1919,69 @@ ggplot(flux_ml, aes(x=date_time))+
 # SAVE
 setwd("/Users/memauritz/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered/")
 
-save(flux_ml, file="JER_flux_202307_202512_Open_Closed_ML_input.Rdata")
+# save(flux_ml, file="JER_flux_202307_202512_Open_Closed_ML_input.Rdata")
 
+# create a new set of ML data based on discussion with cove
+# set1: co2_flux_closed ~ cov(w-co2), scf, corrc1a, corrc2a, self-heating term. Is there a scalar for any term that helps match?
+# set2: set 1 + daytime, Rg, LWin, U_rot, U*, H. Does extra biomet data help with prediction?
+# set3: co2_flux_open - co2_flux_closed ~ air temperature, w'Ta', w'pv', pc, rhov, datime, RG, LWin, U_rot, u*, H. what explains OP-CP difference (inspired by Deventer et al 2021)?
+
+
+# set1: co2_flux_closed ~ cov(w-co2), scf, corrc1a, corrc2a, self-heating term. Is there a scalar for any term that helps match?
+flux_ml_set1 <- copy(flux[,self_heat := (((Tsens-air_temperature_open)*rho_c)/(ra*air_temperature_open))*(1 + mu*(rho_h/rho_a))][,.(
+  year,
+  date_time,
+  co2_flux_closed,
+  `w/co2_cov_open`,
+  co2_scf_open,
+  corrc1a,
+  corrc2a,
+  self_heat
+)
+])
+
+# set2: set 1 + daytime, Rg, LWin, U_rot, U*, H. Does extra biomet data help with prediction?
+flux_ml_set2 <- copy(flux[,self_heat := (((Tsens-air_temperature_open)*rho_c)/(ra*air_temperature_open))*(1 + mu*(rho_h/rho_a))][,.(
+  year,
+  date_time,
+  co2_flux_closed,
+  `w/co2_cov_open`,
+  co2_scf_open,
+  corrc1a,
+  corrc2a,
+  self_heat,
+  daytime_open,
+  Rg_1_1_1_open,
+  LWin_1_1_1_open,
+  u_rot_open,
+  `u*_open`,
+  H_open
+)
+])
+
+# set3: co2_flux_open - co2_flux_closed ~ air temperature, w'Ta', w'pv', pc, rhov, datime, RG, LWin, U_rot, u*, H. what explains OP-CP difference (inspired by Deventer et al 2021)?
+flux_ml_set3 <- copy(flux[,flux_op_cp := co2_flux_open-co2_flux_closed][,.(
+  year,
+  date_time,
+  flux_op_cp,
+  tair,
+  wT,
+  wq,
+  rho_c,
+  rho_q,
+  daytime_open,
+  Rg_1_1_1_open,
+  LWin_1_1_1_open,
+  u_rot_open,
+  `u*_open`,
+  H_open
+)
+])
+
+# SAVE
+setwd("/Users/memauritz/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/JER_Out_EddyPro_filtered/")
+
+ save(flux_ml_set1, file="JER_flux_202307_202512_Open_Closed_ML_input_set1.Rdata")
+ save(flux_ml_set2, file="JER_flux_202307_202512_Open_Closed_ML_input_set2.Rdata")
+ save(flux_ml_set3, file="JER_flux_202307_202512_Open_Closed_ML_input_set3.Rdata")
+ 
