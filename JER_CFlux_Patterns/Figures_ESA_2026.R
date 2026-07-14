@@ -266,7 +266,6 @@ plot.nee.hh <- ggplot(flux.ep, aes(DoY,NEE))+
                      expand=c(0,0))+
   labs(y=expression("NEE (μmol C" *O[2]*" "*m^-2* "se" *c^-1*")"),
        x="Month")+
-  facet_grid(.~Year)+
   theme_bw(base_size=14)+
   theme(strip.background = element_blank(),
         # panel.grid.major.y = element_blank(),
@@ -287,7 +286,6 @@ plot.precip.hh <- ggplot(flux_filter_sd, aes(DoY, P_rain_1_1_1))+
                      expand=c(0,0))+
   labs(y="Precipitation (mm)",
        x="Month")+
-  facet_grid(.~Year)+
   theme_bw(base_size=14)+
   theme(strip.background = element_blank(),
         strip.text = element_blank(),
@@ -320,6 +318,93 @@ plot_grid(plot.et.d,
           plot.precip.hh, nrow=2,
           labels="auto",
           align="v")
+
+
+# count consecutive NA values in NEE and LE and calculate the length of NA gaps to remove gap-filled data
+
+# Generate unique group IDs for consecutive NA segments per Year
+flux.ep[, na_grp_nee := rleid(is.na(NEE)), by = Year]
+flux.ep[, na_grp_le := rleid(is.na(LE)), by = Year]
+
+# Filter for NA rows, group by ID and the NA segment, then extract metrics of NA segment length and start/end timestamp
+na_gaps_nee <- flux.ep[is.na(NEE), .(
+  gap_length     = .N,
+  start_time = min(`Date Time`),
+  end_time   = max(`Date Time`)
+), by = .(Year, na_grp_nee)]
+
+View(na_gaps_nee[gap_length>672,])
+
+na_gaps_le <- flux.ep[is.na(LE), .(
+  gap_length     = .N,
+  start_time = min(`Date Time`),
+  end_time   = max(`Date Time`)
+), by = .(Year, na_grp_le)]
+
+View(na_gaps_le[gap_length>672,])
+
+# -------------------------------------------------------------------------
+# DEFINE THE DYNAMIC PURGE FUNCTION TO REMOVE NA GAPS > 672 HALF-HOURS (=48*14=2 WEEKS) FROM SPECIFIED COLUMNS
+# -------------------------------------------------------------------------
+remove_large_gaps <- function(target_dt, gaps_dt, gap_allowed, target_col) {
+  
+  # Filter the gaps table for streaks longer than 672
+  large_gaps <- gaps_dt[gap_length > gap_allowed]
+  
+  # Ensure the target column is evaluated as a real/double type to avoid type warnings
+  target_dt[, (target_col) := as.numeric(get(target_col))]
+  
+  # Use the 'env' argument to dynamically assign the target column name inside the join
+  target_dt[
+    large_gaps, 
+    on = .(Year == Year, `Date Time` >= start_time, `Date Time` <= end_time), 
+    env = list(col = target_col),
+    col := NA_real_
+  ]
+  
+  return(target_dt)
+}
+
+# apply remove large gaps to NEE_U50_f and LE_f
+remove_large_gaps(flux.ep, na_gaps_nee, gap_allowed = 672, target_col = "NEE_U50_f")
+remove_large_gaps(flux.ep, na_gaps_le, gap_allowed = 672, target_col = "LE_f")
+
+# plot to see
+ggplot(flux.ep[Year>2020,], aes(DoY,NEE))+
+  geom_point(colour="#000000", size=0.17)+
+  geom_point(aes(y=NEE_U50_f),data=subset(flux.ep, is.na(NEE)&Year>2020),colour="#808080",size=0.1)+
+  facet_grid(.~Year)+
+  ylim(c(-15,15))+
+  scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
+                     labels=c("Jan","Jul","D"),
+                     minor_breaks =c(31,61,91,121,151,181,211,241,271,301,331,361),
+                     guide="axis_minor",
+                     expand=c(0,0))+
+  labs(y=expression("NEE (μmol C" *O[2]*" "*m^-2* "se" *c^-1*")"),
+       x="Month")+
+  theme_bw(base_size=14)+
+  theme(strip.background = element_blank(),
+        # panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.length =  unit(-0.2,"cm"),
+        ggh4x.axis.ticks.length.minor = rel(0.7))
+
+ggplot(flux.ep[Year>2020,], aes(DoY,(LE/2454000)*1800))+
+  geom_point(colour="#000000", size=0.17)+
+  geom_point(aes(y=(LE_f/2454000)*1800),data=subset(flux.ep, is.na((LE/2454000)*1800)&Year>2020),
+             colour="#808080",size=0.1)+
+  scale_x_continuous(breaks =c(31,211,361),limits=c(1,367),
+                     labels=c("Jan","Jul","D"),
+                     expand=c(0,0))+
+  labs(y=expression("ET (mm/30-min)"),
+       x = "Month")+
+  facet_grid(.~Year)+
+  #ylim(c(-10,10))+
+  theme_bw()+
+  theme(strip.background = element_blank())
+
 
 # calculate daily means and 7-day running means from gap-filled data
 # Daily cummulative amount of carbon exchange (gC) and 7-day running mean
