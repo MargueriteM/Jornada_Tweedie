@@ -464,12 +464,12 @@ daily_sum_ec[DoY>=1 & DoY<305, Hydroyear:=Year] # 1 Jan - 31 Oct
 daily_sum_ec[DoY>=305 & DoY<=366, Hydroyear:=Year+1] # 1 Nov - 31 Dec
 
 # graphically check hydroyear definitions
-ggplot(daily_sum_ec, aes(date, NEE_daily_mean, color=factor(Hydroyear)))+
+ggplot(daily_sum_ec, aes(DoY, NEE_daily_mean, color=factor(Hydroyear)))+
   geom_line()+
   facet_grid(.~Year,scales="free_x")
 
 # graphically check season definitions
-ggplot(daily_sum_ec, aes(date, NEE_daily_mean, color=season))+
+ggplot(daily_sum_ec, aes(DoY, NEE_daily_mean, color=season))+
   geom_line()+
   facet_grid(.~Year,scales="free_x")
 
@@ -521,7 +521,7 @@ daily.comp.et.ts <-ggplot(daily_sum_ec)+
   geom_point(aes(x=DoY, y=ET_daily),colour="darkgrey",size=0.8)+
   geom_point(aes(x=DoY, y=ET_daily_mean),colour="lightblue",size=0.5)+
   facet_grid(.~Year)+
-  labs(y = "Daily Cummulative NEE",x="Day Of Year")+
+  labs(y = "Daily Cummulative ET",x="Day Of Year")+
   theme_bw()+
   theme(axis.ticks.length =  unit(-0.2,"cm"),
         strip.background = element_blank())
