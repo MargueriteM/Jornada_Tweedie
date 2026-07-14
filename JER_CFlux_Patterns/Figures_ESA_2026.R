@@ -216,7 +216,7 @@ flux.ep <- (flux.ep[!(duplicated(flux.ep, by=c("Year","DoY","Hour")))])
 # save the data to have a compiled file easy to access
 # setwd("~/Desktop/TweedieLab/Projects/Jornada/EddyCovariance/ReddyProc/20230115_ScottCorrect/")
 # save(file="REddyResults_2010_2025_Compiled_ScottCorrect_Gap.Rdata",flux.ep)
-
+# load("REddyResults_2010_2025_Compiled_ScottCorrect_Gap.Rdata")
 
 # plot to check
 # NEE_U95_f graph should have 2010 missing (and 2024)
