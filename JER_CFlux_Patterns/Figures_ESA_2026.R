@@ -420,7 +420,13 @@ daily_sum_ec <- daily_sum_dt[,list(NEE_daily = sum(NEE_U50_f*1800*1*10^-6*12.01)
                                    ET_daily_mean = mean((LE/2454000),na.rm=TRUE)*86400,
                                    Tair_mean = mean(Tair),
                                    Tair_max=max(Tair),
-                                   Tair_min=min(Tair)), 
+                                   Tair_min=min(Tair),
+                                   VPD_f_mean = mean(VPD_f),
+                                   VPD_f_max=max(VPD_f),
+                                   VPD_f_min=min(VPD_f),
+                                   VPD_mean = mean(VPD),
+                                   VPD_max=max(VPD),
+                                   VPD_min=min(VPD)), 
                              by="Year,DoY"][,list(DoY,
                                                   NEE_daily, 
                                                   NEE_daily_mean,
@@ -431,6 +437,12 @@ daily_sum_ec <- daily_sum_dt[,list(NEE_daily = sum(NEE_U50_f*1800*1*10^-6*12.01)
                                                   Tair_mean,
                                                   Tair_max,
                                                   Tair_min,
+                                                  VPD_f_mean,
+                                                  VPD_f_max,
+                                                  VPD_f_min,
+                                                  VPD_mean,
+                                                  VPD_max,
+                                                  VPD_min,
                                                   NEE_cum = cumsum(NEE_daily),
                                                   NEE_cum_mean = (cumsum(ifelse(is.na(NEE_daily_mean), 0, NEE_daily_mean)) + NEE_daily_mean*0),
                                                   # GPP_cum = cumsum(GPP_daily),
@@ -438,6 +450,11 @@ daily_sum_ec <- daily_sum_dt[,list(NEE_daily = sum(NEE_U50_f*1800*1*10^-6*12.01)
                                                   ET_cum = cumsum(ET_daily),
                                                   ET_cum_mean = (cumsum(ifelse(is.na(ET_daily_mean), 0, ET_daily_mean)) + ET_daily_mean*0)),
                                             by="Year"]
+# calculate mean nightime NEE ~ Reco and scale out to full day
+daily_sum_night <- daily_sum_dt[Rg_f<5 | Rg<5,list(NEE_night_mean = mean(NEE, na.rm=TRUE)*86400*1*10^-6*12.01), # scale the mean to daily
+                                            by="Year,DoY"]
+
+daily_sum_ec <- left_join(daily_sum_night,daily_sum_ec)
 
 # create a running mean 
 daily_sum_ec[,':=' (NEE_daily_roll = rollmean(x=NEE_daily,
@@ -459,9 +476,20 @@ daily_sum_ec[DoY>=166 & DoY<=273, season:="Monsoon"] # 15 June - 31 Sep
 daily_sum_ec[DoY>273 & DoY<=304, season:="Post-Monsoon"] # 1 Oct - 31 Oct .... still hot but no longer monsoon definition?
 daily_sum_ec[DoY>304 & DoY<=366, season:="Winter"] # 1 Nov - 31 Mar (~Mesquite senesence - Mesquite budbreak)
 
+daily_sum_ec[, season := factor(season, levels=c("Pre-Monsoon","Monsoon","Post-Monsoon","Winter"))]
+
 # hydrological year: 1 Nov - 31 Oct
 daily_sum_ec[DoY>=1 & DoY<305, Hydroyear:=Year] # 1 Jan - 31 Oct
 daily_sum_ec[DoY>=305 & DoY<=366, Hydroyear:=Year+1] # 1 Nov - 31 Dec
+
+# create a hydro DoY
+# leap years: 2012, 2016, 2020, 2024
+leapyears <- c(2012L,2016L,2020L,2024L)
+
+daily_sum_ec[Year %in% leapyears & (DoY>=305 & DoY<=366), DoYh := DoY - 304]
+daily_sum_ec[Year %in% leapyears & (DoY>=1 & DoY<305), DoYh := DoY + 62]
+daily_sum_ec[!(Year %in% leapyears) & (DoY>=305 & DoY<=365), DoYh := DoY - 304]
+daily_sum_ec[!(Year %in% leapyears) & (DoY>=1 & DoY<305), DoYh := DoY + 61]
 
 # graphically check hydroyear definitions
 ggplot(daily_sum_ec, aes(DoY, NEE_daily_mean, color=factor(Hydroyear)))+
@@ -473,6 +501,10 @@ ggplot(daily_sum_ec, aes(DoY, NEE_daily_mean, color=season))+
   geom_line()+
   facet_grid(.~Year,scales="free_x")
 
+# graphically check hydroyear with adjusted DoY and season definitions
+ggplot(daily_sum_ec, aes(DoYh, NEE_daily_mean, color=season))+
+  geom_line()+
+  facet_grid(Hydroyear~.,scales="free_x")
 
 # look at the gap-filled daily sums vs the mean calculation for all years
 daily.comp.co2 <- ggplot(daily_sum_ec,aes(x=NEE_daily, y=NEE_daily_mean))+
@@ -562,3 +594,130 @@ daily_sum <- full_join(daily_sum_ec,precip_daily)
 # add a year label to day 365 of each year
 daily_sum <- daily_sum[,year_lab := ifelse(yday(date)==360, Year, NA)]
 
+# calculate cumulative sums by hydroyear
+
+# move NEE_daily (from NEE_U50) and NEE_daily_mean (from NEE) to same column for cumulative calculations
+daily_sum[Year %in% c(2010),':=' (NEE_daily_calcs = NEE_daily_mean,
+                                  NEE_night_calcs = NEE_night_mean,
+                                  ET_daily_calcs = ET_daily_mean,
+                                  VPD_mean_calcs = VPD_mean,
+                                  VPD_min_calcs = VPD_min,
+                                  VPD_max_calcs = VPD_max)][
+  Year>2010,':=' (NEE_daily_calcs = NEE_daily,
+                  NEE_night_calcs = NEE_night_mean,
+                  ET_daily_calcs = ET_daily,
+                  VPD_mean_calcs = VPD_f_mean,
+                  VPD_min_calcs = VPD_f_min,
+                  VPD_max_calcs = VPD_f_max)]
+
+annual_na_nee <- daily_sum[is.na(NEE_daily_calcs),list(NA.count.nee = .N),by="Hydroyear"]
+annual_na_et <- daily_sum[is.na(ET_daily_calcs),list(NA.count.et = .N),by="Hydroyear"]
+annual_na_precip <- daily_sum[is.na(precip.tot),list(NA.count.precip = .N),by="Hydroyear"]
+
+annual_cum <- daily_sum[
+  ,list(NEE_cum.ann = (sum(ifelse(is.na(NEE_daily_calcs), 0, NEE_daily_calcs))),
+                              ET_cum.ann = (sum(ifelse(is.na(NEE_daily_calcs), 0, NEE_daily_calcs))),
+                              precip_cum.ann = (sum(ifelse(is.na(precip.tot), 0, precip.tot))),
+                              temp_mean.ann = mean(Tair_mean, na.rm=TRUE),
+                              temp_min.ann = min(Tair_min, na.rm=TRUE),
+                              temp_max.ann = max(Tair_max, na.rm=TRUE)),
+                        by="Hydroyear"]
+
+annual_cum <- left_join(annual_cum,annual_na_nee)
+annual_cum <- left_join(annual_cum,annual_na_et)
+annual_cum <- left_join(annual_cum,annual_na_precip)
+
+# exclude hydro year 2026 and years with more than 25 NA
+# graph some annuals just to check
+ggplot(annual_cum[(NA.count.nee<23 | is.na(NA.count.nee)) & Hydroyear<2026,], aes(Hydroyear, NEE_cum.ann))+
+  geom_col(stat="identity")+
+  geom_text(aes(label=NA.count.nee))
+
+# calculate seasonal cumulative by hydroyear
+seasonal_cum <- daily_sum[
+  ,list(NEE_cum = (sum(ifelse(is.na(NEE_daily_calcs), 0, NEE_daily_calcs))),
+        ET_cum = (sum(ifelse(is.na(NEE_daily_calcs), 0, NEE_daily_calcs))),
+        precip_cum = (sum(ifelse(is.na(precip.tot), 0, precip.tot))),
+        temp_mean = mean(Tair_mean, na.rm=TRUE),
+        temp_min = mean(Tair_min, na.rm=TRUE),
+        temp_max = mean(Tair_max, na.rm=TRUE),
+        VPD_f_mean = mean(VPD_f_mean),
+        VPD_f_max=mean(VPD_f_max, na.rm=TRUE),
+        VPD_f_min=mean(VPD_f_min, na.rm=TRUE),
+        VPD_mean = mean(VPD_mean, na.rm=TRUE),
+        VPD_max=mean(VPD_max, na.rm=TRUE),
+        VPD_min=mean(VPD_min, na.rm=TRUE)),
+  by="Hydroyear,season"]
+
+# graph daily seasonals
+# as line
+ggplot(daily_sum, aes(DoY, NEE_daily_calcs, color=factor(Hydroyear)))+
+  geom_line(linewidth=0.7)
+
+# as boxplot
+ggplot(daily_sum, aes(factor(DoY), NEE_daily_calcs, color=season))+
+  geom_boxplot()+
+  geom_hline(yintercept=0, linewidth=1.5)
+
+# night-time NEE
+ggplot(daily_sum, aes(factor(DoY), NEE_night_calcs))+
+  geom_boxplot()+
+  geom_hline(yintercept=0, linewidth=1.5)
+
+# daily and night-time NEE
+ggplot(daily_sum, aes(x=DoY))+
+  geom_line(aes(y=NEE_night_calcs,color="night NEE"))+
+  geom_line(aes(y=NEE_daily_calcs,color="daily NEE"))+
+  geom_hline(yintercept=0, linewidth=1.5)+
+  facet_grid(.~Hydroyear)
+
+# night NEE - NEE ~ GPP
+ggplot(daily_sum, aes(x=DoY))+
+  geom_line(aes(y=NEE_night_calcs-NEE_daily_calcs,color="night NEE-day NEE"))+
+  geom_hline(yintercept=0, linewidth=1.5)+
+  facet_grid(.~Hydroyear)
+
+# ET
+ggplot(daily_sum, aes(factor(DoY), ET_daily_calcs, color=season))+
+  geom_boxplot()+
+  geom_hline(yintercept=0, linewidth=1.5)
+
+# rain
+ggplot(daily_sum, aes(DoY, precip.tot,color=season))+
+  geom_point()+
+  geom_hline(yintercept=0, linewidth=1.5)
+
+# VPD
+ggplot(daily_sum, aes(DoY, VPD_mean_calcs, color=season))+
+  geom_point()+
+  geom_hline(yintercept=0, linewidth=1.5)
+
+# daily uWUE NEE*sprtVPD/ET
+ggplot(daily_sum, aes(DoY, (NEE_daily_calcs*sqrt(VPD_mean_calcs))/ET_daily_calcs,color=factor(season)))+
+  geom_line(linewidth = 0.4)+
+  facet_grid(.~Hydroyear)+
+  ylim(-10,10)
+
+# daily VPD vs ET
+ggplot(daily_sum, aes(VPD_mean_calcs, ET_daily_calcs,color=factor(season)))+
+  geom_point(size = 0.4)
+
+# daily VPD vs NEE
+ggplot(daily_sum, aes(VPD_mean_calcs, NEE_daily_calcs,color=factor(season)))+
+  geom_point(size = 0.4)
+
+# graph seasonal cumualtives
+# NEE
+ggplot(seasonal_cum, aes(factor(Hydroyear),NEE_cum))+
+  geom_col(stat="identity")+
+  facet_grid(.~season)
+
+# ET
+ggplot(seasonal_cum, aes(factor(Hydroyear),ET_cum))+
+  geom_col(stat="identity")+
+  facet_grid(.~season)
+
+# precip
+ggplot(seasonal_cum, aes(factor(Hydroyear),precip_cum))+
+  geom_col(stat="identity")+
+  facet_grid(.~season)
