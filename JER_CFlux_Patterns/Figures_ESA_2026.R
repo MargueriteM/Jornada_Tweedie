@@ -14,6 +14,7 @@ library(lubridate)
 library(gridExtra)
 library(dplyr)
 library(ggplot2)
+library(ggpubr)
 library(ggh4x) # hacks for ggplot
 library(gtable)
 library(grid)
@@ -25,10 +26,13 @@ library(scales)
 library(tidyr)
 library(egg) # for tag_facet function to add a,b,c etc to individual facets in ggplot
 library(bigleaf) # for ET conversion
+library(forcats)
+library(rstatix)
+library(colorspace)
+library(MuMIn)
 
 # create a path for saving figures
-figpath <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/MauritzLab_Personal/Manuscripts/JRN_Patterns_Controls/Figures"
-tablepath <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/MauritzLab_Personal/Manuscripts/JRN_Patterns_Controls/Tables"
+figpath <- "/Users/memauritz/Library/CloudStorage/OneDrive-UniversityofTexasatElPaso/MauritzLab_Personal/Conferences/2026/ESA"
 
 ######
 # custom function from tag_facet to add a,b,c plot labels to individual facets
@@ -414,8 +418,8 @@ ggplot(flux.ep[Year>2020,], aes(DoY,(LE/2454000)*1800))+
 daily_sum_dt <- as.data.table((flux.ep))
 daily_sum_ec <- daily_sum_dt[,list(NEE_daily = sum(NEE_U50_f*1800*1*10^-6*12.01),
                                    NEE_daily_mean = mean(NEE, na.rm=TRUE)*86400*1*10^-6*12.01, # scale the mean to daily
-                                   #  GPP_daily = sum(GPP_U50_f*1800*1*10^-6*12.01),
-                                   # Reco_daily = sum(Reco_U50*1800*1*10^-6*12.01),
+                                  #GPP_daily = sum(GPP_U50_f*1800*1*10^-6*12.01),
+                                  # Reco_daily = sum(Reco_U50*1800*1*10^-6*12.01),
                                    ET_daily = sum((LE_f/2454000)*1800), # (amount of energy to evaporate a unit weight of water; 2454000 J kg-1).
                                    ET_daily_mean = mean((LE/2454000),na.rm=TRUE)*86400,
                                    Tair_mean = mean(Tair),
@@ -430,8 +434,8 @@ daily_sum_ec <- daily_sum_dt[,list(NEE_daily = sum(NEE_U50_f*1800*1*10^-6*12.01)
                              by="Year,DoY"][,list(DoY,
                                                   NEE_daily, 
                                                   NEE_daily_mean,
-                                                  # GPP_daily,
-                                                  # Reco_daily,
+                                                   #GPP_daily,
+                                                   #Reco_daily,
                                                   ET_daily,
                                                   ET_daily_mean,
                                                   Tair_mean,
@@ -454,7 +458,7 @@ daily_sum_ec <- daily_sum_dt[,list(NEE_daily = sum(NEE_U50_f*1800*1*10^-6*12.01)
 daily_sum_night <- daily_sum_dt[Rg_f<5 | Rg<5,list(NEE_night_mean = mean(NEE, na.rm=TRUE)*86400*1*10^-6*12.01), # scale the mean to daily
                                             by="Year,DoY"]
 
-daily_sum_ec <- left_join(daily_sum_night,daily_sum_ec)
+daily_sum_ec <- left_join(daily_sum_ec,daily_sum_night)
 
 # create a running mean 
 daily_sum_ec[,':=' (NEE_daily_roll = rollmean(x=NEE_daily,
@@ -470,13 +474,13 @@ daily_sum_ec[,':=' (NEE_daily_roll = rollmean(x=NEE_daily,
 # Based on Biederman et al 2018: https://www.tucson.ars.ag.gov/unit/publications/PDFfiles/2394.pdf 
 
 # seasons
-daily_sum_ec[DoY>=1 & DoY<=90, season:="Winter"] # 1 Nov - 31 Mar (~Mesquite senesence - Mesquite budbreak)
-daily_sum_ec[DoY>90 & DoY<166, season:="Pre-Monsoon"] # 1 Apr - 14 Jun
-daily_sum_ec[DoY>=166 & DoY<=273, season:="Monsoon"] # 15 June - 31 Sep
-daily_sum_ec[DoY>273 & DoY<=304, season:="Post-Monsoon"] # 1 Oct - 31 Oct .... still hot but no longer monsoon definition?
-daily_sum_ec[DoY>304 & DoY<=366, season:="Winter"] # 1 Nov - 31 Mar (~Mesquite senesence - Mesquite budbreak)
+daily_sum_ec[DoY>=1 & DoY<=90, ':=' (season="Winter", seasonlength=(90-1)+1)] # 1 Nov - 31 Mar (~Mesquite senesence - Mesquite budbreak)
+daily_sum_ec[DoY>90 & DoY<166, ':=' (season="Pre-Monsoon", seasonlength=(165-91)+1)] # 1 Apr - 14 Jun
+daily_sum_ec[DoY>=166 & DoY<=273, ':=' (season="Monsoon", seasonlength=(273-166)+1)] # 15 June - 31 Sep
+daily_sum_ec[DoY>273 & DoY<=304, ':=' (season="Post-Monsoon", seasonlength=(304-274)+1)] # 1 Oct - 31 Oct .... still hot but no longer monsoon definition?
+daily_sum_ec[DoY>304 & DoY<=366, ':=' (season="Winter")] # 1 Nov - 31 Mar (~Mesquite senesence - Mesquite budbreak)
 
-daily_sum_ec[, season := factor(season, levels=c("Pre-Monsoon","Monsoon","Post-Monsoon","Winter"))]
+daily_sum_ec[, season := factor(season, levels=c("Winter","Pre-Monsoon","Monsoon","Post-Monsoon"))]
 
 # hydrological year: 1 Nov - 31 Oct
 daily_sum_ec[DoY>=1 & DoY<305, Hydroyear:=Year] # 1 Jan - 31 Oct
@@ -491,13 +495,17 @@ daily_sum_ec[Year %in% leapyears & (DoY>=1 & DoY<305), DoYh := DoY + 62]
 daily_sum_ec[!(Year %in% leapyears) & (DoY>=305 & DoY<=365), DoYh := DoY - 304]
 daily_sum_ec[!(Year %in% leapyears) & (DoY>=1 & DoY<305), DoYh := DoY + 61]
 
+# add seasonlength for winter
+daily_sum_ec[Year %in% leapyears & season %in% "Winter", seasonlength := (366-305)+1]
+daily_sum_ec[!(Year %in% leapyears) & season %in% "Winter", seasonlength := (365-305)+1]
+
 # graphically check hydroyear definitions
 ggplot(daily_sum_ec, aes(DoY, NEE_daily_mean, color=factor(Hydroyear)))+
   geom_line()+
   facet_grid(.~Year,scales="free_x")
 
 # graphically check season definitions
-ggplot(daily_sum_ec, aes(DoY, NEE_daily_mean, color=season))+
+ggplot(daily_sum_ec, aes(DoYh, NEE_daily_mean, color=season))+
   geom_line()+
   facet_grid(.~Year,scales="free_x")
 
@@ -505,6 +513,17 @@ ggplot(daily_sum_ec, aes(DoY, NEE_daily_mean, color=season))+
 ggplot(daily_sum_ec, aes(DoYh, NEE_daily_mean, color=season))+
   geom_line()+
   facet_grid(Hydroyear~.,scales="free_x")
+
+# plot season lengths
+ggplot(daily_sum_ec, aes(season, seasonlength))+geom_point()
+
+# graph NEE, GPP, Reco
+ggplot(daily_sum_ec, aes(x=DoYh))+
+  geom_line(aes(y=NEE_daily_mean,color="NEE"))+
+  geom_line(aes(y=GPP_daily,color="GPP"))+
+  geom_line(aes(y=Reco_daily,color="Reco"))+
+  facet_grid(.~Year,scales="free_x")
+
 
 # look at the gap-filled daily sums vs the mean calculation for all years
 daily.comp.co2 <- ggplot(daily_sum_ec,aes(x=NEE_daily, y=NEE_daily_mean))+
@@ -591,6 +610,36 @@ precip_daily <- flux_filter[,date:=as.Date(date_time)][!is.na(P_rain_1_1_1),
 # combine daily fluxes with daily precip
 daily_sum <- full_join(daily_sum_ec,precip_daily)
 
+# re-add hydrological year: 1 Nov - 31 Oct
+daily_sum[is.na(Hydroyear) & yday(date)>=1 & yday(date)<305, Hydroyear:=Year] # 1 Jan - 31 Oct
+daily_sum[is.na(Hydroyear) & yday(date)>=305 & yday(date)<=366, Hydroyear:=Year+1] # 1 Nov - 31 Dec
+
+# create a hydro DoY
+# leap years: 2012, 2016, 2020, 2024
+daily_sum[is.na(DoYh) & Year %in% leapyears & (yday(date)>=305 & yday(date)<=366), DoYh := DoY - 304]
+daily_sum[is.na(DoYh) & Year %in% leapyears & (yday(date)>=1 & yday(date)<305), DoYh := DoY + 62]
+daily_sum[is.na(DoYh) & !(Year %in% leapyears) & (yday(date)>=305 & yday(date)<=365), DoYh := DoY - 304]
+daily_sum[is.na(DoYh) & !(Year %in% leapyears) & (yday(date)>=1 & yday(date)<305), DoYh := DoY + 61]
+
+
+# seasons
+daily_sum[DoY>=1 & DoY<=90, ':=' (season="Winter", seasonlength=(90-1)+1)] # 1 Nov - 31 Mar (~Mesquite senesence - Mesquite budbreak)
+daily_sum[DoY>90 & DoY<166, ':=' (season="Pre-Monsoon", seasonlength=(165-91)+1)] # 1 Apr - 14 Jun
+daily_sum[DoY>=166 & DoY<=273, ':=' (season="Monsoon", seasonlength=(273-166)+1)] # 15 June - 31 Sep
+daily_sum[DoY>273 & DoY<=304, ':=' (season="Post-Monsoon", seasonlength=(304-274)+1)] # 1 Oct - 31 Oct .... still hot but no longer monsoon definition?
+daily_sum[DoY>304 & DoY<=366, ':=' (season="Winter")] # 1 Nov - 31 Mar (~Mesquite senesence - Mesquite budbreak)
+
+daily_sum[, season := factor(season, levels=c("Winter","Pre-Monsoon","Monsoon","Post-Monsoon"))]
+
+# add seasonlength for winter
+daily_sum[Year %in% leapyears & season %in% "Winter", seasonlength := (366-305)+1]
+daily_sum[!(Year %in% leapyears) & season %in% "Winter", seasonlength := (365-305)+1]
+
+# graph daily precip
+ggplot(daily_sum, aes(DoYh, precip.tot,color=season))+
+  geom_line()+
+  facet_grid(.~Hydroyear)
+
 # add a year label to day 365 of each year
 daily_sum <- daily_sum[,year_lab := ifelse(yday(date)==360, Year, NA)]
 
@@ -608,116 +657,667 @@ daily_sum[Year %in% c(2010),':=' (NEE_daily_calcs = NEE_daily_mean,
                   ET_daily_calcs = ET_daily,
                   VPD_mean_calcs = VPD_f_mean,
                   VPD_min_calcs = VPD_f_min,
-                  VPD_max_calcs = VPD_f_max)]
+                  VPD_max_calcs = VPD_f_max)][
+  Year %in% c(2024),':=' (NEE_daily_calcs = NEE_daily_mean)]
 
 annual_na_nee <- daily_sum[is.na(NEE_daily_calcs),list(NA.count.nee = .N),by="Hydroyear"]
 annual_na_et <- daily_sum[is.na(ET_daily_calcs),list(NA.count.et = .N),by="Hydroyear"]
 annual_na_precip <- daily_sum[is.na(precip.tot),list(NA.count.precip = .N),by="Hydroyear"]
+annual_days_precip <- daily_sum[precip.tot>0,list(day.count.precip = .N),by="Hydroyear"]
 
 annual_cum <- daily_sum[
   ,list(NEE_cum.ann = (sum(ifelse(is.na(NEE_daily_calcs), 0, NEE_daily_calcs))),
-                              ET_cum.ann = (sum(ifelse(is.na(NEE_daily_calcs), 0, NEE_daily_calcs))),
+                              ET_cum.ann = (sum(ifelse(is.na(ET_daily_calcs), 0, ET_daily_calcs))),
                               precip_cum.ann = (sum(ifelse(is.na(precip.tot), 0, precip.tot))),
                               temp_mean.ann = mean(Tair_mean, na.rm=TRUE),
-                              temp_min.ann = min(Tair_min, na.rm=TRUE),
-                              temp_max.ann = max(Tair_max, na.rm=TRUE)),
+                              temp_min.ann = mean(Tair_min, na.rm=TRUE),
+                              temp_max.ann = mean(Tair_max, na.rm=TRUE)),
                         by="Hydroyear"]
 
 annual_cum <- left_join(annual_cum,annual_na_nee)
 annual_cum <- left_join(annual_cum,annual_na_et)
 annual_cum <- left_join(annual_cum,annual_na_precip)
+annual_cum <- left_join(annual_cum,annual_days_precip)
 
-# exclude hydro year 2026 and years with more than 25 NA
+# add source/sink column to color
+annual_cum[NEE_cum.ann>0 , source_sink := "Source"]
+annual_cum[NEE_cum.ann<=0 , source_sink := "Sink"]
+
+# exclude hydro year 2026 and years with more than 36 NA
 # graph some annuals just to check
-ggplot(annual_cum[(NA.count.nee<23 | is.na(NA.count.nee)) & Hydroyear<2026,], aes(Hydroyear, NEE_cum.ann))+
+p10 <- ggplot(annual_cum[(NA.count.nee<36 | is.na(NA.count.nee)) &  Hydroyear<2026,],
+                     aes(Hydroyear, NEE_cum.ann, fill=source_sink))+
   geom_col(stat="identity")+
-  geom_text(aes(label=NA.count.nee))
+  #geom_text(aes(label=NA.count.nee))+
+  geom_hline(yintercept=0)+
+  xlim(2009,2026)+
+  geom_hline(yintercept = 0,
+                             linewidth = 0.5,
+                             color = "grey40") +
+  scale_fill_manual(values = c("Sink" = "green4", "Source" = "salmon4"), name="") +
+  labs(y=expression("Annual NEE (gC" *m^-2*")"), x="Hydroyear")+
+  theme_bw(base_size=20)+
+  theme(
+    # Direction: Negative length forces ticks inside the plot area
+    axis.ticks.length = unit(-0.15, "cm"),
+    
+    # Padding: Push text away from the new inward ticks to avoid overlap
+    axis.text.x = element_text(margin = margin(t = 0.3, unit = "cm")),
+    axis.text.y = element_text(margin = margin(r = 0.3, unit = "cm"))
+  )
+
+# annual precip
+# from daily graph above, exclude years: 2010, 2011, 2026
+pl.ann.precip <- ggplot(annual_cum[!(Hydroyear %in% c(2010, 2011 ,2026))&!is.na(Hydroyear),], aes(Hydroyear, precip_cum.ann))+
+  geom_col(stat="identity")+
+  geom_hline(yintercept=241)+
+  xlim(2009,2026)
+
+
+p10 + coord_flip()
+
+# annual temperature
+# from daily graph above, exclude years: 2010, 2011, 2026
+ggplot(annual_cum[!(Hydroyear %in% c(2010, 2017, 2018, 2026))&!is.na(Hydroyear),], aes(Hydroyear, temp_mean.ann))+
+  geom_point()+
+  geom_line()+
+  xlim(2009,2026)
 
 # calculate seasonal cumulative by hydroyear
 seasonal_cum <- daily_sum[
-  ,list(NEE_cum = (sum(ifelse(is.na(NEE_daily_calcs), 0, NEE_daily_calcs))),
-        ET_cum = (sum(ifelse(is.na(NEE_daily_calcs), 0, NEE_daily_calcs))),
+  ,list(seasonlength = mean(seasonlength),
+        NEE_cum = (sum(ifelse(is.na(NEE_daily_calcs), 0, NEE_daily_calcs))),
+        ET_cum = (sum(ifelse(is.na(ET_daily_calcs), 0, ET_daily_calcs))),
         precip_cum = (sum(ifelse(is.na(precip.tot), 0, precip.tot))),
         temp_mean = mean(Tair_mean, na.rm=TRUE),
         temp_min = mean(Tair_min, na.rm=TRUE),
         temp_max = mean(Tair_max, na.rm=TRUE),
-        VPD_f_mean = mean(VPD_f_mean),
-        VPD_f_max=mean(VPD_f_max, na.rm=TRUE),
-        VPD_f_min=mean(VPD_f_min, na.rm=TRUE),
-        VPD_mean = mean(VPD_mean, na.rm=TRUE),
-        VPD_max=mean(VPD_max, na.rm=TRUE),
-        VPD_min=mean(VPD_min, na.rm=TRUE)),
+        VPD_mean = mean(VPD_mean_calcs, na.rm=TRUE),
+        VPD_max=mean(VPD_max_calcs, na.rm=TRUE),
+        VPD_min=mean(VPD_min_calcs, na.rm=TRUE)),
   by="Hydroyear,season"]
 
-# graph daily seasonals
-# as line
-ggplot(daily_sum, aes(DoY, NEE_daily_calcs, color=factor(Hydroyear)))+
-  geom_line(linewidth=0.7)
+seasonal_na_nee <- daily_sum[is.na(NEE_daily_calcs),list(NA.count.nee.s = .N),by="Hydroyear,season"]
+seasonal_na_et <- daily_sum[is.na(ET_daily_calcs),list(NA.count.et.s = .N),by="Hydroyear,season"]
+seasonal_na_precip <- daily_sum[is.na(precip.tot),list(NA.count.precip.s = .N),by="Hydroyear,season"]
+seasonal_days_precip <- daily_sum[precip.tot>0,list(day.count.precip.s = .N),by="Hydroyear,season"]
 
-# as boxplot
-ggplot(daily_sum, aes(factor(DoY), NEE_daily_calcs, color=season))+
-  geom_boxplot()+
-  geom_hline(yintercept=0, linewidth=1.5)
+# add counts of NAs and number of rain days to seasonal
+seasonal_cum <- left_join(seasonal_cum, seasonal_na_nee)
+seasonal_cum <- left_join(seasonal_cum, seasonal_na_et)
+seasonal_cum <- left_join(seasonal_cum, seasonal_na_precip)
+seasonal_cum <- left_join(seasonal_cum, seasonal_days_precip)
+
+# calculate rainfall intensity: precip_cum/day.count.precip.s
+seasonal_cum[,precip_intensity := precip_cum/day.count.precip.s]
+
+# calculate na count/seasonlength
+seasonal_cum[, ":=" (na_nee_prop = NA.count.nee.s/seasonlength,
+                     na_et_prop = NA.count.et.s/seasonlength,
+                     na_precip_prop = NA.count.precip.s/seasonlength)]
+
+# create wide format for season
+seasonal_cum_wide <- seasonal_cum %>%
+  select(Hydroyear, season, NEE_cum, ET_cum, precip_cum, temp_mean, temp_max, temp_min, VPD_mean, VPD_max, VPD_min,
+         precip_intensity, na_nee_prop, na_et_prop, na_precip_prop) %>%
+  pivot_wider(names_from = season,
+              names_sep="_",
+              values_from = c(NEE_cum, ET_cum, precip_cum, temp_mean, temp_max, temp_min, VPD_mean, VPD_max, VPD_min,
+                              precip_intensity, na_nee_prop, na_et_prop, na_precip_prop))
+
+# join annual cum and seasonal wide, if needed
+ seasonal_ann_cum_wide <- left_join(annual_cum, seasonal_cum_wide)
+
+# add annual cum to seasonal cum
+seasonal_ann_cum <- left_join(seasonal_cum, annual_cum, relationship = "many-to-many")
+
+# graph daily seasonals
+
+# define season colors
+season_cols <- c(
+  "Winter" = "#4C78A8",
+  "Pre-Monsoon" = "#C8A165",
+  "Monsoon" = "#2A9D55",
+  "Post-Monsoon" = "#C65D2E")
+
+season_outline <- lighten(season_cols, amount = 0.35)
+
+# NEE
+
+# as mean
+p3<-  daily_sum %>%
+    group_by(DoYh)%>%
+    summarise(NEE_mean = mean (NEE_daily_calcs, na.rm=TRUE),
+              NEE_sd = sd (NEE_daily_calcs, na.rm=TRUE),
+              season=unique(season))%>%
+    ggplot(., aes(x=DoYh, y=NEE_mean, color=season, fill=season))+
+    geom_ribbon(aes(ymin=NEE_mean-NEE_sd, ymax=NEE_mean+NEE_sd),alpha = 0.18, color = NA) +
+  geom_line(linewidth = 1.2) +
+  geom_hline(yintercept = 0,
+             linewidth = 0.5,
+             color = "grey40") +
+    scale_color_manual(values = season_cols) +
+    scale_fill_manual(values = season_cols) +
+    scale_x_continuous(
+      breaks = c(1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335),
+      labels = month.abb[c(11,12,1:10)],
+      expand = c(0,0)
+    )+
+    labs(y=expression("Mean Daily NEE (gC" *m^-2*")"), x="Month")+
+    theme_bw(base_size=16)
+  
+# save
+ggsave(plot=p3+ theme(legend.position = "none"), filename="Fig_NEE_seasonal.pdf", path=figpath, width=20, height=5, units="in", scale=0.78)
+
 
 # night-time NEE
-ggplot(daily_sum, aes(factor(DoY), NEE_night_calcs))+
+ggplot(daily_sum, aes(factor(DoYh), NEE_night_calcs))+
   geom_boxplot()+
   geom_hline(yintercept=0, linewidth=1.5)
 
-# daily and night-time NEE
-ggplot(daily_sum, aes(x=DoY))+
-  geom_line(aes(y=NEE_night_calcs,color="night NEE"))+
-  geom_line(aes(y=NEE_daily_calcs,color="daily NEE"))+
-  geom_hline(yintercept=0, linewidth=1.5)+
-  facet_grid(.~Hydroyear)
 
-# night NEE - NEE ~ GPP
-ggplot(daily_sum, aes(x=DoY))+
-  geom_line(aes(y=NEE_night_calcs-NEE_daily_calcs,color="night NEE-day NEE"))+
-  geom_hline(yintercept=0, linewidth=1.5)+
-  facet_grid(.~Hydroyear)
+# rain and temperature combined
+p1 <- daily_sum %>%
+  group_by(DoYh)%>%
+  summarise(precip_mean = mean (precip.tot, na.rm=TRUE),
+            precip_sd = sd (precip.tot, na.rm=TRUE),
+            temp_mean = mean (Tair_mean, na.rm=TRUE),
+            temp_sd = sd (Tair_mean, na.rm=TRUE),
+            season=unique(season))%>%
+  ggplot(., aes(x=DoYh, color=season, fill=season))+
+  geom_col(aes(y=precip_mean, fill=season),color="white",linewidth=0.1) +
+  geom_errorbar(aes(ymin=precip_mean, ymax=precip_mean+precip_sd), linewidth=0.2) +
+  geom_line(aes(y=temp_mean/2),linewidth=1) +
+  geom_ribbon(aes(ymin=(temp_mean-temp_sd)/2, ymax=(temp_mean+temp_sd)/2), alpha=0.18, color=NA) +
+  scale_color_manual(values = season_cols, name="Season") +
+  scale_fill_manual(values = season_cols,  name="Season") +
+  scale_x_continuous(
+    breaks = c(1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335),
+    labels = month.abb[c(11,12,1:10)],
+    expand = c(0,0)
+  )+
+  labs(x="Month")+
+  scale_y_continuous(name="Mean Daily Rainfall (mm)",
+                     sec.axis=sec_axis(~.*2, name=expression("Mean Daily Air Temperature ("~degree~"C)")))+
+  theme_bw(base_size=16)
 
-# ET
-ggplot(daily_sum, aes(factor(DoY), ET_daily_calcs, color=season))+
-  geom_boxplot()+
-  geom_hline(yintercept=0, linewidth=1.5)
 
-# rain
-ggplot(daily_sum, aes(DoY, precip.tot,color=season))+
-  geom_point()+
-  geom_hline(yintercept=0, linewidth=1.5)
+# VPD time series
+p2 <- daily_sum %>%
+  group_by(DoYh)%>%
+  summarise(VPD_mean = mean (VPD_mean_calcs, na.rm=TRUE),
+            VPD_sd = sd (VPD_mean_calcs, na.rm=TRUE),
+            season=unique(season))%>%
+  ggplot(., aes(x=DoYh, color=season, fill=season))+
+  geom_line(aes(y=VPD_mean),linewidth=1) +
+  geom_ribbon(aes(ymin=(VPD_mean-VPD_sd), ymax=(VPD_mean+VPD_sd)), alpha=0.18, color=NA) +
+  scale_color_manual(values = season_cols, name="Season") +
+  scale_fill_manual(values = season_cols,  name="Season") +
+  scale_x_continuous(
+    breaks = c(1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335),
+    labels = month.abb[c(11,12,1:10)],
+    expand = c(0,0)
+  )+
+  labs(y="Mean Daily VPD", x="Month")+
+  theme_bw(base_size=16)
 
-# VPD
-ggplot(daily_sum, aes(DoY, VPD_mean_calcs, color=season))+
-  geom_point()+
-  geom_hline(yintercept=0, linewidth=1.5)
+
+# graph rain/temp and VPD time series together
+grid.arrange(p1 + theme(legend.position = "none"),
+             p2 + theme(legend.position = "none"),
+             nrow=2)
+
+# save figures
+ggsave(plot=p1+ theme(legend.position = "none"), filename="Fig_Rain_Temp_seasonal.pdf", path=figpath, width=20, height=5, units="in", scale=0.78)
+ggsave(plot=p2+ theme(legend.position = "none"), filename="Fig_VPD_seasonal.pdf", path=figpath, width=20, height=5, units="in", scale=0.78)
+
 
 # daily uWUE NEE*sprtVPD/ET
-ggplot(daily_sum, aes(DoY, (NEE_daily_calcs*sqrt(VPD_mean_calcs))/ET_daily_calcs,color=factor(season)))+
+ggplot(daily_sum, aes(DoYh, (NEE_daily_calcs*sqrt(VPD_mean_calcs))/ET_daily_calcs,color=factor(season)))+
   geom_line(linewidth = 0.4)+
-  facet_grid(.~Hydroyear)+
+  #facet_grid(.~Hydroyear)+
   ylim(-10,10)
 
-# daily VPD vs ET
-ggplot(daily_sum, aes(VPD_mean_calcs, ET_daily_calcs,color=factor(season)))+
-  geom_point(size = 0.4)
-
-# daily VPD vs NEE
-ggplot(daily_sum, aes(VPD_mean_calcs, NEE_daily_calcs,color=factor(season)))+
-  geom_point(size = 0.4)
 
 # graph seasonal cumualtives
-# NEE
-ggplot(seasonal_cum, aes(factor(Hydroyear),NEE_cum))+
+
+# NEE stack seasonal bars - drop years without annual budget
+# if selecting 75% full seasons: na_nee_prop<0.25 | is.na(na_nee_prop)
+p9 <- seasonal_ann_cum %>%
+  #mutate(season_stack = fct_reorder(season, desc(NEE_cum)))%>%
+  filter((NA.count.nee<36 | is.na(NA.count.nee)) & Hydroyear<2026) %>%
+ggplot(., aes(Hydroyear,NEE_cum,fill=season))+
   geom_col(stat="identity")+
-  facet_grid(.~season)
+  geom_hline(yintercept = 0,
+             linewidth = 0.5,
+             color = "grey40") +
+  xlim(c(2009,2026))+
+  labs(x="Hydrological Year", y=expression("NEE (gC" *m^-2*")"))+
+  scale_fill_manual(values = season_cols, name="Season") +
+  coord_flip()+
+  theme_bw(base_size = 20)+
+  theme(
+    # Direction: Negative length forces ticks inside the plot area
+    axis.ticks.length = unit(-0.15, "cm"),
+    
+    # Padding: Push text away from the new inward ticks to avoid overlap
+    axis.text.x = element_text(margin = margin(t = 0.3, unit = "cm")),
+    axis.text.y = element_text(margin = margin(r = 0.3, unit = "cm"))
+  )
+
+# NEE seasonal boxplot
+p4 <- seasonal_ann_cum %>%
+  #mutate(season_stack = fct_reorder(season, desc(NEE_cum)))%>%
+  filter(na_nee_prop<0.25 | is.na(na_nee_prop)) %>%
+  ggplot(., aes(season,NEE_cum,fill=season))+
+  geom_boxplot()+
+  geom_hline(yintercept=0)+
+  labs(y=expression("Seasonal NEE (gC" *m^-2*")"), x="Season")+
+  scale_fill_manual(values = season_cols) +
+  coord_flip()+
+  theme_bw(base_size = 16)
+
+# save
+ggsave(plot=p4+ theme(legend.position = "none",
+                      axis.title.y = element_blank()), filename="Fig_NEE_seasonal_box.pdf", path=figpath, width=5, height=3, units="in", scale=0.78)
+
+
+# NEE/day seasonal boxplot
+seasonal_ann_cum %>%
+  #mutate(season_stack = fct_reorder(season, desc(NEE_cum)))%>%
+  filter(na_nee_prop<0.25 | is.na(na_nee_prop)) %>%
+  ggplot(., aes(season,NEE_cum/seasonlength,fill=season))+
+  geom_boxplot()+
+  geom_hline(yintercept=0)
+
+
+# ET stack seasonal bars
+seasonal_ann_cum %>%
+  mutate(season_stack = fct_reorder(season, desc(ET_cum)))%>%
+  filter(na_et_prop<0.25 | is.na(na_et_prop)) %>%
+  ggplot(., aes(factor(Hydroyear),ET_cum,fill=season))+
+  geom_col(stat="identity")+
+  coord_flip()
+
+# ET seasonal boxplot
+seasonal_ann_cum %>%
+  #mutate(season_stack = fct_reorder(season, desc(NEE_cum)))%>%
+  #filter((NA.count.nee<36 | is.na(NA.count.nee)) & Hydroyear<2026) %>%
+  filter(na_et_prop<0.25 | is.na(na_et_prop)& Hydroyear<2026) %>%
+  ggplot(., aes(season,ET_cum,fill=season))+
+  geom_boxplot()+
+  coord_flip()
+
+# precip stack seasonal bars
+p8 <- seasonal_ann_cum %>%
+  #mutate(season_stack = fct_reorder(season, desc(NEE_cum)))%>%
+  #filter((NA.count.nee<36 | is.na(NA.count.nee)) & Hydroyear<2026) %>%
+  #filter((na_precip_prop<0.25 | is.na(na_precip_prop)) & Hydroyear<2026) %>%
+  filter((Hydroyear>2011 & Hydroyear<2026)) %>%
+  ggplot(., aes(Hydroyear,precip_cum,fill=season))+
+  geom_col(stat="identity")+
+  geom_hline(yintercept=240, linetype="dashed", color="grey40", linewidth=0.6)+
+  xlim(c(2009,2026))+
+  labs(x="Hydrological Year", y="Total Rainfall (mm)")+
+  scale_fill_manual(values = season_cols, name="Season") +
+  coord_flip()+
+  theme_bw(base_size = 20)+
+  theme(
+    # Direction: Negative length forces ticks inside the plot area
+    axis.ticks.length = unit(-0.15, "cm"),
+    
+    # Padding: Push text away from the new inward ticks to avoid overlap
+    axis.text.x = element_text(margin = margin(t = 0.3, unit = "cm")),
+    axis.text.y = element_text(margin = margin(r = 0.3, unit = "cm"))
+  )
+
+# plot NEE vs precip and ET side-by-side
+p8_9 <- plot_grid(p8 + theme(legend.position="none"),
+                     p9+ theme(legend.position="none", axis.title.y=element_blank(), axis.text.y=element_blank()),
+                     ncol=2,
+                     align="h")
+
+# save
+ggsave(plot=p8_9, filename="Fig_rain_nee_season_stack.pdf", path=figpath, width=14, height=7, units="in", scale=0.78)
+
+
+# add annual NEE as third panel
+p8_9_10 <- plot_grid(p8 + theme(legend.position="none"),
+                  p9+ theme(legend.position="none", axis.title.y=element_blank(), axis.text.y=element_blank()),
+                  p10+ coord_flip() +theme(legend.position="none", axis.title.y=element_blank(), axis.text.y=element_blank()),
+                  ncol=3,
+                  align="h")
+
+# save
+ggsave(plot=p8_9_10, filename="Fig_rain_nee_season_stack_annual.pdf", path=figpath, width=28, height=14, units="in", scale=0.5)
+
+# precip seasonal boxplot
+p5 <- seasonal_ann_cum %>%
+  #mutate(season_stack = fct_reorder(season, desc(NEE_cum)))%>%
+  #filter((NA.count.nee<36 | is.na(NA.count.nee)) & Hydroyear<2026) %>%
+  filter(na_precip_prop<0.25 | is.na(na_precip_prop)& Hydroyear<2026) %>%
+  ggplot(., aes(season,precip_cum,fill=season))+
+  geom_boxplot()+
+  labs(y="Seasonal Rainfall (mm)", x="Season")+
+  scale_fill_manual(values = season_cols) +
+  coord_flip()+
+  theme_bw(base_size = 16)
+
+
+# save
+ggsave(plot=p5+ theme(legend.position = "none",
+                      axis.title.y = element_blank()), filename="Fig_precip_seasonal_box.pdf", path=figpath, width=5, height=3, units="in", scale=0.78)
+
+
+
+# look at relationship between annual and seasonal cumulative
+ggplot(seasonal_ann_cum[(NA.count.nee<36 | is.na(NA.count.nee)) & Hydroyear<2026,],aes(ET_cum/seasonlength, NEE_cum.ann,color=season))+
+  geom_point()+
+  geom_hline(yintercept=0)+
+  geom_smooth(method="lm")
+
+ggplot(seasonal_ann_cum[(NA.count.nee<36 | is.na(NA.count.nee)) & Hydroyear<2026,],aes(precip_cum, NEE_cum.ann,color=season))+
+  geom_point()+
+  geom_hline(yintercept=0)+
+  geom_smooth(method="lm")
+
+# seasonal precip and annual ET
+ggplot(seasonal_ann_cum[(NA.count.et<36 | is.na(NA.count.et)) & Hydroyear<2026,],aes(precip_cum, ET_cum.ann,,color=season))+
+  geom_point()+
+  geom_hline(yintercept=0)+
+  geom_smooth(method="lm")
+
+# look at relationship within seasonal cumulative
+# ET, NEE
+p7 <- ggplot(seasonal_ann_cum[na_nee_prop<0.25 | is.na(na_nee_prop),],aes(ET_cum, NEE_cum))+
+  geom_abline(intercept = mod.seas.et.intercept, slope = mod.seas.et.slope, color="#C8A165", 
+              size=0.7)+
+  geom_point(aes(color=season, fill=season), size=4, shape=21)+
+  geom_hline(yintercept=0)+
+  scale_fill_manual(values=season_cols, name="Season")+
+  scale_color_manual(values=season_outline, name="Season")+
+  labs(y=expression("Seasonal NEE (gC" *m^-2*")"), x="Seasonal ET (mm)")+
+  theme_bw(base_size=22)+
+  theme(
+    # Direction: Negative length forces ticks inside the plot area
+    axis.ticks.length = unit(-0.15, "cm"),
+    
+    # Padding: Push text away from the new inward ticks to avoid overlap
+    axis.text.x = element_text(margin = margin(t = 0.3, unit = "cm")),
+    axis.text.y = element_text(margin = margin(r = 0.3, unit = "cm"))
+  )
+
+# precip, NEE
+p6 <- ggplot(seasonal_ann_cum[na_nee_prop<0.25 | is.na(na_nee_prop),],aes(precip_cum, NEE_cum))+
+  geom_point(aes(color=season, fill=season), size=4, shape=21)+
+  geom_hline(yintercept=0)+
+  scale_fill_manual(values=season_cols, name="Season")+
+  scale_color_manual(values=season_outline, name="Season")+
+  labs(y=expression("Seasonal NEE (gC" *m^-2*")"), x="Seasonal Rainfall (mm)")+
+  theme_bw(base_size=22)+
+  theme(
+    # Direction: Negative length forces ticks inside the plot area
+    axis.ticks.length = unit(-0.15, "cm"),
+    
+    # Padding: Push text away from the new inward ticks to avoid overlap
+    axis.text.x = element_text(margin = margin(t = 0.3, unit = "cm")),
+    axis.text.y = element_text(margin = margin(r = 0.3, unit = "cm"))
+  )
+
+# plot NEE vs precip and ET side-by-side
+p6_7 <- grid.arrange(p6 + theme(legend.position="none"),
+                     p7+ theme(legend.position="none", axis.title.y=element_blank(), axis.text.y=element_blank()),
+                     ncol=2)
+
+ggsave(plot=p6_7, filename="Fig_NEE_water_regressions.pdf", path=figpath, width=14, height=7, units="in", scale=0.78)
+
+
+# number of raining days, NEE
+ggplot(seasonal_ann_cum[na_nee_prop<0.25 | is.na(na_nee_prop),],aes(day.count.precip.s, NEE_cum,color=season))+
+  geom_point()+
+  geom_hline(yintercept=0)+
+  geom_smooth(method="lm")
+
+
+# precip, ET
+ggplot(seasonal_ann_cum[na_et_prop<0.25 | is.na(na_et_prop) & (na_precip_prop<0.25 | is.na(na_precip_prop)),],
+       aes(precip_cum, ET_cum))+
+  geom_point(aes(color=season))+
+  geom_abline(intercept=0,slope=1)+
+  lims(x=c(0,225), y=c(0,160))+
+  scale_color_manual(values = season_cols) +
+  theme_bw(base_size = 16)
+  
+
+# precip, ET ...  filter by (precip_cum-ET_cum)/precip_cum) >.-5
+ggplot(seasonal_ann_cum[na_et_prop<0.25 | is.na(na_et_prop) & (na_precip_prop<0.25 | is.na(na_precip_prop)) &
+                          ((precip_cum-ET_cum)/precip_cum)>(-5),],aes(precip_cum, ET_cum))+
+  geom_point(aes(color=season))+
+  geom_abline(intercept=0,slope=1)+
+  lims(x=c(0,400),y=c(0,400))
+
+# annual precip and NEE
+p11 <- ggplot(annual_cum[(NA.count.nee<36 | is.na(NA.count.nee)) & Hydroyear<2026,],
+              aes(precip_cum.ann, NEE_cum.ann, color=source_sink))+
+  geom_point()+
+  geom_hline(yintercept = 0,
+             linewidth = 0.5,
+             color = "grey40") +
+  geom_vline(xintercept=240,, linetype="dashed", color="grey40", linewidth=0.6)+
+  geom_abline(intercept = mod.ann.precip.intercept, slope = mod.ann.precip.slope, 
+              size=0.7)+
+  scale_color_manual(values = c("Sink" = "green4", "Source" = "salmon4"), name="") +
+  labs(y=expression("Annual NEE (gC" *m^-2*")"), x="Total Rainfall (mm)")+
+  theme_bw(base_size=20)+
+  theme(
+    # Direction: Negative length forces ticks inside the plot area
+    axis.ticks.length = unit(-0.15, "cm"),
+    
+    # Padding: Push text away from the new inward ticks to avoid overlap
+    axis.text.x = element_text(margin = margin(t = 0.3, unit = "cm")),
+    axis.text.y = element_text(margin = margin(r = 0.3, unit = "cm"))
+  )
+
+
+# annual ET and NEE
+p12 <- ggplot(annual_cum[(NA.count.nee<36 | is.na(NA.count.nee)) & Hydroyear<2026,],
+              aes(ET_cum.ann, NEE_cum.ann, color=source_sink))+
+  geom_point()+
+  geom_hline(yintercept = 0,
+             linewidth = 0.5,
+             color = "grey40") +
+  labs(y=expression("Annual NEE (gC" *m^-2*")"), x="Total ET (mm)")+
+  scale_color_manual(values = c("Sink" = "green4", "Source" = "salmon4"), name="") +
+  theme_bw(base_size=20)+
+  theme(
+    # Direction: Negative length forces ticks inside the plot area
+    axis.ticks.length = unit(-0.15, "cm"),
+    
+    # Padding: Push text away from the new inward ticks to avoid overlap
+    axis.text.x = element_text(margin = margin(t = 0.3, unit = "cm")),
+    axis.text.y = element_text(margin = margin(r = 0.3, unit = "cm"))
+  )
+
+p11_12 <- plot_grid(p11 + theme(legend.position="none"),
+                    p12+ theme(legend.position="none", axis.title.y=element_blank(), axis.text.y=element_blank()),
+                    ncol=2,
+                    align="h")
+
+# save
+ggsave(plot=p11_12, filename="Fig_water_nee_annual.pdf", path=figpath, width=14, height=7, units="in", scale=0.78)
+
+
+# save seasonal NEE/rain and annual NEE/rain
+p6_11 <- plot_grid(p6 + theme(legend.position="none"),
+                    p11+ theme(legend.position="none"),
+                    ncol=2,
+                    align="h")
+
+# save
+ggsave(plot=p6_11, filename="Fig_rain_nee_regress.pdf", path=figpath, width=14, height=7, units="in", scale=0.78)
+
+
+# STATS! 
+
+# Compare NEE variance between seasons
+# NEE seasonal boxplot
+seasonal_ann_cum %>%
+  #mutate(season_stack = fct_reorder(season, desc(NEE_cum)))%>%
+  filter(na_nee_prop<0.25 | is.na(na_nee_prop)) %>%
+  ggplot(., aes(season,NEE_cum,fill=season))+
+  geom_boxplot()+
+  geom_hline(yintercept=0)+
+  coord_flip()
+
+
+# Levene's test for variance,  does not assume homoscedascity
+seasonal_ann_cum %>% 
+  filter(na_nee_prop<0.25 | is.na(na_nee_prop)) %>%
+rstatix::levene_test(NEE_cum ~ season)
+
+
+# Welch one-way ANOVA + Games-Howell post-hoc (no equal-variance assumption)
+# https://www.datanovia.com/learn/biostatistics/anova/anova-in-r
+res.aov.seas.nee <- seasonal_ann_cum %>% 
+  filter(na_nee_prop<0.25 | is.na(na_nee_prop)) %>%
+  welch_anova_test(NEE_cum ~ season)
+pwc.seas.nee <- seasonal_ann_cum %>% 
+  filter(na_nee_prop<0.25 | is.na(na_nee_prop)) %>%
+  games_howell_test(NEE_cum ~ season) %>%
+  add_xy_position(x = "group", step.increase = 1)
+
+# Compare precip variance between seasons
+# NEE seasonal boxplot
+seasonal_ann_cum %>%
+  #mutate(season_stack = fct_reorder(season, desc(NEE_cum)))%>%
+  filter(na_precip_prop<0.25 | is.na(na_precip_prop)) %>%
+  ggplot(., aes(season,precip_cum,fill=season))+
+  geom_boxplot()+
+  geom_hline(yintercept=0)+
+  coord_flip()
+
+
+# Levene's test for variance,  does not assume homoscedascity
+seasonal_ann_cum %>% 
+  filter(na_precip_prop<0.25 | is.na(na_precip_prop)) %>%
+  rstatix::levene_test(precip_cum ~ season)
+
+res.aov.seas.precip <- seasonal_ann_cum %>% 
+  filter(na_precip_prop<0.25 | is.na(na_precip_prop)) %>%
+  welch_anova_test(precip_cum ~ season)
+pwc.seas.precip <- seasonal_ann_cum %>% 
+  filter(na_precip_prop<0.25 | is.na(na_precip_prop)) %>%
+  games_howell_test(precip_cum ~ season) %>%
+  add_xy_position(x = "group", step.increase = 1)
+
+
+# Stats for seasonal water relatiionship: precip and ET
+mod.seas.precip <- lm(NEE_cum ~ precip_cum*season, data=seasonal_ann_cum[na_nee_prop<0.25 | is.na(na_nee_prop),])
+
+# extract residuals
+mod.seas.precip.res <- resid(mod.seas.precip)
+# produce residual vs. fitted plot
+plot(fitted(mod.seas.precip), mod.seas.precip.res)
+# add a horizontal line at 0 
+abline(0,0)
+
+# create Q-Q plot for residuals
+qqnorm(mod.seas.precip.res)
+# add a straight diagonal line 
+# to the plot
+qqline(mod.seas.precip.res) 
+
+# density
+plot(density(mod.seas.precip.res))
+
+# model output
+summary(mod.seas.precip)
+
 
 # ET
-ggplot(seasonal_cum, aes(factor(Hydroyear),ET_cum))+
-  geom_col(stat="identity")+
-  facet_grid(.~season)
+# Stats for seasonal water relatiionship: precip and ET
+mod.seas.et <- lm(NEE_cum ~ ET_cum*season, data=seasonal_ann_cum[na_et_prop<0.25 | is.na(na_et_prop),])
 
-# precip
-ggplot(seasonal_cum, aes(factor(Hydroyear),precip_cum))+
-  geom_col(stat="identity")+
-  facet_grid(.~season)
+# extract residuals
+mod.seas.et.res <- resid(mod.seas.et)
+# produce residual vs. fitted plot
+plot(fitted(mod.seas.et), mod.seas.et.res)
+# add a horizontal line at 0 
+abline(0,0)
+
+# create Q-Q plot for residuals
+qqnorm(mod.seas.et.res)
+# add a straight diagonal line 
+# to the plot
+qqline(mod.seas.et.res) 
+
+# density
+plot(density(mod.seas.et.res))
+
+# model output
+summary(mod.seas.et)
+
+# get regression line for ET/NEE in Pre-monsoon
+#get intercept and slope value
+mod.seas.et.coeff<-coefficients(mod.seas.et)          
+mod.seas.et.intercept<-mod.seas.et.coeff[1]+mod.seas.et.coeff[3]
+mod.seas.et.slope<- mod.seas.et.coeff[2]+mod.seas.et.coeff[6]
+
+
+# compare ET and precip models
+AICc(mod.seas.precip, mod.seas.et)
+
+# Stats for annual water relatiionship: NEE and precip
+mod.ann.precip <- lm(NEE_cum.ann ~ precip_cum.ann, data=annual_cum[(NA.count.nee<36 | is.na(NA.count.nee)) &  Hydroyear<2026,])
+
+# extract residuals
+mod.ann.precip.res <- resid(mod.ann.precip)
+# produce residual vs. fitted plot
+plot(fitted(mod.ann.precip), mod.ann.precip.res)
+# add a horizontal line at 0 
+abline(0,0)
+
+# create Q-Q plot for residuals
+qqnorm(mod.ann.precip.res)
+# add a straight diagonal line 
+# to the plot
+qqline(mod.ann.precip.res) 
+
+# density
+plot(density(mod.ann.precip.res))
+
+# model output
+summary(mod.ann.precip)
+
+# get regression line for annual precip/NEE
+#get intercept and slope value
+mod.ann.precip.coeff<-coefficients(mod.ann.precip)          
+mod.ann.precip.intercept<-mod.ann.precip.coeff[1]
+mod.ann.precip.slope<- mod.ann.precip.coeff[2]
+
+# Stats for annual water relatiionship: NEE and ET
+mod.ann.et <- lm(NEE_cum.ann ~ ET_cum.ann, data=annual_cum[(NA.count.nee<36 | is.na(NA.count.nee)) &  Hydroyear<2026,])
+
+# extract residuals
+mod.ann.et.res <- resid(mod.ann.et)
+# produce residual vs. fitted plot
+plot(fitted(mod.ann.et), mod.ann.et.res)
+# add a horizontal line at 0 
+abline(0,0)
+
+# create Q-Q plot for residuals
+qqnorm(mod.ann.et.res)
+# add a straight diagonal line 
+# to the plot
+qqline(mod.ann.et.res) 
+
+# density
+plot(density(mod.ann.et.res))
+
+# model output
+summary(mod.ann.et)
+
+# compare ET and precip models
+AICc(mod.ann.precip, mod.ann.et)
+
+
